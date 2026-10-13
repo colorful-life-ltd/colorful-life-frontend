@@ -1,6 +1,6 @@
 import { useRef, useState, type FormEvent } from 'react'
 import { AuthApiError } from '../../features/auth/api'
-import { capturedResetToken, forgetResetToken, isInvalidResetToken, passwordRuleFailure, submitPasswordReset } from '../../features/auth/passwordReset'
+import { capturedResetToken, forgetResetToken, isInvalidResetToken, MAX_PASSWORD_BYTES, passwordPolicyError, submitPasswordReset } from '../../features/auth/passwordReset'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
 import '../checkout/Checkout.css'
 import './AccountExperience.css'
@@ -28,8 +28,8 @@ export function ResetPassword({ onSignIn, onRequestNewLink }: { onSignIn: () => 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (saving.current) return
-    const failedRule = passwordRuleFailure(password)
-    if (failedRule) return fieldError(NEW_ID, `Your password needs ${failedRule}.`)
+    const policyError = passwordPolicyError(password)
+    if (policyError) return fieldError(NEW_ID, policyError)
     if (password !== confirmation) return fieldError(CONFIRM_ID, 'Your passwords do not match.')
     saving.current = true
     setError(undefined)
@@ -63,7 +63,7 @@ export function ResetPassword({ onSignIn, onRequestNewLink }: { onSignIn: () => 
     {phase === 'invalid' && <p role="alert">This reset link is invalid, has expired, or has already been used.</p>}
     {(phase === 'missing' || phase === 'invalid') && <button onClick={onRequestNewLink}>Request a new link</button>}
     {(phase === 'editing' || phase === 'saving') && <>
-      <p id={REQUIREMENTS_ID}>Your new password needs at least 8 characters, with an uppercase letter, a lowercase letter, a digit and a special character.</p>
+      <p id={REQUIREMENTS_ID}>Your new password needs at least 8 characters, with an uppercase letter, a lowercase letter, a digit and a special character. It can be up to {MAX_PASSWORD_BYTES} bytes long; accented letters, symbols and emoji use more than one byte.</p>
       {error && <p id={ERROR_ID} className="account-form__message account-form__message--error" role="alert">{error.message}</p>}
       <form className="account-form" aria-label="Choose a new password" onSubmit={submit} noValidate>
         <div className="account-form__fields">

@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AccountForms, AccountView, ForgotPasswordView } from './AccountForms'
 import { ResetPassword } from './ResetPassword'
-import { capturedResetToken, captureResetToken, forgetResetToken } from '../../features/auth/passwordReset'
+import { capturedResetToken, captureResetToken, clearResetRequestCooldown, forgetResetToken } from '../../features/auth/passwordReset'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const GENERIC = 'If an account exists for that email, we’ve sent a password reset link.'
@@ -34,6 +34,7 @@ beforeEach(() => {
   fetchMock = vi.fn(() => respond(200, { message: 'If an account exists, a password reset email has been sent' }))
   vi.stubGlobal('fetch', fetchMock)
   forgetResetToken()
+  clearResetRequestCooldown()
 })
 afterEach(async () => { await act(async () => root?.unmount()); document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.restoreAllMocks(); history.replaceState(null, '', '/') })
 
@@ -65,6 +66,7 @@ describe('Password reset request', () => {
     const confirmations: string[] = []
     for (const body of [{ message: 'If an account exists, a password reset email has been sent' }, {}, { debug: 'unknown account' }]) {
       fetchMock.mockImplementationOnce(() => respond(200, body))
+      clearResetRequestCooldown()
       await mount(<ForgotPasswordView onBack={vi.fn()} />)
       await type('#account-forgot-email', 'someone@example.com')
       await submit()
@@ -89,7 +91,7 @@ describe('Password reset request', () => {
 
   it.each([
     [500, 'We couldn’t send your request. Please try again.'],
-    [429, 'Too many requests. Please wait a few minutes and try again.'],
+    [429, 'Too many reset requests. Please wait a while before trying again.'],
   ])('keeps the form available after HTTP %s without revealing account details', async (status, message) => {
     fetchMock.mockImplementationOnce(() => respond(status, { error: 'internal detail for someone@example.com' }))
     await mount(<ForgotPasswordView onBack={vi.fn()} />)

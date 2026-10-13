@@ -152,6 +152,8 @@
   text-underline-offset: 3px;
   cursor: pointer;
 }
+.account-form__cooldown { min-height: 1.5em; margin: 12px 0 0; font-size: 14px; color: #69614f; }
+.account-form__cooldown:empty { min-height: 0; margin: 0; }
 .account-form__forgot:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
 .account-form__submit:focus-visible, .account-experience__switch button:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
 .account-experience__switch { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #e5ddc8; font-size: 14px; line-height: 1.7; color: #69614f; }

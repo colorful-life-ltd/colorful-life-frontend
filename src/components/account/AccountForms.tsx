@@ -3,7 +3,7 @@ import cottage from '../../assets/illustrations/opening-welcome-illustration.png
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError } from '../../features/auth/api'
-import { passwordRuleFailure, requestPasswordReset } from '../../features/auth/passwordReset'
+import { passwordPolicyError, requestPasswordReset, RESET_REQUEST_COOLDOWN_SECONDS, resetRequestCooldownSeconds, startResetRequestCooldown } from '../../features/auth/passwordReset'
 import './AccountExperience.css'
 import { VerificationNotice } from './VerificationNotice'
 
@@ -118,10 +118,36 @@ export function ForgotPasswordView({ initialEmail = '', onBack }: { initialEmail
   const [error, setError] = useState<{ message: string; field: boolean }>()
   const sending = useRef(false)
   const confirmation = useRef<HTMLParagraphElement>(null)
-  useEffect(() => { if (phase === 'sent') confirmation.current?.focus() }, [phase])
+  const [cooldown, setCooldown] = useState(() => resetRequestCooldownSeconds())
+  // Announced once when a cooldown starts and once when it ends, never on every tick.
+  const [announcement, setAnnouncement] = useState(() => cooldown > 0 ? `You can request another link in ${cooldown} seconds.` : '')
+  const cooling = cooldown > 0
+  const returningToForm = useRef(false)
+  useEffect(() => {
+    if (phase === 'sent') confirmation.current?.focus()
+    if (phase === 'editing' && returningToForm.current) {
+      returningToForm.current = false
+      document.getElementById('account-forgot-email')?.focus()
+    }
+  }, [phase])
+  useEffect(() => {
+    if (!cooling) return
+    const timer = window.setInterval(() => {
+      const remaining = resetRequestCooldownSeconds()
+      setCooldown(remaining)
+      if (remaining === 0) setAnnouncement('You can request another link now.')
+    }, 1000)
+    return () => window.clearInterval(timer)
+  }, [cooling])
+  const beginCooldown = () => {
+    startResetRequestCooldown()
+    setCooldown(RESET_REQUEST_COOLDOWN_SECONDS)
+    setAnnouncement(`You can request another link in ${RESET_REQUEST_COOLDOWN_SECONDS} seconds.`)
+  }
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (sending.current) return
+    // One request at a time, and none during the courtesy cooldown.
+    if (sending.current || resetRequestCooldownSeconds() > 0) return
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.trim())) {
       setError({ message: 'Enter a valid email address.', field: true })
       document.getElementById('account-forgot-email')?.focus()
@@ -132,11 +158,17 @@ export function ForgotPasswordView({ initialEmail = '', onBack }: { initialEmail
     setPhase('sending')
     try {
       await requestPasswordReset(address)
+      beginCooldown()
       setPhase('sent')
     } catch (reason) {
       setPhase('editing')
-      setError(reason instanceof AuthApiError && reason.status === 400 ? { message: 'Enter a valid email address.', field: true }
-        : { message: reason instanceof AuthApiError && reason.status === 429 ? 'Too many requests. Please wait a few minutes and try again.' : 'We couldn’t send your request. Please try again.', field: false })
+      const status = reason instanceof AuthApiError ? reason.status : undefined
+      if (status === 429) beginCooldown()
+      // None of these messages depend on whether the account exists.
+      setError(status === 400 ? { message: 'Enter a valid email address.', field: true }
+        : status === 429 ? { message: 'Too many reset requests. Please wait a while before trying again.', field: false }
+          : status === 503 ? { message: 'Password reset is temporarily unavailable. Please try again in a few minutes.', field: false }
+            : { message: 'We couldn’t send your request. Please try again.', field: false })
     } finally {
       sending.current = false
     }
@@ -151,9 +183,15 @@ export function ForgotPasswordView({ initialEmail = '', onBack }: { initialEmail
           <h2 id="account-task-title" tabIndex={-1}>Forgot your password?</h2>
           <p>Enter your account email and we’ll send you a link to choose a new password.</p>
         </header>
-        {phase === 'sent' ? <p ref={confirmation} tabIndex={-1} className="account-form__message account-form__message--success" role="status">
-          If an account exists for that email, we’ve sent a password reset link. It expires in 1 hour. Please check your inbox and spam folder.
-        </p> : <>
+        {phase === 'sent' ? <>
+          <p ref={confirmation} tabIndex={-1} className="account-form__message account-form__message--success" role="status">
+            If an account exists for that email, we’ve sent a password reset link. It expires in 1 hour. Please check your inbox and spam folder.
+          </p>
+          <button className="account-form__submit" type="button" disabled={cooldown > 0} aria-describedby="account-forgot-cooldown"
+            onClick={() => { returningToForm.current = true; setPhase('editing') }}>
+            {cooldown > 0 ? `Send another link in ${cooldown}s` : 'Send another link'}
+          </button>
+        </> : <>
           {error && <p id="account-forgot-error" className="account-form__message account-form__message--error" role="alert">{error.message}</p>}
           <form className="account-form" aria-labelledby="account-task-title" onSubmit={submit} noValidate>
             <div className="account-form__fields">
@@ -166,9 +204,12 @@ export function ForgotPasswordView({ initialEmail = '', onBack }: { initialEmail
                 </span>
               </div>
             </div>
-            <button className="account-form__submit" type="submit" disabled={phase === 'sending'}>{phase === 'sending' ? 'Please wait…' : 'Send reset link'}</button>
+            <button className="account-form__submit" type="submit" disabled={phase === 'sending' || cooldown > 0} aria-describedby={cooldown > 0 ? 'account-forgot-cooldown' : undefined}>
+              {phase === 'sending' ? 'Please wait…' : cooldown > 0 ? `Send reset link in ${cooldown}s` : 'Send reset link'}
+            </button>
           </form>
         </>}
+        <p id="account-forgot-cooldown" className="account-form__cooldown" aria-live="polite">{announcement}</p>
         <p className="account-experience__switch">
           Remembered it?{' '}
           <button type="button" onClick={onBack}>Sign In<span aria-hidden="true"> →</span></button>
@@ -206,8 +247,8 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
     if (!current.email.trim()) return setFormError('Enter your email address.')
     if (!current.password) return setFormError('Enter your password.')
     if (mode === 'create') {
-      const failedRule = passwordRuleFailure(current.password)
-      if (failedRule) return setFormError(`Your password needs ${failedRule}.`)
+      const policyError = passwordPolicyError(current.password)
+      if (policyError) return setFormError(policyError)
       if (current.password !== current.confirmPassword) return setFormError('Your passwords do not match.')
     }
     setFormError(undefined)

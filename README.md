@@ -210,12 +210,27 @@ it, the HTML parser's own JS and CSS requests carried the full reset URL to the
 static host. Cross-origin requests such as Stripe.js already received only the
 origin, so checkout is unchanged.
 
+While a request is pending, the form sends nothing further. After the generic
+confirmation, or a 429, a 60-second countdown disables "Send another link".
+The countdown is visible on the button, and a polite live region announces when
+it starts and ends. It is kept in this tab's memory and survives closing and
+reopening the form. It is a courtesy, not a security control: the backend's
+PostgreSQL rate limits are authoritative. A 503 shows a temporary-outage
+message and allows an immediate retry. No message depends on whether the
+account exists.
+
 The emailed `/reset-password?token=...` link is handled by
 `src/features/auth/captureResetToken.ts`, imported first in `main.tsx`. Before
 React or any other module runs, it moves the token into memory, removes it from
 the address bar and history entry, and sets `no-referrer` and `noindex` on the
 page. The token is never written to browser storage. Reloading the cleaned page
 needs the email link again, as with email verification.
+
+New passwords, at registration and reset, follow the backend policy: at least 8
+characters, mixed case, a digit, a special character, and at most **72 UTF-8
+bytes**. The byte limit is measured with `TextEncoder`, so accented letters,
+symbols and emoji count as several bytes. Sign-in never applies these rules, so
+older passwords keep working.
 
 The page enforces the signup password rules locally, then calls
 `POST /auth/reset-password` with `{ token, newPassword }`. A
