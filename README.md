@@ -196,3 +196,86 @@ checked before replaying the identical order request. Once replay starts, any
 new ambiguous response uses the existing recovery UX with the same key.
 Frontend tests and browser smoke checks mock verification/resend; real SES
 email delivery remains entirely in the unchanged backend.
+
+## Password recovery (Issue #58)
+
+Sign In offers **Forgot password?**, which opens a request form in the account
+modal. `POST /auth/forgot-password` always ends in the same confirmation, so the
+storefront never reveals whether an account exists. Network failures and rate
+limiting (429) are reported without account details.
+
+`index.html` sets `<meta name="referrer" content="strict-origin">` before any
+asset, so no request ever sends a path or query string as its referrer. Without
+it, the HTML parser's own JS and CSS requests carried the full reset URL to the
+static host. Cross-origin requests such as Stripe.js already received only the
+origin, so checkout is unchanged.
+
+While a request is pending, the form sends nothing further. After the generic
+confirmation, or a 429, a 60-second countdown disables "Send another link".
+The countdown is visible on the button, and a polite live region announces when
+it starts and ends. It is kept in this tab's memory and survives closing and
+reopening the form. It is a courtesy, not a security control: the backend's
+PostgreSQL rate limits are authoritative. A 503 shows a temporary-outage
+message and allows an immediate retry. No message depends on whether the
+account exists.
+
+The emailed `/reset-password?token=...` link is handled by
+`src/features/auth/captureResetToken.ts`, imported first in `main.tsx`. Before
+React or any other module runs, it moves the token into memory, removes it from
+the address bar and history entry, and sets `no-referrer` and `noindex` on the
+page. The token is never written to browser storage. Reloading the cleaned page
+needs the email link again, as with email verification.
+
+New passwords, at registration and reset, follow the backend policy: at least 8
+characters, mixed case, a digit, a special character, and at most **72 UTF-8
+bytes**. The byte limit is measured with `TextEncoder`, so accented letters,
+symbols and emoji count as several bytes. Sign-in never applies these rules, so
+older passwords keep working.
+
+The page enforces the signup password rules locally, then calls
+`POST /auth/reset-password` with `{ token, newPassword }`. A
+backend "Invalid or expired password reset token" response forgets the token and
+offers a new link. Password rejections and outages keep the link usable for
+retry. After success, this browser is signed out and the normal Sign In form
+opens, so the new password is used next.
+
+`/reset-password` and `/reset-password/` are the same route for both token
+capture and rendering (`isResetPasswordPath`).
+
+### Production hosting requirements for `/reset-password`
+
+The emailed link's first request, `GET /reset-password?token=...`, reaches the
+host before any JavaScript runs, so these are deployment requirements, not
+optional hardening:
+
+1. **SPA fallback.** Serve `index.html` for `/reset-password` and
+   `/reset-password/`. A host 404 page could load third-party assets under its
+   own referrer policy and leak the token.
+2. **`Referrer-Policy: no-referrer`** response header for that path. It is in
+   force before the HTML is parsed, ahead of the page's own meta tags.
+3. **`X-Robots-Tag: noindex`** response header for that path.
+4. **`Cache-Control: no-store`** for that path. CDNs must not cache it, or must
+   ignore the query string in the cache key, so each token never becomes a
+   cache entry.
+5. **Keep reset tokens out of access logs.** Strip or redact the query string
+   for `/reset-password` in web server, CDN, load-balancer and APM logs.
+6. **No token-bearing redirects.** Serve the link directly over HTTPS at the
+   exact `FRONTEND_URL` origin. HTTP→HTTPS, `www`, or trailing-slash redirects
+   would repeat the token in `Location` headers and add more log entries.
+   Configure `FRONTEND_URL` as the final canonical origin.
+
+The browser's own history database still records the visited URL. Single use
+and the one-hour expiry limit that exposure. Moving the token into a URL
+fragment would need a backend change.
+
+### Keep these protections when merging other work
+
+- The early `<meta name="referrer" content="strict-origin">` must stay directly
+  after `<meta charset>` in `index.html`, before every script and stylesheet. A
+  test enforces this ordering.
+- **Issue #56 (SEO head management) must add `/reset-password` to
+  `isPrivatePath`.** Its head manager updates the first `robots` meta tag. Without
+  that rule it would overwrite the reset page's `noindex,nofollow` with
+  `index,follow` and add a canonical. `resetPasswordRoute.test.tsx` asserts that
+  every robots tag on the rendered reset page stays `noindex,nofollow`; that test
+  fails if the merge regresses it.

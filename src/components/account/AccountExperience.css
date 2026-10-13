@@ -88,6 +88,7 @@
 .account-form__fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 .account-form__message { margin: 0 0 16px; padding: 12px 14px; border-radius: 6px; font-size: 14px; line-height: 1.5; }
 .account-form__message--error { border: 1px solid #c98b78; background: #fff0e8; color: #7b3f32; }
+.account-form__message--success { border: 1px solid #9dbfb2; background: #eef7f2; color: #2f5a52; }
 .account-form__field { display: grid; grid-column: 1 / -1; gap: 7px; min-width: 0; font-size: 14px; font-weight: 600; }
 .account-form__field input {
   display: block;
@@ -137,6 +138,23 @@
 .account-modal__surface--hub { width: min(1180px, calc(100vw - 64px)); }
 .account-form__submit:disabled { opacity: .65; cursor: wait; }
 .account-form__submit:hover { background: #416b66; }
+.account-form__forgot {
+  display: block;
+  min-height: 44px;
+  margin: 8px 0 -12px auto;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: #3f6f68;
+  font: inherit;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.account-form__cooldown { min-height: 1.5em; margin: 12px 0 0; font-size: 14px; color: #69614f; }
+.account-form__cooldown:empty { min-height: 0; margin: 0; }
+.account-form__forgot:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
 .account-form__submit:focus-visible, .account-experience__switch button:focus-visible { outline: 2px solid #527f78; outline-offset: 4px; }
 .account-experience__switch { margin: 28px 0 0; padding-top: 22px; border-top: 1px solid #e5ddc8; font-size: 14px; line-height: 1.7; color: #69614f; }
 .account-experience__switch button {
@@ -341,3 +359,6 @@
   .verification-notice { padding: 32px 24px; }
   .verification-notice__actions { align-items: stretch; flex-direction: column; }
 }
+
+.reset-password .account-form { max-width: 420px; }
+.reset-password__show { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 8px; font-size: 14px; color: #69614f; cursor: pointer; }
