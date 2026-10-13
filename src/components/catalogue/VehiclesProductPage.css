@@ -25,6 +25,8 @@
 .vehicle-product--feature { display: flex; flex: 1; flex-direction: column; }
 .vehicle-product__art { display: block; width: 100%; object-fit: contain; }
 .vehicle-product__art-button { padding: 0; border: 0; background: transparent; cursor: pointer; }
+/* Product links keep the former button presentation. */
+a.vehicle-product__art-button { color: inherit; text-decoration: none; }
 .vehicle-product__art-button:focus-visible { outline: 2px solid #326993; outline-offset: 3px; border-radius: 4px; }
 .vehicle-product__art-button img { display: block; width: 100%; height: 100%; object-fit: contain; }
 /* Native alpha reveals BookShell's actual paper and gutter shading. No panel,
@@ -45,6 +47,8 @@
 .vehicle-product__price del { font: 12px 'Segoe UI', system-ui, sans-serif; color: #786b5e; }
 .vehicle-product__details { padding: 4px 0; border: 0; background: transparent; color: #6b5947; font: inherit; font-size: 13px; }
 .vehicle-product__details { cursor: pointer; }
+a.vehicle-product__details { display: inline-block; text-decoration: none; }
+.vehicle-product__sold-out { font: 600 14px/1.3 'Segoe UI', system-ui, sans-serif; color: #786b5e; }
 .vehicle-product__details:hover { text-decoration: underline; text-underline-offset: 4px; }
 .vehicle-product__details:focus-visible { outline: 2px solid #326993; outline-offset: 3px; }
 .product-details { padding: 10px; }

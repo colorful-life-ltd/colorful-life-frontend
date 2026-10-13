@@ -15,17 +15,21 @@ import { useCatalogueSearch } from '../../features/catalogue/useCatalogueSearch'
 import { useCategoryCatalogue } from '../../features/catalogue/useCategoryCatalogue'
 import type { CatalogueCategoriesState } from '../../features/catalogue/useCatalogueCategories'
 import './CategoryCatalogue.css'
-import type { CatalogueLeafletSide, CatalogueSpread } from './catalogueSpread'
-import { categoryLocation, categorySpreadIndex, isCategoryIndexSpread, normalizeProductLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
+import type { CatalogueLeafletSide, CatalogueSpread, DetailsLocation } from './catalogueSpread'
+import { categoryLocation, categorySpreadIndex, isCategoryIndexSpread, isProductDetails, normalizeProductLocation, productDetailsLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
 import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
-import type { ProductListingOffer } from '../../features/catalogue/api'
+import type { CatalogueProduct, ProductListingOffer } from '../../features/catalogue/api'
+import { useCatalogueProduct } from '../../features/catalogue/useCatalogueProduct'
+import { useRouteHead } from '../../features/seo/documentHead'
+import { catalogueRouteHead, siteOrigin } from '../../features/seo/routeHead'
+import { productBreadcrumbJsonLd, productJsonLd } from '../../features/seo/structuredData'
 
 export type { CatalogueSpread } from './catalogueSpread'
-type SearchDetails = { kind: 'search-details'; listingId: number }
+type SearchDetails = { kind: 'search-details'; productId: number }
 type PresentedSpread = CatalogueSpread | SearchDetails
 const isSearchDetails = (location: PresentedSpread): location is SearchDetails => typeof location !== 'string' && location.kind === 'search-details'
-const sameLocation = (a: PresentedSpread, b: PresentedSpread) => isSearchDetails(a) || isSearchDetails(b) ? isSearchDetails(a) && isSearchDetails(b) && a.listingId === b.listingId : sameSpread(a, b)
+const sameLocation = (a: PresentedSpread, b: PresentedSpread) => isSearchDetails(a) || isSearchDetails(b) ? isSearchDetails(a) && isSearchDetails(b) && a.productId === b.productId : sameSpread(a, b)
 
 type CatalogueProps = {
   spread: CatalogueSpread
@@ -75,16 +79,26 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const categorySpreadCount = Math.ceil(categoryPages.length / 2)
   const [turn, setTurn] = useState<{ direction: 'forward' | 'backward'; from: PresentedSpread; to: PresentedSpread } | null>(null)
   const search = useCatalogueSearch()
-  const [searchSession, setSearchSession] = useState<{ opener: HTMLElement | null; scrollTop: number; focusListingId?: number } | null>(null)
+  const [searchSession, setSearchSession] = useState<{ opener: HTMLElement | null; scrollTop: number; focusProductId?: number } | null>(null)
   const [searchVisible, setSearchVisible] = useState(false)
   const [searchDetails, setSearchDetails] = useState<SearchDetails | null>(null)
   const dataLocation = typeof spread !== 'string' ? spread : turn ? turn.to : spread
   const dataSpread = (isSearchDetails(dataLocation) ? spread : dataLocation) as CatalogueSpread
-  const origin = typeof dataSpread !== 'string' ? dataSpread.kind === 'details' ? dataSpread.returnTo : dataSpread : undefined
+  // A stable product URL without in-book context reads the product to find its collection.
+  const directProductId = isProductDetails(dataSpread) && !dataSpread.returnTo ? dataSpread.productId : undefined
+  const { state: directProductState } = useCatalogueProduct(directProductId)
+  const directProduct = directProductState.status === 'ready' ? directProductState.product : undefined
+  const directCategory = directProduct?.category ? resolvedCategories.find(category => category.backendId === directProduct.category!.id) : undefined
+  const origin = typeof dataSpread !== 'string' ? dataSpread.kind === 'details' ? dataSpread.returnTo ?? (directCategory && categoryLocation(directCategory.id, resolvedCategories)) : dataSpread : undefined
   const categoryOrigin = origin ? origin.kind === 'category' ? origin : categoryLocation(origin.slug, resolvedCategories) : undefined
   const categoryRecord = resolvedCategories.find(category => category.id === categoryOrigin?.slug)
   const { state: categoryState, retry: retryCategory } = useCategoryCatalogue(categoryRecord?.backendCategory, backendCategoriesState.status === 'ready')
   const products = categoryState.status === 'ready' ? categoryState.products : []
+  const detailsProduct = (location: DetailsLocation | SearchDetails): CatalogueProduct | undefined => {
+    if (location.kind === 'search-details') return search.state.status === 'results' ? search.state.data.items.find(item => item.id === location.productId) : undefined
+    if (!('productId' in location)) return products.find(item => item.offers.some(offer => offer.id === location.listingId))
+    return products.find(item => item.id === location.productId) ?? (directProduct?.id === location.productId ? directProduct : undefined)
+  }
   const [internalLeafletSide, setInternalLeafletSide] = useState<CatalogueLeafletSide | null>(null)
   const leafletSide = controlledLeafletSide === undefined ? internalLeafletSide : controlledLeafletSide
   const setLeaflet = (side: CatalogueLeafletSide | null, settled = true) => {
@@ -103,6 +117,23 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     const normalized = normalizeProductLocation(spread, productSpreads.length, resolvedCategories)
     if (!sameSpread(normalized, spread)) (onSpreadNormalize ?? onSpreadChange)(normalized)
   }, [categoryState.status, onSpreadChange, onSpreadNormalize, productSpreads.length, resolvedCategories, spread])
+  // Record in-book context for stable product URLs once known, or drop context that no longer contains the product.
+  const repairedProduct = useRef<number | null>(null)
+  useEffect(() => {
+    if (!isProductDetails(spread)) return
+    const normalize = onSpreadNormalize ?? onSpreadChange
+    if (!spread.returnTo && directCategory) normalize(productDetailsLocation(spread.productId, categoryLocation(directCategory.id, resolvedCategories)))
+    else if (spread.returnTo && categoryState.status === 'ready' && !categoryState.products.some(item => item.id === spread.productId) && repairedProduct.current !== spread.productId) {
+      repairedProduct.current = spread.productId
+      normalize(productDetailsLocation(spread.productId))
+    }
+  }, [categoryState, directCategory, onSpreadChange, onSpreadNormalize, resolvedCategories, spread])
+  const urlDetails = typeof spread !== 'string' && spread.kind === 'details' ? spread : undefined
+  const urlProduct = urlDetails ? detailsProduct(urlDetails) : undefined
+  const urlProductMissing = Boolean(urlDetails && !urlProduct && (isProductDetails(urlDetails) ? directProductState.status === 'missing' : categoryState.status === 'ready'))
+  const headOrigin = siteOrigin()
+  useRouteHead(catalogueRouteHead({ spread, open: true, categories: resolvedCategories, categoriesReady: backendCategoriesState.status === 'ready', product: urlProduct, productMissing: urlProductMissing }),
+    urlProduct && headOrigin ? [productJsonLd(urlProduct, headOrigin), productBreadcrumbJsonLd(urlProduct, resolvedCategories.find(category => category.backendId === urlProduct.category?.id), headOrigin)] : [])
   const locked = useRef(false)
   const unlockFrame = useRef<number | null>(null)
   useEffect(() => () => { if (unlockFrame.current !== null) cancelAnimationFrame(unlockFrame.current) }, [])
@@ -143,11 +174,16 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   }
   const pageContent = (location: PresentedSpread, side: 'left' | 'right') => {
     if (typeof location !== 'string') {
-      if (isSearchDetails(location)) return <CatalogueProductDetails side={side} product={search.state.status === 'results' ? search.state.data.items.find(item => item.offers.some(offer => offer.id === location.listingId)) : undefined} selectedOfferId={location.listingId} onAddToCart={onAddToCart} />
-      if (location.kind === 'details') return <CatalogueProductDetails side={side} product={products.find(item => item.offers.some(offer => offer.id === location.listingId))} selectedOfferId={location.listingId} onAddToCart={onAddToCart} />
-      if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategoryData} onLeaflet={() => { if (!locked.current) setLeaflet('front') }} onDetails={listingId => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
+      if (isSearchDetails(location)) return <CatalogueProductDetails side={side} product={detailsProduct(location)} onAddToCart={onAddToCart} />
+      if (location.kind === 'details') {
+        const product = detailsProduct(location)
+        const pending = !product && (categoryState.status === 'loading' || directProductState.status === 'loading')
+        return <CatalogueProductDetails side={side} product={product} selectedOfferId={'listingId' in location ? location.listingId : undefined} onAddToCart={onAddToCart}
+          unavailableMessage={pending ? 'Opening the collection…' : undefined} />
+      }
+      if (location.kind === 'category') return <CategoryOpeningPage side={side} state={categoryState} onRetry={retryCategoryData} onLeaflet={() => { if (!locked.current) setLeaflet('front') }} onDetails={productId => beginTurn('forward', productDetailsLocation(productId, location))} />
       return <VehiclesProductPage side={side} spread={productSpreads[location.index]} status={categoryState.status} categoryName={displayCategoryName} onRetry={retryCategoryData}
-        onViewDetails={listingId => beginTurn('forward', { kind: 'details', listingId, returnTo: location })} />
+        onViewDetails={productId => beginTurn('forward', productDetailsLocation(productId, location))} />
     }
     if (location === 'opening') return side === 'left' ? <OpeningWelcomePage /> : <CatalogueIndexPage categories={resolvedCategories} />
     if (location === 'front-matter') return side === 'left' ? <FrontMatterWelcomePage /> : <FrontMatterContentsPage onCatalogue={() => beginTurn('forward', 'categories-primary')} onSearch={openSearch} turning={Boolean(turn)} />
@@ -207,9 +243,9 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
         back={frozenPage(turn.to, turn.direction === 'forward' ? 'left' : 'right')} /> : null}
     />
     {leafletSide && categoryOrigin && categoryState.status === 'ready' && createPortal(<CategoryLeaflet category={categoryState.category} products={categoryState.products} side={leafletSide}
-      onSideChange={setLeaflet} onClose={() => setLeaflet(null)} onDetails={listingId => { setLeaflet(null); beginTurn('forward', { kind: 'details', listingId, returnTo: categoryOrigin }) }} />, document.body)}
+      onSideChange={setLeaflet} onClose={() => setLeaflet(null)} onDetails={productId => { setLeaflet(null); beginTurn('forward', productDetailsLocation(productId, categoryOrigin)) }} />, document.body)}
     {searchVisible && searchSession && createPortal(<SearchLeaflet search={search} session={searchSession}
       onClose={() => { setSearchVisible(false); setSearchSession(null); search.reset() }}
-      onDetails={(listingId, scrollTop) => { setSearchSession({ ...searchSession, scrollTop, focusListingId: listingId }); setSearchVisible(false); beginTurn('forward', { kind: 'search-details', listingId }) }} />, document.body)}
+      onDetails={(productId, scrollTop) => { setSearchSession({ ...searchSession, scrollTop, focusProductId: productId }); setSearchVisible(false); beginTurn('forward', { kind: 'search-details', productId }) }} />, document.body)}
   </>
 }

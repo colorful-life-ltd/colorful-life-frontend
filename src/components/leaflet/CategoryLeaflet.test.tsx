@@ -428,7 +428,7 @@ describe('Category advertising leaflet', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.leaflet__turn')!.click() })
     expect(container.querySelector('.leaflet__environment')?.getAttribute('src')).toBe(starWarsEnvironmentDesktopBack)
     await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-product="88"] .leaflet-product__title-button')!.click() })
-    expect(onDetails).toHaveBeenCalledWith(808)
+    expect(onDetails).toHaveBeenCalledWith(88)
 
     await act(async () => root.unmount())
   })
@@ -490,7 +490,7 @@ describe('Reverse collection product selection', () => {
     expect(container.querySelector('.leaflet__environment')?.getAttribute('src')).toBe(cityEnvironmentDesktopBack)
     expect(printedIds(container.innerHTML)).toEqual([selected.id])
     await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-product="88"] .leaflet-product__title-button')!.click() })
-    expect(onDetails).toHaveBeenCalledWith(808)
+    expect(onDetails).toHaveBeenCalledWith(88)
     await act(async () => root.unmount())
   })
   it('keeps its random eleven-product selection stable through ordinary rerenders', async () => {
@@ -528,7 +528,7 @@ describe('Reverse collection product selection', () => {
     await act(async () => { container.querySelector<HTMLButtonElement>('.leaflet__turn')!.click() })
     expect(container.querySelector('.leaflet[data-side="back"]')).not.toBeNull()
     await act(async () => { container.querySelector<HTMLButtonElement>('[data-leaflet-product="88"] .leaflet-product__title-button')!.click() })
-    expect(onDetails).toHaveBeenCalledWith(808)
+    expect(onDetails).toHaveBeenCalledWith(88)
 
     await act(async () => root.unmount())
   })
@@ -570,7 +570,7 @@ describe('Reverse collection product selection', () => {
     expect(container.querySelector('.leaflet__collection-heading')).toBeNull()
     expect(printedIds(container.innerHTML)).toEqual([selected.id])
     await act(async () => { container.querySelector<HTMLButtonElement>(`[data-leaflet-product="${selected.id}"] .leaflet-product__title-button`)!.click() })
-    expect(onDetails).toHaveBeenCalledWith(1989)
+    expect(onDetails).toHaveBeenCalledWith(989)
 
     await act(async () => root.unmount())
   })
@@ -595,7 +595,7 @@ describe('Reverse collection product selection', () => {
     expect(container.querySelector('.leaflet__collection-heading')).toBeNull()
     expect(printedIds(container.innerHTML)).toEqual([selected.id])
     await act(async () => { container.querySelector<HTMLButtonElement>(`[data-leaflet-product="${selected.id}"] .leaflet-product__title-button`)!.click() })
-    expect(onDetails).toHaveBeenCalledWith(1502)
+    expect(onDetails).toHaveBeenCalledWith(502)
 
     await act(async () => root.unmount())
   })
@@ -623,7 +623,7 @@ describe('Reverse collection product selection', () => {
 
     const selected = collection.find(item => item.id === firstSelection[0])!
     await act(async () => { container.querySelector<HTMLButtonElement>(`[data-leaflet-product="${selected.id}"] .leaflet-product__title-button`)!.click() })
-    expect(onDetails).toHaveBeenCalledWith(selected.offers[0].id)
+    expect(onDetails).toHaveBeenCalledWith(selected.id)
     await act(async () => root.unmount())
   })
 })

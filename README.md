@@ -34,9 +34,12 @@ response is `{ items, pagination }`; each product contains:
   `usedConditionPhotos`.
 
 Product Images, Catalogue Artwork, Feature state, and retirement state are never
-copied into offers. A product is customer-visible when it has an active,
-in-stock offer in an available lifecycle. Card and leaflet pricing use only
-those sellable offers. Storage public IDs never construct delivery URLs.
+copied into offers. The API decides which products are published; the
+storefront shows every product it returns, including sold-out ones, as a
+permanent showcase. An offer is purchasable only when it is active, in stock
+and in an available lifecycle. Card, leaflet and detail pricing use only those
+sellable offers; a product without one shows "Out of stock", no price, and a
+disabled Add to cart. Storage public IDs never construct delivery URLs.
 
 ### Catalogue and product details
 
@@ -73,7 +76,7 @@ runtime imports or product-specific resolver:
 - src/assets/categories/vehicles/vehicle-42226-standard.png
 
 Product Images are not substituted for Catalogue Artwork. View Details opens a
-minimal in-book view keyed by ProductListing ID, showing shared product
+minimal in-book view keyed by LegoProduct ID at `/products/:productId`, showing shared product
 information and the root Product Images in API order. Back returns to its
 original product spread. A damaged-box offer requires the existing condition
 confirmation, which reads only that listing's description, effective price, and
@@ -196,6 +199,44 @@ checked before replaying the identical order request. Once replay starts, any
 new ambiguous response uses the existing recovery UX with the same key.
 Frontend tests and browser smoke checks mock verification/resend; real SES
 email delivery remains entirely in the unchanged backend.
+
+## SEO foundation (Issue #56)
+
+`index.html` carries the Build & Bloom title, description, `en-GB` language,
+Open Graph basics and a `<noscript>` summary for crawlers that do not run
+JavaScript. At runtime `src/features/seo` updates those same tags in place
+(title, description, robots, canonical, `og:title`, `og:description`, `og:url`).
+It does not use React 19 metadata hoisting, because hoisting would duplicate the
+static fallbacks.
+
+- Canonicals: `/` covers the closed book and its `?spread=` states.
+  `/categories/:slug` covers its opening, `?leaflet=` and `?page=1`; later
+  `?page=N` spreads keep a self canonical. Products use `/products/:productId`.
+- Product URLs are keyed by LegoProduct ID, so offers selling out or changing
+  never change a URL. In-book Back context lives in `history.state`, not in the
+  URL. A product URL opened directly reads `GET /products/by-product/:id` to find
+  its collection. Legacy `/categories/:slug?details=<listingId>` links still
+  open and declare the product URL as canonical.
+- Book product cards link to `/products/:productId`. A plain click keeps the
+  page turn; modified clicks open the URL natively. Leaflet product buttons are
+  unchanged.
+- Product pages emit Product and BreadcrumbList JSON-LD from API data only.
+  Prices appear only for sellable offers; otherwise the Offer is `OutOfStock`
+  with no price. Damaged-box offers carry no `itemCondition`, pending a
+  business decision.
+- `/checkout*`, `/account*`, `/verify-email` and `/reset-password` (with or
+  without a trailing slash) render `noindex,nofollow` with
+  no canonical. So does a product or category the API does not return.
+  `public/robots.txt` deliberately does not disallow them, so crawlers can see
+  the noindex. This is indexing hygiene, not access control.
+- Set `VITE_SITE_URL` (for example `https://example.co.uk`) to pin canonical and
+  structured-data origins; otherwise the serving origin is used. No sitemap is
+  generated yet, and robots.txt names no sitemap, until the production domain
+  is confirmed.
+
+Hosting must serve the SPA for `/products/*` as well as the existing
+`/categories/*`, checkout and verification routes. Optionally add an
+`X-Robots-Tag: noindex` header for the private routes.
 
 ## Password recovery (Issue #58)
 

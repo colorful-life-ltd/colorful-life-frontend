@@ -1,13 +1,22 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { defaultProductOffer, isSellableOffer, sellableOffers, type CatalogueProduct, type ProductListingOffer } from '../../features/catalogue/api'
 import type { ProductSpread } from '../../features/catalogue/productSpreads'
 import type { VehiclesState } from '../../features/catalogue/useVehicles'
 import { effectivePricePence, formatGbp, useCart } from '../../features/cart/CartContext'
+import { productPath } from './catalogueSpread'
 import './VehiclesProductPage.css'
+
+/** Crawlable product link; a plain click keeps the in-book page turn, modified clicks open the URL. */
+function productLinkClick(productId: number, onViewDetails: (id: number) => void) {
+  return (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+    event.preventDefault()
+    onViewDetails(productId)
+  }
+}
 
 function ProductCopy({ product, onViewDetails }: { product: CatalogueProduct; onViewDetails?: (id: number) => void }) {
   const age = product.ageRecommendation?.trim()
-  const representativeOffer = defaultProductOffer(product)
   const price = sellableOffers(product).reduce((lowest, offer) => Math.min(lowest, effectivePricePence(offer)), Infinity)
   return <div className="vehicle-product__copy">
     <p className="vehicle-product__number">LEGO {product.setNumber}</p>
@@ -18,9 +27,9 @@ function ProductCopy({ product, onViewDetails }: { product: CatalogueProduct; on
       {age && <li>{/^ages?\b/i.test(age) ? age : `Ages ${age}${/^\d+$/.test(age) ? '+' : ''}`}</li>}
     </ul>
     <div className="vehicle-product__footer">
-      <p className="vehicle-product__price">{Number.isFinite(price) && <><span className="vehicle-product__from">From </span><span>{formatGbp(price)}</span></>}</p>
-      {onViewDetails && representativeOffer && <button type="button" className="vehicle-product__details"
-        aria-label={`View details for ${product.title}`} onClick={() => onViewDetails(representativeOffer.id)}>View Details →</button>}
+      <p className="vehicle-product__price">{Number.isFinite(price) ? <><span className="vehicle-product__from">From </span><span>{formatGbp(price)}</span></> : <span className="vehicle-product__sold-out">Out of stock</span>}</p>
+      {onViewDetails && <a className="vehicle-product__details" href={productPath(product.id)}
+        aria-label={`View details for ${product.title}`} onClick={productLinkClick(product.id, onViewDetails)}>View Details →</a>}
     </div>
   </div>
 }
@@ -28,14 +37,10 @@ function ProductCopy({ product, onViewDetails }: { product: CatalogueProduct; on
 function CatalogueArtwork({ product, feature, onViewDetails }: { product: CatalogueProduct; feature: boolean; onViewDetails: (id: number) => void }) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const url = product.catalogueArtworkUrl?.trim() || null
-  const representativeOffer = defaultProductOffer(product)
   const className = `vehicle-product__art vehicle-product__art--${feature ? 'feature' : 'supporting'}`
   if (!url || failedUrl === url) return <span className={className} aria-hidden="true" data-artwork-state="empty" />
-  const image = <img src={url} alt={`Illustrated ${product.title}`} onError={() => setFailedUrl(url)} />
-  return representativeOffer
-    ? <button type="button" className={`${className} vehicle-product__art-button`} aria-label={`View details for ${product.title}`}
-      onClick={() => onViewDetails(representativeOffer.id)}>{image}</button>
-    : <span className={className}>{image}</span>
+  return <a className={`${className} vehicle-product__art-button`} href={productPath(product.id)} aria-label={`View details for ${product.title}`}
+    onClick={productLinkClick(product.id, onViewDetails)}><img src={url} alt={`Illustrated ${product.title}`} onError={() => setFailedUrl(url)} /></a>
 }
 
 /** A single printed card represents the LegoProduct, regardless of offer count. */
@@ -64,15 +69,15 @@ export function VehiclesProductPage({ side, spread, status, categoryName, onRetr
   </section>
 }
 
-export function CatalogueProductDetails({ product, selectedOfferId, side, onAddToCart }: {
+export function CatalogueProductDetails({ product, selectedOfferId, side, onAddToCart, unavailableMessage = 'This product is currently unavailable.' }: {
   product?: CatalogueProduct
   selectedOfferId?: number
   side: 'left' | 'right'
   onAddToCart?: (offer: ProductListingOffer, productTitle: string) => void
+  unavailableMessage?: string
 }) {
-  if (!product) return <p className="vehicles-page__message">This product is currently unavailable.</p>
-  const initialOffer = product.offers.find(offer => offer.id === selectedOfferId) ?? defaultProductOffer(product)
-  if (!initialOffer) return <p className="vehicles-page__message">This product is currently unavailable.</p>
+  if (!product) return <p className="vehicles-page__message">{unavailableMessage}</p>
+  const initialOffer = product.offers.find(offer => offer.id === selectedOfferId && isSellableOffer(offer)) ?? defaultProductOffer(product)
   return side === 'left'
     ? <section className="product-details" aria-label="Product photographs"><h2>Take a closer look</h2><ProductGallery product={product} /></section>
     : <ProductDetailsContent key={`${product.id}:${selectedOfferId ?? ''}`} product={product} initialOffer={initialOffer} onAddToCart={onAddToCart} />
@@ -80,20 +85,21 @@ export function CatalogueProductDetails({ product, selectedOfferId, side, onAddT
 
 const damageCopy = 'Never built or played with. Contents and internal packaging are complete. Only the outer box has cosmetic damage.'
 
-function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product: CatalogueProduct; initialOffer: ProductListingOffer; onAddToCart?: (offer: ProductListingOffer, productTitle: string) => void }) {
-  const [selectedOfferId, setSelectedOfferId] = useState(initialOffer.id)
-  const offer = product.offers.find(item => item.id === selectedOfferId) ?? initialOffer
-  const { items } = useCart()
-  const cartQuantity = items.find(item => item.productListingId === offer.id)?.quantity ?? 0
-  const stockLimit = isSellableOffer(offer) ? (offer.condition === 'USED_LIKE_NEW' ? Math.min(1, offer.availableStock) : offer.availableStock) : 0
-  const atLimit = stockLimit === 0 || cartQuantity >= stockLimit
+/** A product without a sellable offer stays viewable, with no price and no purchase action. */
+function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product: CatalogueProduct; initialOffer?: ProductListingOffer; onAddToCart?: (offer: ProductListingOffer, productTitle: string) => void }) {
+  const [selectedOfferId, setSelectedOfferId] = useState(initialOffer?.id)
   const options = sellableOffers(product)
-  return <article className="product-details" data-detail-product-id={product.id} data-detail-listing-id={offer.id} aria-label={product.title}>
+  const offer = options.find(item => item.id === selectedOfferId) ?? initialOffer
+  const { items } = useCart()
+  const cartQuantity = offer ? items.find(item => item.productListingId === offer.id)?.quantity ?? 0 : 0
+  const stockLimit = offer && isSellableOffer(offer) ? (offer.condition === 'USED_LIKE_NEW' ? Math.min(1, offer.availableStock) : offer.availableStock) : 0
+  const atLimit = stockLimit === 0 || cartQuantity >= stockLimit
+  return <article className="product-details" data-detail-product-id={product.id} data-detail-listing-id={offer?.id} aria-label={product.title}>
     <h2>Product details</h2>
     <p className="product-details__number">LEGO {product.setNumber}</p><h3 className="product-details__title">{product.title}</h3>
     {product.isRetired && <p className="product-details__retired">Retired Set</p>}
-    <p className="product-details__price">{formatGbp(effectivePricePence(offer))}</p>
-    {options.length > 1 ? <fieldset className="product-details__offers"><legend>Choose an offer</legend>
+    {offer && <p className="product-details__price">{formatGbp(effectivePricePence(offer))}</p>}
+    {!offer ? null : options.length > 1 ? <fieldset className="product-details__offers"><legend>Choose an offer</legend>
       {options.map(option => <label className="product-details__offer" key={option.id}>
         <input type="radio" name={`offer-${product.id}`} value={option.id} checked={offer.id === option.id} onChange={() => setSelectedOfferId(option.id)} />
         <span><strong>{option.condition === 'NEW' ? 'New' : 'New – Outer Box Damage'}</strong><span className="product-details__offer-price">{formatGbp(effectivePricePence(option))}</span>
@@ -101,10 +107,10 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
       </label>)}
     </fieldset> : <div className="product-details__selected-offer"><strong>{offer.condition === 'NEW' ? 'New' : 'New – Outer Box Damage'}</strong>
       {offer.condition === 'USED_LIKE_NEW' && <p className="product-details__damage-copy">{damageCopy}</p>}</div>}
-    <p className="product-details__stock">{isSellableOffer(offer) ? `Stock: ${offer.availableStock}` : 'Out of stock'}</p>
+    <p className="product-details__stock">{offer ? `Stock: ${offer.availableStock}` : 'Out of stock'}</p>
     <p className="product-details__description">{product.description ?? 'No description available.'}</p>
-    {onAddToCart && <button type="button" className="product-details__add" disabled={atLimit} onClick={() => onAddToCart(offer, product.title)}>
-      <span>Add to cart</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
+    {onAddToCart && <button type="button" className="product-details__add" disabled={atLimit} onClick={() => { if (offer && !atLimit) onAddToCart(offer, product.title) }}>
+      <span>{offer ? 'Add to cart' : 'Out of stock'}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
       {cartQuantity > 0 && <span className="product-details__cart-quantity">In cart: {cartQuantity}{atLimit && ' · Maximum available'}</span>}
     </button>}
   </article>

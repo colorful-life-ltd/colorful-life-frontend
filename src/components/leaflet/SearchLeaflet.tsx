@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react'
 import type { CatalogueSearch } from '../../features/catalogue/useCatalogueSearch'
-import { isSellableProduct } from '../../features/catalogue/api'
 import { LeafletShell } from './LeafletShell'
 import { LeafletProduct } from './LeafletProduct'
 import { useLeafletActions } from './LeafletActions'
@@ -16,14 +15,14 @@ import leafLeft from '../../assets/categories/search/search-leaf-left.png'
 import leafRight from '../../assets/categories/search/search-leaf-right.png'
 import './SearchLeaflet.css'
 
-type SearchSession = { opener: HTMLElement | null; scrollTop: number; focusListingId?: number }
+type SearchSession = { opener: HTMLElement | null; scrollTop: number; focusProductId?: number }
 type SearchProps = { search: CatalogueSearch; session: SearchSession; onClose: () => void; onDetails: (id: number, scrollTop: number) => void }
 
 export function SearchLeaflet({ search, session, onClose, onDetails }: SearchProps) {
   return <LeafletShell search onClose={onClose} returnFocus={() => session.opener?.isConnected
     ? session.opener : document.querySelector<HTMLElement>('.book-shell__spread [data-find-a-set]')} onReady={dialog => {
-    const target = session.focusListingId
-      ? dialog.querySelector<HTMLButtonElement>(`[data-leaflet-listing="${session.focusListingId}"] button`)
+    const target = session.focusProductId
+      ? dialog.querySelector<HTMLButtonElement>(`[data-leaflet-product="${session.focusProductId}"] button`)
       : dialog.querySelector<HTMLInputElement>('#catalogue-search')
     target?.focus({ preventScroll: true })
     const area = dialog.querySelector('.search-leaflet__results')
@@ -45,7 +44,8 @@ export function SearchLeafletContent({ search, onDetails }: Pick<SearchProps, 's
   const title = state.status === 'results' ? 'Search Results' : state.status === 'empty' ? 'No Results Found' : 'Find a Set'
   const banner = state.status === 'results' ? resultsBanner : state.status === 'empty' ? emptyBanner : findBanner
   const count = state.status === 'results' ? state.data.pagination.totalItems : undefined
-  const availableResults = state.status === 'results' ? state.data.items.filter(isSellableProduct) : []
+  // Sold-out products stay discoverable; LeafletProduct shows their stock state.
+  const availableResults = state.status === 'results' ? state.data.items : []
   const pagination = state.status === 'results' && state.data.pagination.totalPages > 1 ? state.data.pagination : undefined
   return <>
     <header className="search-leaflet__heading">

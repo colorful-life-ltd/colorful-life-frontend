@@ -228,8 +228,8 @@ describe('product-level Catalogue cards and Product Details offers', () => {
     expect(renderPage(items, 0, 'left')).not.toContain('data-product-id="9"')
   })
 
-  it('does not print a product that has no sellable offer', () => {
+  it('keeps a product with no sellable offer in the catalogue showcase', () => {
     const unavailable = product(10, [offer(100, { legoProductId: 10, currentStock: 0, availableStock: 0 })])
-    expect(planProductSpreads([unavailable])).toEqual([])
+    expect(planProductSpreads([unavailable])).toEqual([{ left: [unavailable], right: [] }])
   })
 })
