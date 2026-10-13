@@ -16,6 +16,8 @@ import { CartItems } from './components/cart/CartItems'
 import { Checkout } from './components/checkout/Checkout'
 import { CustomerOrders } from './components/account/CustomerOrders'
 import { VerifyEmail } from './components/account/VerifyEmail'
+import { ResetPassword } from './components/account/ResetPassword'
+import { isResetPasswordPath } from './features/auth/passwordReset'
 import { navigateCheckout } from './features/checkout/state'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
@@ -49,6 +51,7 @@ function App() {
   const [spread, setSpread] = useState<CatalogueSpread>(initialLocation.spread)
   const [leafletSide, setLeafletSide] = useState<CatalogueLeafletSide | null>(initialLocation.leafletSide)
   const [accountInitialView, setAccountInitialView] = useState<'hub' | 'personal'>('hub')
+  const [accountAuthMode, setAccountAuthMode] = useState<'signin' | 'forgot'>('signin')
   const [addressRevision, setAddressRevision] = useState(0)
   const [accountOpen, setAccountOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
@@ -115,6 +118,7 @@ function App() {
   }
   const openAccount = () => {
     setAccountInitialView('hub')
+    setAccountAuthMode('signin')
     cancelUserDialogue()
     dismissGuestHint()
     setAccountOpen(true)
@@ -126,6 +130,12 @@ function App() {
     window.history.pushState({}, '', '/')
     window.dispatchEvent(new PopStateEvent('popstate'))
     openAccount()
+  }
+  const openPasswordResetRequest = () => {
+    window.history.pushState({}, '', '/')
+    window.dispatchEvent(new PopStateEvent('popstate'))
+    openAccount()
+    setAccountAuthMode('forgot')
   }
   const openCart = () => {
     if (!isSignedIn(authState)) { showGuestHint('cart'); return }
@@ -293,12 +303,14 @@ function App() {
 
   if (pathname === '/account/orders' || pathname.startsWith('/account/orders/')) return <>
     <div inert={accountOpen}><CustomerOrders path={pathname} onAccount={openAccount} onAuthenticate={() => { logout(); openAccount() }} /></div>
-    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} />}
+    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
   </>
 
-  if (pathname === '/verify-email' || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
-    <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} />}</div>
-    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} />}
+  if (pathname === '/verify-email' || isResetPasswordPath(pathname) || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
+    <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} />
+      // A completed reset signs this browser out, so the new password is used next.
+      : isResetPasswordPath(pathname) ? <ResetPassword onSignIn={openVerificationSignIn} onRequestNewLink={openPasswordResetRequest} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} />}</div>
+    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
   </>
 
   return (
@@ -360,7 +372,7 @@ function App() {
       )}
       {!showReference && conditionConfirmation.pending && <ConditionConfirmationDialog offer={conditionConfirmation.pending.offer} productTitle={conditionConfirmation.pending.productTitle}
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
-      {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} />}
+      {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
         content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, actions: <button className="cart-modal__action" disabled={cartLoading || pendingItemIds.length > 0} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>Checkout</button> } : { kind: 'empty' }} />}
     </>

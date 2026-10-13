@@ -1,7 +1,9 @@
-import { useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import cottage from '../../assets/illustrations/opening-welcome-illustration.png'
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import { useAuth } from '../../features/auth/AuthProvider'
+import { AuthApiError } from '../../features/auth/api'
+import { passwordRuleFailure, requestPasswordReset } from '../../features/auth/passwordReset'
 import './AccountExperience.css'
 import { VerificationNotice } from './VerificationNotice'
 
@@ -43,27 +45,24 @@ type AccountViewProps = {
   onSubmit?: (event: FormEvent<HTMLFormElement>) => void
   error?: string
   submitting?: boolean
+  onForgotPassword?: () => void
 }
 
-const passwordRules = [
-  [/^.{8,}$/, 'at least 8 characters'],
-  [/[a-z]/, 'a lowercase letter'],
-  [/[A-Z]/, 'an uppercase letter'],
-  [/[0-9]/, 'a digit'],
-  [/[^A-Za-z0-9]/, 'a special character'],
-] as const
+function AccountWelcome() {
+  return <aside className="account-experience__welcome" aria-label="Build & Bloom">
+    <p className="account-experience__brand">Build &amp; Bloom</p>
+    <p className="account-experience__story">Small pieces.<br />A world of possibilities.</p>
+    <img className="account-experience__art" src={cottage} alt="" />
+    <p className="account-experience__caption">A little imagination belongs in every day.</p>
+  </aside>
+}
 
-export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange, onSubmit, error, submitting }: AccountViewProps) {
+export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange, onSubmit, error, submitting, onForgotPassword }: AccountViewProps) {
   const creating = mode === 'create'
   const [visible, setVisible] = useState<Record<'password' | 'confirmPassword', boolean>>({ password: false, confirmPassword: false })
   return (
     <div className="account-experience" data-account-mode={mode}>
-      <aside className="account-experience__welcome" aria-label="Build & Bloom">
-        <p className="account-experience__brand">Build &amp; Bloom</p>
-        <p className="account-experience__story">Small pieces.<br />A world of possibilities.</p>
-        <img className="account-experience__art" src={cottage} alt="" />
-        <p className="account-experience__caption">A little imagination belongs in every day.</p>
-      </aside>
+      <AccountWelcome />
       <div className="account-experience__task">
         <header className="account-experience__heading">
           <img src={flower} alt="" className="account-experience__flower" />
@@ -95,6 +94,7 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
               )
             })}
           </div>
+          {!creating && onForgotPassword && <button type="button" className="account-form__forgot" onClick={onForgotPassword}>Forgot password?</button>}
           <button className="account-form__submit" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : creating ? 'Create Account' : 'Sign In'}</button>
         </form>
         <p className="account-experience__switch">
@@ -108,8 +108,80 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
   )
 }
 
-export function AccountForms() {
-  const [mode, setMode] = useState<AccountMode>('signin')
+type ForgotPhase = 'editing' | 'sending' | 'sent'
+
+/** Always ends in the same confirmation, so the response never reveals whether an account exists. */
+export function ForgotPasswordView({ initialEmail = '', onBack }: { initialEmail?: string; onBack: () => void }) {
+  const [address, setAddress] = useState(initialEmail)
+  const [phase, setPhase] = useState<ForgotPhase>('editing')
+  // A field error describes the email input; other failures belong to the whole request.
+  const [error, setError] = useState<{ message: string; field: boolean }>()
+  const sending = useRef(false)
+  const confirmation = useRef<HTMLParagraphElement>(null)
+  useEffect(() => { if (phase === 'sent') confirmation.current?.focus() }, [phase])
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (sending.current) return
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address.trim())) {
+      setError({ message: 'Enter a valid email address.', field: true })
+      document.getElementById('account-forgot-email')?.focus()
+      return
+    }
+    sending.current = true
+    setError(undefined)
+    setPhase('sending')
+    try {
+      await requestPasswordReset(address)
+      setPhase('sent')
+    } catch (reason) {
+      setPhase('editing')
+      setError(reason instanceof AuthApiError && reason.status === 400 ? { message: 'Enter a valid email address.', field: true }
+        : { message: reason instanceof AuthApiError && reason.status === 429 ? 'Too many requests. Please wait a few minutes and try again.' : 'We couldn’t send your request. Please try again.', field: false })
+    } finally {
+      sending.current = false
+    }
+  }
+  return (
+    <div className="account-experience" data-account-mode="forgot">
+      <AccountWelcome />
+      <div className="account-experience__task">
+        <header className="account-experience__heading">
+          <img src={flower} alt="" className="account-experience__flower" />
+          <p className="account-experience__eyebrow">Your little corner of Build &amp; Bloom</p>
+          <h2 id="account-task-title" tabIndex={-1}>Forgot your password?</h2>
+          <p>Enter your account email and we’ll send you a link to choose a new password.</p>
+        </header>
+        {phase === 'sent' ? <p ref={confirmation} tabIndex={-1} className="account-form__message account-form__message--success" role="status">
+          If an account exists for that email, we’ve sent a password reset link. It expires in 1 hour. Please check your inbox and spam folder.
+        </p> : <>
+          {error && <p id="account-forgot-error" className="account-form__message account-form__message--error" role="alert">{error.message}</p>}
+          <form className="account-form" aria-labelledby="account-task-title" onSubmit={submit} noValidate>
+            <div className="account-form__fields">
+              <div className="account-form__field account-form__field--email">
+                <label htmlFor="account-forgot-email">Email</label>
+                <span className="account-form__input-wrap">
+                  <input id="account-forgot-email" name="email" type="email" autoComplete="email" autoCapitalize="none" spellCheck={false}
+                    aria-invalid={error?.field || undefined} aria-describedby={error?.field ? 'account-forgot-error' : undefined}
+                    value={address} onChange={event => { setError(undefined); setAddress(event.target.value) }} />
+                </span>
+              </div>
+            </div>
+            <button className="account-form__submit" type="submit" disabled={phase === 'sending'}>{phase === 'sending' ? 'Please wait…' : 'Send reset link'}</button>
+          </form>
+        </>}
+        <p className="account-experience__switch">
+          Remembered it?{' '}
+          <button type="button" onClick={onBack}>Sign In<span aria-hidden="true"> →</span></button>
+        </p>
+      </div>
+    </div>
+  )
+}
+
+export type AccountFormsMode = 'signin' | 'forgot'
+
+export function AccountForms({ initialMode = 'signin' }: { initialMode?: AccountFormsMode }) {
+  const [mode, setMode] = useState<AccountMode | 'forgot'>(initialMode)
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
   const previousMode = useRef(mode)
@@ -129,18 +201,20 @@ export function AccountForms() {
   }, [mode])
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (mode === 'forgot') return
     const current = drafts[mode]
     if (!current.email.trim()) return setFormError('Enter your email address.')
     if (!current.password) return setFormError('Enter your password.')
     if (mode === 'create') {
-      const failedRule = passwordRules.find(([rule]) => !rule.test(current.password))
-      if (failedRule) return setFormError(`Your password needs ${failedRule[1]}.`)
+      const failedRule = passwordRuleFailure(current.password)
+      if (failedRule) return setFormError(`Your password needs ${failedRule}.`)
       if (current.password !== current.confirmPassword) return setFormError('Your passwords do not match.')
     }
     setFormError(undefined)
     await authenticate(mode === 'create' ? 'signup' : 'signin', { email: current.email, password: current.password })
   }
   if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
+  if (mode === 'forgot') return <div ref={container}><ForgotPasswordView initialEmail={drafts.signin.email} onBack={() => setMode('signin')} /></div>
   return (
     <div ref={container}>
       {state.status === 'error' && state.token && <button type="button" disabled={restoring} onClick={() => {
@@ -150,6 +224,7 @@ export function AccountForms() {
       }}>{restoring ? 'Reconnecting…' : 'Retry connection'}</button>}
       <AccountView mode={mode} onModeChange={setMode} draft={drafts[mode]}
         onSubmit={submit} error={formError || serverError} submitting={submitting}
+        onForgotPassword={() => { setFormError(undefined); setMode('forgot') }}
         onFieldChange={(name, value) => { setFormError(undefined); setDrafts((current) => ({ ...current, [mode]: { ...current[mode], [name]: value } })) }} />
     </div>
   )
