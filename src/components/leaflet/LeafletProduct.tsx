@@ -1,11 +1,12 @@
-import { defaultProductOffer, sellableOffers, type CatalogueProduct } from '../../features/catalogue/api'
+import { sellableOffers, type CatalogueProduct } from '../../features/catalogue/api'
 import { effectivePricePence, formatGbp } from '../../features/cart/CartContext'
 import { ProductPrintImage } from '../catalogue/CategoryOpeningSpread'
 
 export function LeafletProduct({ product, featured = false, showDescription = featured, titleId, showCategory = false, linkedArtwork = false, linkedTitle = false, browseOnly = false, onDetails }: {
   product: CatalogueProduct; featured?: boolean; showDescription?: boolean; titleId?: string; showCategory?: boolean; linkedArtwork?: boolean; linkedTitle?: boolean; browseOnly?: boolean; onDetails: (id: number) => void
 }) {
-  const openDetails = () => { const offer = defaultProductOffer(product); if (offer) onDetails(offer.id) }
+  // Details are product-level, so sold-out products remain viewable.
+  const openDetails = () => onDetails(product.id)
   const availableOffers = sellableOffers(product)
   const leastExpensiveOffer = availableOffers.reduce<(typeof product.offers)[number] | undefined>((best, offer) =>
     !best || effectivePricePence(offer) < effectivePricePence(best) ? offer : best, undefined)
@@ -20,7 +21,7 @@ export function LeafletProduct({ product, featured = false, showDescription = fe
       {featured && showDescription && product.description && <p className="leaflet-product__description">{product.description}</p>}
       <div className={`leaflet-product__purchase${browseOnly ? ' leaflet-product__purchase--browse' : ''}`}>
         <p className="leaflet-product__price">{leastExpensiveOffer && <>{!browseOnly && <small>From </small>}<strong>{formatGbp(effectivePricePence(leastExpensiveOffer))}</strong></>}</p>
-        {browseOnly ? product.offers.length > 0 && <span className="leaflet-product__stock">{leastExpensiveOffer ? 'Available' : 'Out of stock'}</span>
+        {browseOnly ? <span className="leaflet-product__stock">{leastExpensiveOffer ? 'Available' : 'Out of stock'}</span>
           : <span className="leaflet-product__stock">{leastExpensiveOffer ? `${availableOffers.reduce((sum, offer) => sum + offer.availableStock, 0)} available` : 'Out of stock'}</span>}
       </div>
       {!browseOnly && <button type="button" onClick={openDetails} aria-label={`View details for ${product.title}`}>Take a closer look <span aria-hidden="true">→</span></button>}

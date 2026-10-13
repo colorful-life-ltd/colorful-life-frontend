@@ -1,0 +1,10 @@
+# Build & Bloom storefront.
+# Private routes (account, checkout, orders, email verification) are kept out of
+# search results with page-level noindex. They are deliberately not disallowed
+# here, because crawlers must be able to fetch a page to see its noindex.
+# This file is not access control: those routes are protected by authentication.
+#
+# Add "Sitemap: https://<production-domain>/sitemap.xml" once the production
+# domain and sitemap endpoint are confirmed.
+User-agent: *
+Allow: /

@@ -205,3 +205,17 @@ export async function getProducts(filters: { categoryId: number }, signal?: Abor
   } while (page <= totalPages)
   return items
 }
+
+/**
+ * Product-level read keyed by LegoProduct ID. Resolves null for 404: the
+ * backend currently returns 404 for products without a sellable offer.
+ */
+export async function getCatalogueProduct(productId: number, signal?: AbortSignal): Promise<CatalogueProduct | null> {
+  const base = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
+  const response = await fetch(`${base}/products/by-product/${encodeURIComponent(String(productId))}`, { signal })
+  if (response.status === 404) return null
+  if (!response.ok) throw new Error('Unable to load product')
+  const data: unknown = await response.json()
+  if (!isCatalogueProduct(data) || data.id !== productId) throw new Error('Invalid product response')
+  return data
+}

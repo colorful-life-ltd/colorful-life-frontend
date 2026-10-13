@@ -58,10 +58,12 @@ describe('Search Leaflet presentation', () => {
     const html = render(results())
     expect(html).toContain('data-leaflet-product="9"')
     expect(html).toContain('data-leaflet-product="12"')
-    expect(html).not.toContain('data-leaflet-product="99"')
+    // Sold-out products remain discoverable, with no price and an explicit stock state.
+    const soldOut = html.slice(html.indexOf('data-leaflet-product="99"'))
+    expect(soldOut).toContain('<p class="leaflet-product__price"></p><span class="leaflet-product__stock">Out of stock</span>')
     expect(html).toContain('search-leaflet__product-category">City')
     expect(html).toContain('25 matches found')
-    expect(html.match(/View details/g)).toHaveLength(6)
+    expect(html.match(/View details/g)).toHaveLength(9)
   })
   it.each([1, 2, 3])('uses Previous / Page X of Y / Next with correct page %s boundaries', page => {
     const html = render(results(page))

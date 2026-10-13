@@ -6,7 +6,7 @@ import { OpeningTransition } from './components/catalogue/OpeningTransition'
 import { ClosingTransition } from './components/catalogue/ClosingTransition'
 import { BookShell } from './components/BookShell'
 import type { CatalogueSpread } from './components/catalogue/catalogueSpread'
-import { catalogueLocationFromUrl, catalogueLocationHref, categorySpreadIndex, isCategoryIndexSpread } from './components/catalogue/catalogueSpread'
+import { catalogueHistoryState, catalogueLocationFromUrl, catalogueLocationHref, categorySpreadIndex, isCategoryIndexSpread } from './components/catalogue/catalogueSpread'
 import type { CatalogueLeafletSide } from './components/catalogue/catalogueSpread'
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
@@ -29,6 +29,8 @@ import type { ProductListingOffer } from './features/catalogue/api'
 import { useCatalogueCategories } from './features/catalogue/useCatalogueCategories'
 import { useConditionConfirmation } from './features/catalogue/useConditionConfirmation'
 import { resolveCatalogueCategories } from './components/catalogue/categories'
+import { useRouteHead } from './features/seo/documentHead'
+import { catalogueRouteHead, isPrivatePath, privateRouteHead } from './features/seo/routeHead'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
@@ -42,7 +44,7 @@ function App() {
   const resolvedCategories = useMemo(() => backendCategoriesState.status === 'ready' ? resolveCatalogueCategories(backendCategoriesState.categories) : [], [backendCategoriesState])
   const [view] = useState<'live' | 'reference'>('live')
   const [initialLocation] = useState(() => typeof window !== 'undefined'
-    ? catalogueLocationFromUrl(window.location.pathname, window.location.search)
+    ? catalogueLocationFromUrl(window.location.pathname, window.location.search, undefined, window.history.state)
     : { spread: 'front-matter' as CatalogueSpread, open: false, leafletSide: null })
   const [catalogueOpen, setCatalogueOpen] = useState(initialLocation.open)
   const [opening, setOpening] = useState(false)
@@ -80,7 +82,7 @@ function App() {
   const writeCatalogueLocation = (nextSpread: CatalogueSpread, nextLeafletSide: CatalogueLeafletSide | null, mode: 'push' | 'replace') => {
     if (typeof window === 'undefined') return
     const href = catalogueLocationHref(nextSpread, { open: true, leafletSide: nextLeafletSide })
-    window.history[mode === 'push' ? 'pushState' : 'replaceState']({ catalogue: true }, '', href)
+    window.history[mode === 'push' ? 'pushState' : 'replaceState'](catalogueHistoryState(nextSpread), '', href)
   }
   const changeSpread = (next: CatalogueSpread, mode: 'push' | 'replace' = 'push') => {
     writeCatalogueLocation(next, null, mode)
@@ -170,7 +172,7 @@ function App() {
   }, [])
   useEffect(() => {
     const restoreLocation = () => {
-      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search, backendCategoriesState.status === 'ready' ? resolvedCategories : undefined)
+      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search, backendCategoriesState.status === 'ready' ? resolvedCategories : undefined, window.history.state)
       setCatalogueOpen(location.open)
       setSpread(location.spread)
       setLeafletSide(location.leafletSide)
@@ -183,11 +185,11 @@ function App() {
   useEffect(() => {
     if (backendCategoriesState.status !== 'ready' || typeof window === 'undefined') return
     const frame = window.requestAnimationFrame(() => {
-      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search, resolvedCategories)
+      const location = catalogueLocationFromUrl(window.location.pathname, window.location.search, resolvedCategories, window.history.state)
       setCatalogueOpen(location.open)
       setSpread(location.spread)
       setLeafletSide(location.leafletSide)
-      if (!location.open && window.location.pathname.startsWith('/categories/')) window.history.replaceState({ catalogue: true }, '', '/')
+      if (!location.open && /^\/(categories|products)\//.test(window.location.pathname)) window.history.replaceState({ catalogue: true }, '', '/')
     })
     return () => window.cancelAnimationFrame(frame)
   }, [backendCategoriesState.status, resolvedCategories])
@@ -291,6 +293,11 @@ function App() {
     // Move focus into the new spread without moving the viewport or the book.
     stage?.focus({ preventScroll: true })
   }, [spread])
+
+  // The open book owns catalogue metadata; private routes are never indexable.
+  useRouteHead(isPrivatePath(pathname) ? privateRouteHead(pathname)
+    : catalogueOpen ? null
+      : catalogueRouteHead({ spread: 'front-matter', open: false, categories: resolvedCategories, categoriesReady: backendCategoriesState.status === 'ready' }))
 
   const closeAccount = () => {
     if (accountInitialView === 'personal') setAddressRevision(value => value + 1)
