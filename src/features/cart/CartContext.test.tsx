@@ -90,7 +90,7 @@ describe('old and new cart allocation contracts', () => {
     const items = mapCart({ items: [{ productListingId: 41, productListing: listing, quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 }] })
     expect(items[0]).toMatchObject({ quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 })
     const html = renderToStaticMarkup(<CartItems items={items} />)
-    expect(html).toContain('Quantity: 2'); expect(html).toContain('1 in pending order'); expect(html).toContain('1 available')
+    expect(html).toContain('Quantity: 2'); expect(html).toContain('1 allocated to a pending order'); expect(html).toContain('1 requested for a new checkout')
     expect(orderInput(items, address).items).toEqual([{ productListingId: 41, quantity: 1 }])
   })
   it('preserves old totals and omits allocation wording when there are none', () => {

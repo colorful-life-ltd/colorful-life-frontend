@@ -9,6 +9,7 @@ export function mapCart(cart: PersistentCart): CartItem[] {
   return cart.items.map(item => {
     if (checkoutQuantity(item) === null) throw new Error('Unable to read your cart quantities. Please refresh your cart.')
     return { productListingId: item.productListingId, quantity: item.quantity, listing: item.productListing,
+      ...(item.availability !== undefined ? { availability: item.availability } : {}),
       ...(item.allocatedQuantity !== undefined ? { allocatedQuantity: item.allocatedQuantity, unallocatedQuantity: item.unallocatedQuantity } : {}) }
   })
 }

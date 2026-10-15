@@ -1,11 +1,18 @@
 import { createContext, useContext } from 'react'
 import type { CartProductListing, ProductListingOffer } from '../catalogue/api'
 
+export interface CartAvailability {
+  status: 'AVAILABLE' | 'INSUFFICIENT_STOCK' | 'OUT_OF_STOCK' | 'UNAVAILABLE'
+  reason: string | null
+  availableQuantity: number
+}
+
 export interface CartItem {
   productListingId: CartProductListing['id']
   listing: CartProductListing
   quantity: number
   allocatedQuantity?: number
+  availability?: CartAvailability
   unallocatedQuantity?: number
 }
 
@@ -73,9 +80,23 @@ export function checkoutQuantity(item: Pick<CartItem, 'quantity' | 'allocatedQua
   if (typeof allocated !== 'number' || typeof available !== 'number' || !Number.isSafeInteger(allocated) || !Number.isSafeInteger(available) || allocated < 0 || available < 0 || allocated + available !== quantity) return null
   return available
 }
-export const cartQuantityLimit = (item: { listing: Pick<ProductListingOffer, 'condition' | 'availableStock'>; allocatedQuantity?: number }) => offerQuantityLimit(item.listing) + (item.allocatedQuantity ?? 0)
+// Availability is authoritative when supplied; the stock-only fallback supports
+// the previous additive API contract without guessing publication/lifecycle rules.
+export function cartItemBlocked(item: CartItem): boolean {
+  const quantity = checkoutQuantity(item)
+  if (quantity === null) return true
+  if (quantity === 0) return false // Existing order intent, regardless of metadata precedence.
+  if (item.availability) return item.availability.status !== 'AVAILABLE'
+  return quantity > offerQuantityLimit(item.listing)
+}
+export const cartCheckoutBlocked = (items: readonly CartItem[]) => items.some(cartItemBlocked)
+export function availableCartSubtotal(items: readonly CartItem[]): number {
+  return items.reduce((sum, item) => sum + (cartItemBlocked(item) ? 0 : listingUnitPricePence(item) * (checkoutQuantity(item) ?? 0)), 0)
+}
+export const cartQuantityLimit = (item: { listing: Pick<ProductListingOffer, 'condition' | 'availableStock'>; allocatedQuantity?: number; availability?: CartAvailability }) =>
+  (item.availability ? item.availability.availableQuantity : offerQuantityLimit(item.listing)) + (item.allocatedQuantity ?? 0)
 
-export function quantityWithinStock(item: Pick<CartItem, 'listing' | 'allocatedQuantity'>, quantity: number): boolean {
+export function quantityWithinStock(item: Pick<CartItem, 'listing' | 'allocatedQuantity' | 'availability'>, quantity: number): boolean {
   return quantity >= 1 && quantity <= cartQuantityLimit(item)
 }
 

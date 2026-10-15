@@ -97,6 +97,10 @@ describe('allocation-aware checkout compatibility', () => {
     await mount(); await click('Create order')
     expect(mocks.create).not.toHaveBeenCalled(); expect(mocks.prepare).not.toHaveBeenCalled()
     expect(container.textContent).toContain('already in pending orders')
+    const create = [...container.querySelectorAll('button')].find(b => b.textContent?.includes('Create order'))!
+    expect(create.disabled).toBe(true)
+    expect(create.getAttribute('aria-describedby')).toBe('checkout-no-fresh')
+    expect(document.getElementById('checkout-no-fresh')?.textContent).toContain('already in pending orders')
     await click('View My Orders'); expect(location.pathname).toBe('/account/orders')
   })
   it('never recomputes an ambiguous frozen payload from allocation metadata', async () => {
@@ -111,8 +115,11 @@ describe('allocation-aware checkout compatibility', () => {
   })
   it('retires a definite allocation conflict, refreshes cart, and requires explicit new customer action', async () => {
     mocks.create.mockRejectedValueOnce(new CheckoutApiError(409, 'CART_QUANTITY_UNAVAILABLE'))
+    await mount()
     cart.refreshCart = vi.fn(async () => { cart.items = [{ ...cart.items[0], allocatedQuantity: 1, unallocatedQuantity: 0 }] })
-    await mount(); await click('Create order')
+    // The hook captures the rendered provider callback.
+    await act(async () => root.render(<CartContext.Provider value={cart}><Checkout onAccount={vi.fn()} /></CartContext.Provider>))
+    await click('Create order')
     expect(cart.refreshCart).toHaveBeenCalledTimes(1)
     expect(sessionStorage.getItem('colorful-life:checkout-attempt:1')).toBeNull()
     expect(container.textContent).not.toContain('Retry saved order request')
@@ -157,13 +164,126 @@ describe('safe confirmation and rejected-attempt continuation', () => {
   it('uses a new identity only after a definite rejected request and an explicit new submission', async () => {
     cart.items[0] = { ...cart.items[0], quantity: 2, allocatedQuantity: 0, unallocatedQuantity: 2 }
     mocks.create.mockRejectedValueOnce(new CheckoutApiError(409, 'CART_QUANTITY_UNAVAILABLE')).mockResolvedValueOnce({ id: 41 })
+    await mount()
     cart.refreshCart = vi.fn(async () => { cart.items = [{ ...cart.items[0], allocatedQuantity: 1, unallocatedQuantity: 1 }] })
-    await mount(); await click('Create order')
+    await act(async () => root.render(<CartContext.Provider value={cart}><Checkout onAccount={vi.fn()} /></CartContext.Provider>))
+    await click('Create order')
     expect(mocks.create).toHaveBeenCalledTimes(1)
     const originalKey = mocks.create.mock.calls[0][2]
+    await click('Continue to checkout')
     await click('Create order')
     expect(mocks.create).toHaveBeenCalledTimes(2)
     expect(mocks.create.mock.calls[1][1].items).toEqual([{ productListingId: 16901, quantity: 1 }])
     expect(mocks.create.mock.calls[1][2]).not.toBe(originalKey)
+  })
+})
+
+
+describe('availability checkout safety', () => {
+  it('refreshes before enabling fresh direct-route checkout', async () => {
+    let release!: () => void
+    cart.refreshCart = vi.fn(() => new Promise<void>(resolve => { release = resolve }))
+    await mount()
+    expect([...container.querySelectorAll('button')].find(b => b.textContent?.includes('Create order'))?.disabled).toBe(true)
+    await click('Create order'); expect(mocks.create).not.toHaveBeenCalled()
+    await act(async () => release())
+    expect([...container.querySelectorAll('button')].find(b => b.textContent?.includes('Create order'))?.disabled).toBe(false)
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+  })
+  it.each(['OUT_OF_STOCK', 'PRODUCT_UNPUBLISHED', 'LISTING_INACTIVE', 'USED_OFFER_UNAVAILABLE', 'INSUFFICIENT_STOCK'])('blocks direct-route mixed carts containing %s and opens actionable review', async reason => {
+    const unavailable = { ...cart.items[0], productListingId: 900, availability: { status: reason === 'INSUFFICIENT_STOCK' ? 'INSUFFICIENT_STOCK' as const : 'UNAVAILABLE' as const, reason, availableQuantity: 0 } }
+    cart.items.push(unavailable)
+    await mount()
+    expect(container.textContent).toContain('Review your cart')
+    expect(container.querySelectorAll('article')).toHaveLength(2)
+    expect(container.textContent).toContain('Available-item subtotal£18.75')
+    expect(container.querySelector('[data-cart-listing-id="900"]')?.getAttribute('aria-describedby')).toBe('cart-availability-900')
+    expect(document.activeElement?.id).toBe('cart-review-title')
+    expect(mocks.create).not.toHaveBeenCalled(); expect(cart.removeItem).not.toHaveBeenCalled()
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+  })
+  it.each(['LISTING_UNAVAILABLE', 'OUT_OF_STOCK', 'INSUFFICIENT_STOCK', 'CART_QUANTITY_UNAVAILABLE'])('retires stale saved %s requests and identifies the affected listing without retry', async code => {
+    const saved = { key: 'stale-key', input: { items: [{ productListingId: 16901, quantity: 4 }] } }
+    sessionStorage.setItem('colorful-life:checkout-attempt:1', JSON.stringify(saved))
+    mocks.create.mockRejectedValue(new CheckoutApiError(409, code, undefined, { reason: code === 'LISTING_UNAVAILABLE' ? 'PRODUCT_UNPUBLISHED' : code, productListingId: 16901, requestedQuantity: 4, availableQuantity: 1 }))
+    await mount(); await click('Retry saved order request')
+    expect(mocks.create).toHaveBeenCalledExactlyOnceWith('jwt', saved.input, saved.key)
+    expect(sessionStorage.getItem('colorful-life:checkout-attempt:1')).toBeNull()
+    expect(cart.refreshCart).toHaveBeenCalledTimes(2)
+    expect(container.textContent).toContain('Item needing attention: ' + listing.legoProduct.title)
+    expect(container.textContent).toContain('Requested quantity: 4.')
+    expect(container.textContent).toContain('Available for a new checkout: 1.')
+    expect(container.querySelector('.cart-item--affected')).not.toBeNull()
+    expect(container.textContent).not.toContain('Retry saved order request')
+    expect(container.textContent).not.toContain('Create order and review total')
+    expect(document.activeElement?.id).toBe('cart-review-title')
+    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled()
+  })
+  it('shows a missing affected listing by ID and translates its reason in French', async () => {
+    document.documentElement.lang = 'fr'
+    mocks.create.mockRejectedValue(new CheckoutApiError(409, 'LISTING_UNAVAILABLE', undefined, { productListingId: 777, reason: 'LISTING_NOT_FOUND' }))
+    try {
+      await mount(); await click('Create order')
+      expect(container.textContent).toContain('Article à vérifier : Offre n° 777')
+      expect(container.textContent).toContain('Cet article n’est plus disponible')
+      expect(container.textContent).toContain('Vérifiez votre panier')
+    } finally { document.documentElement.lang = 'en' }
+  })
+  it('preserves exact ambiguous recovery even when fresh cart availability is blocked', async () => {
+    const saved = { key: 'ambiguous-key', input: { items: [{ productListingId: 16901, quantity: 2 }] } }
+    sessionStorage.setItem('colorful-life:checkout-attempt:1', JSON.stringify(saved))
+    cart.items[0].availability = { status: 'OUT_OF_STOCK', reason: 'OUT_OF_STOCK', availableQuantity: 0 }
+    mocks.create.mockResolvedValue({ id: 41 })
+    await mount(); await click('Retry saved order request')
+    expect(mocks.create).toHaveBeenCalledExactlyOnceWith('jwt', saved.input, saved.key)
+    expect(location.pathname).toBe('/checkout/orders/41')
+  })
+  it('ignores fully allocated unavailable metadata when submitting unrelated fresh intent', async () => {
+    cart.items.push({ ...cart.items[0], productListingId: 900, allocatedQuantity: 1, unallocatedQuantity: 0, availability: { status: 'UNAVAILABLE', reason: 'PRODUCT_UNPUBLISHED', availableQuantity: 0 } })
+    mocks.create.mockResolvedValue({ id: 41 })
+    await mount(); await click('Create order')
+    expect(mocks.create.mock.calls[0][1].items).toEqual([{ productListingId: 16901, quantity: 1 }])
+  })
+})
+
+
+describe('targeted checkout review regressions', () => {
+  it('retains the original attempt and exact payload after an unknown HTTP 409', async () => {
+    mocks.create.mockRejectedValue(new CheckoutApiError(409, 'FUTURE_UNKNOWN_CONFLICT'))
+    await mount(); await click('Create order')
+    const saved = JSON.parse(sessionStorage.getItem('colorful-life:checkout-attempt:1')!)
+    expect(saved).toMatchObject({ key: expect.any(String), input: { items: [{ productListingId: 16901, quantity: 1 }] } })
+    await click('Retry saved order request')
+    expect(mocks.create).toHaveBeenCalledTimes(2)
+    for (const call of mocks.create.mock.calls) expect(call).toEqual(['jwt', saved.input, saved.key])
+    expect(JSON.parse(sessionStorage.getItem('colorful-life:checkout-attempt:1')!)).toEqual(saved)
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    expect(container.textContent).not.toContain('Review your cart')
+  })
+  it('keeps definitive conflict review actionable but prevents continuation after refresh failure', async () => {
+    mocks.create.mockRejectedValue(new CheckoutApiError(409, 'OUT_OF_STOCK', undefined, { productListingId: 16901, availableQuantity: 0 }))
+    cart.refreshCart = vi.fn(async () => { if (mocks.create.mock.calls.length) cart.error = 'Unable to refresh your cart' })
+    await mount(); await click('Create order')
+    expect(cart.refreshCart).toHaveBeenCalledTimes(2)
+    expect(sessionStorage.getItem('colorful-life:checkout-attempt:1')).toBeNull()
+    expect(container.textContent).toContain('Unable to refresh your cart')
+    expect(container.textContent).not.toContain('Retry saved order request')
+    const resume = [...container.querySelectorAll('button')].find(b => b.textContent === 'Continue to checkout')!
+    expect(resume.disabled).toBe(true)
+    expect(resume.getAttribute('aria-describedby')?.split(' ')).toContain('cart-items-error')
+    await click('Continue to checkout'); expect(mocks.create).toHaveBeenCalledTimes(1)
+    await click('Refresh cart availability'); expect(cart.refreshCart).toHaveBeenCalledTimes(3)
+    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled()
+  })
+  it('allows existing pending-order payment despite blocked fresh cart intent', async () => {
+    cart.items[0].availability = { status: 'OUT_OF_STOCK', reason: 'OUT_OF_STOCK', availableQuantity: 0 }
+    history.replaceState({}, '', '/checkout/orders/41')
+    await mount()
+    expect(container.textContent).toContain('Order #41')
+    expect(container.textContent).not.toContain('Review your cart')
+    await click('Continue to secure payment')
+    expect(mocks.prepare).toHaveBeenCalledExactlyOnceWith('jwt', 41)
+    expect(mocks.payment).toHaveBeenCalled()
+    expect(mocks.create).not.toHaveBeenCalled()
   })
 })

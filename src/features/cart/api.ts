@@ -1,9 +1,11 @@
 import { authenticatedFetch } from '../auth/session'
+import type { CartAvailability } from './CartContext'
 import type { CartProductListing } from '../catalogue/api'
 
 export type PersistentCartItem = {
   productListingId: number
   quantity: number
+  availability?: CartAvailability
   allocatedQuantity?: number
   unallocatedQuantity?: number
   productListing: CartProductListing

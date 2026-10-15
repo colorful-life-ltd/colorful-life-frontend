@@ -1,6 +1,6 @@
 import { useCart } from '../cart/CartContext'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { CheckoutApiError, createOrder, getOrder, preparePayment, recoverPayment, type Order, type OrderInput } from './api'
+import { availabilityConflictCodes, CheckoutApiError, createOrder, getOrder, preparePayment, recoverPayment, type Order, type OrderInput } from './api'
 import { clearAttempt, isConfirmed, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
 import { AuthApiError, getCurrentUser, isVerificationRequired } from '../auth/api'
 
@@ -9,6 +9,7 @@ export const verificationDelays = [0, 1000, 2000, 3000, 5000, 8000, 10000]
 
 export function useCheckout(token: string, userId: number, orderId: number | null) {
   const { refreshCart } = useCart()
+  const [conflict, setConflict] = useState<CheckoutApiError | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
   const [phase, setPhase] = useState<Phase>(orderId ? 'loading' : 'ready')
   const [message, setMessage] = useState<string | null>(null)
@@ -50,7 +51,7 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
   }, [order, phase])
 
   const create = async (input: OrderInput) => {
-    if (busy.current || obtainedOrderId.current || orderId || order || phase === 'verification') return
+    if (busy.current || obtainedOrderId.current || orderId || order || (phase === 'verification' || phase === 'cart-conflict')) return
     if (!attemptRef.current && input.items.length === 0) return
     busy.current = true; setMessage(null); setPhase('creating')
     try {
@@ -75,10 +76,10 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
       window.dispatchEvent(new PopStateEvent('popstate'))
     } catch (reason) {
       if (active.current) {
-        if (reason instanceof CheckoutApiError && reason.status === 409 && reason.code === 'CART_QUANTITY_UNAVAILABLE') {
+        if (reason instanceof CheckoutApiError && reason.status === 409 && availabilityConflictCodes.includes(reason.code ?? '')) {
           // Definite rejection: retire this identity, never rewrite an ambiguous request.
           clearAttempt(userId); attemptRef.current = null; setAttempt(null)
-          setMessage(reason.message); setPhase('cart-conflict')
+          setConflict(reason); setMessage(null); setPhase('cart-conflict')
           await refreshCart()
           return
         }
@@ -173,5 +174,5 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
     if (!isConfirmed(order) && !isTerminal(order)) void Promise.resolve().then(() => { if (active.current) void verify() })
   }, [order, verify])
   const resumeAfterVerification = () => { setMessage(null); setPhase('ready') }
-  return { order, phase, message, secret, attempt, create, prepare, verify, recheck, restart, reloadOrder, resumeAfterVerification }
+  return { conflict, reviewComplete: () => { setConflict(null); setMessage(null); setPhase('ready') }, order, phase, message, secret, attempt, create, prepare, verify, recheck, restart, reloadOrder, resumeAfterVerification }
 }
