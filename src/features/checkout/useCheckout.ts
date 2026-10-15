@@ -1,14 +1,17 @@
 import { useCart } from '../cart/CartContext'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { availabilityConflictCodes, CheckoutApiError, createOrder, getOrder, preparePayment, recoverPayment, type Order, type OrderInput } from './api'
-import { clearAttempt, isConfirmed, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
+import { availabilityConflictCodes, CheckoutApiError, createOrder, getOrder, parseOrderPayment, preparePayment, recoverPayment, type Order, type OrderInput } from './api'
+import { clearAttempt, consumeStripeReturn, isConfirmed, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
+import { canRecoverPayment, isOlderPaymentSnapshot, parsePaymentWindow, paymentAction } from './paymentWindow'
 import { AuthApiError, getCurrentUser, isVerificationRequired } from '../auth/api'
 
-export type Phase = 'ready' | 'creating' | 'loading' | 'reserved' | 'preparing' | 'payment' | 'waiting' | 'pending' | 'confirmed' | 'failure' | 'terminal' | 'auth' | 'verification' | 'cart-conflict'
+export type Phase = 'ready' | 'creating' | 'loading' | 'reserved' | 'preparing' | 'payment' | 'waiting' | 'submitting' | 'verifying' | 'verification-timeout' | 'pending' | 'confirmed' | 'failure' | 'terminal' | 'auth' | 'verification' | 'cart-conflict'
 export const verificationDelays = [0, 1000, 2000, 3000, 5000, 8000, 10000]
 
 export function useCheckout(token: string, userId: number, orderId: number | null) {
   const { refreshCart } = useCart()
+  const [actionRejected, setActionRejected] = useState(false)
+  const latest = useRef<Order | null>(null)
   const [conflict, setConflict] = useState<CheckoutApiError | null>(null)
   const [order, setOrder] = useState<Order | null>(null)
   const [phase, setPhase] = useState<Phase>(orderId ? 'loading' : 'ready')
@@ -19,45 +22,46 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
   const obtainedOrderId = useRef(orderId)
   const active = useRef(true)
   const busy = useRef(false)
+  const blockedReads = useRef(false)
   const run = useRef(0)
+  const submission = useRef(false)
+  const verificationLocked = useRef(false)
+  const autoStarted = useRef(false)
+  const verificationDelay = useRef<{ timer: number; resolve: () => void } | null>(null)
 
-  const accept = useCallback((next: Order) => {
-    setOrder(next)
-    if (isConfirmed(next)) { setPhase('confirmed'); setSecret(null); return true }
-    if (isTerminal(next)) { setPhase('terminal'); setSecret(null); return true }
-    if (next.payment?.status === 'SUCCEEDED') { setPhase('pending'); return true }
+  const accept = useCallback((next: Order, verifying = false) => {
+    if ((orderId !== null && next.id !== orderId) || isOlderPaymentSnapshot(latest.current, next)) return false
+    const clean = parseOrderPayment(next)
+    latest.current = clean; setOrder(clean)
+    const window = clean.paymentWindow
+    if (isConfirmed(clean)) {
+      setPhase('confirmed'); setSecret(null); return true
+    }
+    if (window?.state === 'PAID' && clean.status !== 'PENDING') { setPhase('pending'); setSecret(null); return true }
+    if (['CANCELLED', 'EXPIRED', 'RETURNED'].includes(clean.status)) { setPhase('terminal'); setSecret(null); return true }
+    if (isTerminal(clean)) { setPhase('terminal'); setSecret(null); return true }
+    if (verifying || verificationLocked.current) { setPhase(verifying ? 'verifying' : 'verification-timeout'); setSecret(null); return false }
+    if (!window || !paymentAction(window)) { setPhase('pending'); setSecret(null); return true }
     setPhase('reserved'); return false
-  }, [])
+  }, [orderId])
 
   const fail = useCallback((reason: unknown) => {
+    setSecret(null)
+    if (reason instanceof CheckoutApiError && [401, 403, 404].includes(reason.status)) blockedReads.current = true
     setMessage(reason instanceof Error ? reason.message : 'Connection lost. Please try again.')
-    setPhase(reason instanceof CheckoutApiError && reason.status === 403 && reason.code === 'EMAIL_VERIFICATION_REQUIRED' ? 'verification' : reason instanceof CheckoutApiError && [401, 403].includes(reason.status) ? 'auth' : reason instanceof CheckoutApiError && (reason.status === 404 || ['ORDER_EXPIRED', 'ORDER_NOT_PAYABLE', 'ORDER_IDEMPOTENCY_MISMATCH', 'INVALID_IDEMPOTENCY_KEY'].includes(reason.code ?? '')) ? 'terminal' : 'failure')
+    setPhase(reason instanceof CheckoutApiError && reason.status === 403 && reason.code === 'EMAIL_VERIFICATION_REQUIRED' ? 'verification' : reason instanceof CheckoutApiError && [401, 403].includes(reason.status) ? 'auth' : reason instanceof CheckoutApiError && (reason.status === 404 || ['ORDER_EXPIRED', 'ORDER_NOT_PAYABLE', 'ORDER_IDEMPOTENCY_MISMATCH', 'INVALID_IDEMPOTENCY_KEY'].includes(reason.code ?? '')) ? 'terminal' : verificationLocked.current ? 'verification-timeout' : 'failure')
   }, [])
 
-  useEffect(() => {
-    active.current = true
-    let cancelled = false
-    if (orderId) {
-      void getOrder(token, orderId).then(next => { if (!cancelled) accept(next) }).catch(reason => { if (!cancelled) fail(reason) })
-    }
-    return () => { cancelled = true; active.current = false; run.current += 1 }
-  }, [accept, fail, orderId, token])
-
-  // Stop offering payment when an unpaid reservation reaches its deadline.
-  useEffect(() => {
-    if (!order?.reservationExpiresAt || order.payment?.status === 'SUCCEEDED' || ['waiting', 'pending'].includes(phase)) return
-    const timer = window.setTimeout(() => { setSecret(null); setPhase('terminal'); setMessage('Your inventory reservation has expired. Return to your cart to start again.') }, Math.max(0, Date.parse(order.reservationExpiresAt) - Date.now()))
-    return () => window.clearTimeout(timer)
-  }, [order, phase])
 
   const create = async (input: OrderInput) => {
     if (busy.current || obtainedOrderId.current || orderId || order || (phase === 'verification' || phase === 'cart-conflict')) return
     if (!attemptRef.current && input.items.length === 0) return
+    const currentRun = run.current
     busy.current = true; setMessage(null); setPhase('creating')
     try {
       if (attemptRef.current?.rejection === 'EMAIL_VERIFICATION_REQUIRED') {
         // A deliberate continuation checks backend authority before another POST.
-        try { await getCurrentUser(token); if (!active.current) return }
+        try { await getCurrentUser(token); if (!active.current || run.current !== currentRun) return }
         catch (reason) {
           if (isVerificationRequired(reason)) throw new CheckoutApiError(403, 'EMAIL_VERIFICATION_REQUIRED')
           if (reason instanceof AuthApiError) throw new CheckoutApiError(reason.status, reason.code)
@@ -69,13 +73,13 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
       // Persist before sending. A lost response must replay the same key AND payload.
       saveAttempt(userId, current); attemptRef.current = current; setAttempt(current)
       const result = await createOrder(token, current.input, current.key)
-      if (!active.current) return
+      if (!active.current || run.current !== currentRun) return
       obtainedOrderId.current = result.id
       window.history.replaceState({}, '', `/checkout/orders/${result.id}`)
       clearAttempt(userId)
       window.dispatchEvent(new PopStateEvent('popstate'))
     } catch (reason) {
-      if (active.current) {
+      if (active.current && run.current === currentRun) {
         if (reason instanceof CheckoutApiError && reason.status === 409 && availabilityConflictCodes.includes(reason.code ?? '')) {
           // Definite rejection: retire this identity, never rewrite an ambiguous request.
           clearAttempt(userId); attemptRef.current = null; setAttempt(null)
@@ -93,86 +97,220 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
         fail(reason)
       }
     }
-    finally { busy.current = false }
+    finally { if (run.current === currentRun) busy.current = false }
   }
 
   const verify = useCallback(async () => {
-    const id = orderId ?? order?.id
-    if (!id || busy.current || !active.current) return
-    busy.current = true; setPhase('waiting'); setSecret(null); setMessage(null)
+    const id = orderId ?? latest.current?.id
+    if (!id || busy.current || blockedReads.current || !active.current || (latest.current && isConfirmed(latest.current))) return
+    autoStarted.current = true
+    verificationLocked.current = true
+    busy.current = true; setPhase('verifying'); setSecret(null); setMessage(null)
     const currentRun = ++run.current
     try {
       for (const delay of verificationDelays) {
-        if (delay) await new Promise(resolve => window.setTimeout(resolve, delay))
+        if (delay) await new Promise<void>(resolve => {
+          const timer = window.setTimeout(() => { verificationDelay.current = null; resolve() }, delay)
+          verificationDelay.current = { timer, resolve }
+        })
         if (!active.current || run.current !== currentRun) return
         const next = await getOrder(token, id)
         if (!active.current || run.current !== currentRun) return
-        setOrder(next)
-        if (isConfirmed(next) || isTerminal(next)) { accept(next); return }
+        if (next.id !== id) throw new Error('Unable to read this order.')
+        if (isOlderPaymentSnapshot(latest.current, next)) continue
+        accept(next, true)
+        const state = parsePaymentWindow(next.paymentWindow)?.state
+        if (isConfirmed(next) || isTerminal(next) || ['CANCELLED', 'EXPIRED', 'RETURNED'].includes(next.status)) return
+        // PAID is financial evidence, not fulfilment confirmation. Keep reading
+        // a PENDING order, including when webhook lag still reports resumable.
+        if (state === 'PAID' && next.status !== 'PENDING') return
       }
-      setPhase('pending')
-    } catch (reason) { if (active.current && run.current === currentRun) { fail(reason); if (!(reason instanceof CheckoutApiError) || ![401, 403, 404].includes(reason.status)) setPhase('pending') } }
-    finally { busy.current = false }
-  }, [accept, fail, order, orderId, token])
-
-  // Provider recovery is an explicit customer action, never part of GET polling.
-  const recheck = async () => {
-    const id = orderId ?? order?.id
-    if (!id || busy.current || !active.current || (order && (isConfirmed(order) || isTerminal(order)))) return
-    busy.current = true; setPhase('waiting'); setSecret(null); setMessage(null)
-    const currentRun = ++run.current
-    try {
-      const next = await recoverPayment(token, id)
-      if (!active.current || run.current !== currentRun) return
-      if (!accept(next)) setPhase('pending')
+      setPhase('verification-timeout')
+      setMessage(parsePaymentWindow(latest.current?.paymentWindow)?.state === 'PAID'
+        ? 'Payment was recorded, but order confirmation is still pending. Do not pay again. Check order status later or contact us.'
+        : 'Payment verification is taking longer than expected. This does not mean payment failed. Do not pay again; check order status later.')
     } catch (reason) {
       if (active.current && run.current === currentRun) {
         fail(reason)
-        if (!(reason instanceof CheckoutApiError) || ![401, 403, 404].includes(reason.status)) setPhase('pending')
+        if (!(reason instanceof CheckoutApiError) || ![401, 403, 404].includes(reason.status)) {
+          setPhase('verification-timeout')
+          setMessage(parsePaymentWindow(latest.current?.paymentWindow)?.state === 'PAID'
+            ? 'Payment was recorded, but we could not confirm the order yet. Do not pay again. Check order status later.'
+            : 'We could not finish checking the payment. Its outcome is not yet known. Do not pay again; check order status later.')
+        }
       }
-    } finally { busy.current = false }
+    } finally { if (run.current === currentRun) busy.current = false }
+  }, [accept, fail, orderId, token])
+
+  useEffect(() => {
+    active.current = true; busy.current = false; submission.current = false
+    blockedReads.current = false; verificationLocked.current = false; autoStarted.current = false
+    latest.current = null
+    const currentRun = ++run.current
+    void Promise.resolve().then(async () => {
+      if (!active.current || run.current !== currentRun) return
+      // Consume only after the StrictMode-abandoned setup has been invalidated.
+      const verificationReturn = consumeStripeReturn(orderId, userId)
+      if (verificationReturn) verificationLocked.current = true
+      setSecret(null); setOrder(null); setActionRejected(false); setMessage(null)
+      setPhase(orderId ? 'loading' : 'ready')
+      if (!orderId) return
+      try {
+        const next = await getOrder(token, orderId)
+        if (!active.current || run.current !== currentRun) return
+        if (next.id !== orderId) throw new Error('Unable to read this order.')
+        accept(next, verificationReturn)
+        if (verificationReturn && !isConfirmed(next) && !isTerminal(next)) void verify()
+      } catch (reason) { if (active.current && run.current === currentRun) fail(reason) }
+    })
+    return () => {
+      active.current = false; run.current += 1
+      const pending = verificationDelay.current
+      if (pending) { window.clearTimeout(pending.timer); pending.resolve(); verificationDelay.current = null }
+    }
+  }, [accept, fail, orderId, token, userId, verify])
+
+  // Provider recovery is explicit. Read polling never calls a payment mutation.
+  const recheck = async () => {
+    const current = latest.current
+    if (blockedReads.current || !current || !canRecoverPayment(current.paymentWindow) || busy.current || !active.current) return
+    busy.current = true; setPhase('waiting'); setSecret(null); setMessage(null)
+    const currentRun = ++run.current
+    try {
+      const next = await recoverPayment(token, current.id)
+      if (!active.current || run.current !== currentRun) return
+      if (next.id !== current.id) throw new Error('Unable to read this order.')
+      accept(isOlderPaymentSnapshot(latest.current, next) ? latest.current! : next)
+    } catch (reason) {
+      if (active.current && run.current === currentRun) {
+        fail(reason)
+        if (!(reason instanceof CheckoutApiError) || ![401, 403, 404].includes(reason.status)) setPhase(verificationLocked.current ? 'verification-timeout' : 'pending')
+      }
+    } finally { if (run.current === currentRun) busy.current = false }
   }
 
   const prepare = async () => {
-    if (!order || busy.current || isTerminal(order) || isConfirmed(order)) return
-    busy.current = true; setPhase('preparing'); setMessage(null)
+    const current = latest.current
+    const intended = current?.status === 'PENDING' ? paymentAction(current.paymentWindow) : null
+    if (!current || !intended || actionRejected || verificationLocked.current || busy.current || !active.current) return
+    busy.current = true; setPhase('preparing'); setSecret(null); setMessage(null)
+    const currentRun = ++run.current
     try {
-      const next = await getOrder(token, order.id)
-      if (!active.current) return
-      if (accept(next)) return
+      const next = await getOrder(token, current.id)
+      if (!active.current || run.current !== currentRun) return
+      if (next.id !== current.id) throw new Error('Unable to read this order.')
+      if (isOlderPaymentSnapshot(latest.current, next)) { setActionRejected(true); setPhase('pending'); return }
+      accept(next)
+      // A changed capability must be reviewed, never silently upgraded to a replacement.
+      if (next.status !== 'PENDING' || paymentAction(next.paymentWindow) !== intended) return
+      setPhase('preparing')
       const clientSecret = await preparePayment(token, next.id)
-      if (active.current) { setSecret(clientSecret); setPhase('payment') }
+      if (!active.current || run.current !== currentRun) return
+      // The initiation endpoint is authoritative, but re-read after its handshake
+      // so concurrent success/closure cannot mount a stale payment form.
+      const after = await getOrder(token, next.id)
+      if (!active.current || run.current !== currentRun) return
+      if (after.id !== current.id) throw new Error('Unable to read this order.')
+      if (isOlderPaymentSnapshot(latest.current, after)) { setActionRejected(true); setPhase('pending'); return }
+      accept(after)
+      const capability = paymentAction(after.paymentWindow)
+      if (after.status === 'PENDING' && (capability === 'resume' || capability === 'provider-check')) {
+        setSecret(clientSecret); setPhase('payment')
+      }
     } catch (reason) {
-      if (!active.current) return
-      if (reason instanceof CheckoutApiError && ['PAYMENT_ALREADY_COMPLETED', 'ORDER_NOT_PAYABLE'].includes(reason.code ?? '')) {
-        try {
-          const next = await getOrder(token, order.id)
-          if (!active.current) return
-          if (isConfirmed(next)) { setMessage(null); accept(next) }
-          else if (reason.code === 'PAYMENT_ALREADY_COMPLETED') {
-            accept(next); setMessage('Payment was already recorded. Recheck the order if confirmation is still pending.')
-          } else { setOrder(next); fail(reason) }
-        } catch (readError) { if (active.current) fail(readError) }
-      } else fail(reason)
-    } finally { busy.current = false }
+      if (!active.current || run.current !== currentRun) return
+      setSecret(null); setActionRejected(true)
+      if (reason instanceof CheckoutApiError && [401, 403, 404].includes(reason.status)) { fail(reason); return }
+      // Never replay an unsuccessful initiation from a generic Retry button.
+      // A fresh customer detail may have observed success or changed eligibility.
+      try {
+        const next = await getOrder(token, current.id)
+        if (!active.current || run.current !== currentRun) return
+        if (next.id !== current.id) throw new Error('Unable to read this order.', { cause: reason })
+        accept(next)
+        if ((latest.current && isConfirmed(latest.current))) { setMessage(null); return }
+      } catch (readError) {
+        if (!active.current || run.current !== currentRun) return
+        if (readError instanceof CheckoutApiError && [401, 403, 404].includes(readError.status)) { fail(readError); return }
+        setPhase('pending')
+      }
+      setMessage('Payment setup could not continue. Refresh the order to check the latest payment window before taking another action.')
+    } finally { if (run.current === currentRun) busy.current = false }
+  }
+  const beforeConfirm = async (): Promise<boolean> => {
+    const current = latest.current
+    if (!current || !secret || busy.current || actionRejected || verificationLocked.current || !active.current) return false
+    busy.current = true; submission.current = true; setPhase('submitting')
+    const currentRun = ++run.current
+    let permitted = false
+    try {
+      const next = await getOrder(token, current.id)
+      if (!active.current || run.current !== currentRun) return false
+      if (next.id !== current.id || isOlderPaymentSnapshot(latest.current, next)) {
+        setSecret(null); setActionRejected(true); setPhase('pending'); return false
+      }
+      const clean = parseOrderPayment(next)
+      const capability = paymentAction(clean.paymentWindow)
+      if (clean.status !== 'PENDING' || !['resume', 'provider-check'].includes(capability ?? '') || capability !== paymentAction(current.paymentWindow)) {
+        accept(clean); setSecret(null); return false
+      }
+      latest.current = clean; setOrder(clean)
+      permitted = true
+      return true
+    } catch (reason) {
+      if (active.current && run.current === currentRun) { setSecret(null); setActionRejected(true); fail(reason) }
+      return false
+    } finally {
+      // Retain the hook lock throughout Stripe's SDK promise, not just preflight.
+      if (run.current === currentRun && !permitted) { busy.current = false; submission.current = false }
+    }
+  }
+  const submissionSettled = () => {
+    if (!active.current || !submission.current) return
+    submission.current = false; busy.current = false; setPhase('payment')
+  }
+  const paymentSubmitted = () => {
+    if (!active.current) return
+    if (submission.current) { submission.current = false; busy.current = false }
+    void verify()
   }
   const restart = () => { clearAttempt(userId); navigateCheckout('/') }
   const reloadOrder = async () => {
     if (!orderId || busy.current || !active.current) return
-    busy.current = true; setPhase('loading'); setMessage(null)
+    busy.current = true; setSecret(null); setPhase('loading'); setMessage(null)
+    const currentRun = ++run.current
     try {
       const next = await getOrder(token, orderId)
-      if (active.current) accept(next)
-    } catch (reason) { if (active.current) fail(reason) }
-    finally { busy.current = false }
+      if (active.current && run.current === currentRun) {
+        if (next.id !== orderId) throw new Error('Unable to read this order.')
+        if (isOlderPaymentSnapshot(latest.current, next)) { setPhase(verificationLocked.current ? 'verification-timeout' : 'pending'); return }
+        // Only an explicit fresh read of a backend-authorized retry releases a
+        // stale verification lock. Resumable alone remains ambiguous after submission.
+        const action = paymentAction(next.paymentWindow)
+        if (next.status === 'PENDING' && (action === 'replacement' || action === 'provider-check')) verificationLocked.current = false
+        accept(next); setActionRejected(false); blockedReads.current = false
+        if (verificationLocked.current && !isConfirmed(next) && !isTerminal(next)) {
+          setMessage(parsePaymentWindow(latest.current?.paymentWindow)?.state === 'PAID'
+            ? 'Payment was recorded, but order confirmation is still pending. Do not pay again.'
+            : 'Payment verification is still pending. Do not pay again; check order status later.')
+        }
+      }
+    } catch (reason) { if (active.current && run.current === currentRun) fail(reason) }
+    finally { if (run.current === currentRun) busy.current = false }
   }
-  const checkedReturn = useRef(false)
+  // Bounded, read-only status polling on re-entry while financial outcome is pending.
+  const windowState = parsePaymentWindow(order?.paymentWindow)?.state
   useEffect(() => {
-    if (!order || checkedReturn.current || !new URLSearchParams(window.location.search).has('payment_intent')) return
-    checkedReturn.current = true
-    window.history.replaceState({}, '', `/checkout/orders/${order.id}`)
-    if (!isConfirmed(order) && !isTerminal(order)) void Promise.resolve().then(() => { if (active.current) void verify() })
-  }, [order, verify])
-  const resumeAfterVerification = () => { setMessage(null); setPhase('ready') }
-  return { conflict, reviewComplete: () => { setConflict(null); setMessage(null); setPhase('ready') }, order, phase, message, secret, attempt, create, prepare, verify, recheck, restart, reloadOrder, resumeAfterVerification }
+    if (!orderId || autoStarted.current || !['pending', 'reserved'].includes(phase) || !(['PROCESSING', 'OUTCOME_UNRESOLVED'].includes(windowState ?? '') || (windowState === 'PAID' && order?.status === 'PENDING'))) return
+    const timer = window.setTimeout(() => { autoStarted.current = true; void verify() }, 3000)
+    return () => window.clearTimeout(timer)
+  }, [orderId, windowState, order?.status, phase, verify])
+  const resumeAfterVerification = () => {
+    if (orderId) {
+      void reloadOrder().then(() => { if (verificationLocked.current && !blockedReads.current && active.current) void verify() })
+      return
+    }
+    setMessage(null); setPhase('ready')
+  }
+  return { conflict, actionRejected, beforeConfirm, submissionSettled, paymentSubmitted, reviewComplete: () => { setConflict(null); setMessage(null); setPhase('ready') }, order, phase, message, secret, attempt, create, prepare, verify, recheck, restart, reloadOrder, resumeAfterVerification }
 }

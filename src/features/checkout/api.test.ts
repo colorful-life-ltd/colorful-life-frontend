@@ -9,7 +9,7 @@ describe('checkout HTTP contracts', () => {
     expect(fetch).toHaveBeenCalledWith('/api/orders', expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer jwt', 'Idempotency-Key': 'attempt-uuid' }), body: JSON.stringify(input) }))
   })
   it('reads safe order state and initializes Stripe without client amount', async () => {
-    const fetch = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ clientSecret: 'secret' })))); vi.stubGlobal('fetch', fetch)
+    const fetch = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: 41, clientSecret: 'secret' })))); vi.stubGlobal('fetch', fetch)
     await getOrder('jwt', 41); expect(fetch.mock.calls[0][0]).toBe('/api/orders/41')
     expect(await preparePayment('jwt', 41)).toBe('secret'); expect(fetch.mock.calls[1][0]).toBe('/api/orders/41/payments/stripe'); expect(fetch.mock.calls[1][1].body).toBeUndefined()
   })
@@ -17,7 +17,7 @@ describe('checkout HTTP contracts', () => {
     const order = { id: 41, status: 'PENDING', payment: { status: 'PROCESSING', paidAt: null } }
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(order)))
     vi.stubGlobal('fetch', fetcher)
-    expect(await recoverPayment('jwt', 41)).toEqual(order)
+    expect(await recoverPayment('jwt', 41)).toEqual({ ...order, paymentWindow: null })
     expect(fetcher).toHaveBeenCalledExactlyOnceWith('/api/orders/41/payments/stripe/reconcile', expect.objectContaining({ method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer jwt' } }))
     expect(fetcher.mock.calls[0][1].body).toBeUndefined()
   })
@@ -39,4 +39,24 @@ describe('availability error envelope', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: 'OUT_OF_STOCK', productListingId: '42', availableQuantity: -1, requestedQuantity: 0, reason: {} } }), { status: 409 })))
     await expect(createOrder('jwt', { items: [] }, 'uuid')).rejects.toMatchObject({ details: { productListingId: undefined, availableQuantity: undefined, requestedQuantity: undefined, reason: undefined } })
   })
+})
+
+describe('owned order payment-window boundary', () => {
+  it('rejects a response for a different order ID', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 42 }))))
+    await expect(getOrder('jwt', 41)).rejects.toThrow('Unable to read this order')
+    await expect(recoverPayment('jwt', 41)).rejects.toThrow('Unable to read this order')
+  })
+  it.each([undefined, null, { version: 2 }, { version: 1, initiationEligibility: 'ELIGIBLE' }])('normalizes an unusable window to null on all order responses: %j', async paymentWindow => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: 41, paymentWindow })))))
+    expect((await getOrder('jwt', 41)).paymentWindow).toBeNull()
+    expect((await recoverPayment('jwt', 41)).paymentWindow).toBeNull()
+    expect((await createOrder('jwt', { items: [] }, 'original-key')).paymentWindow).toBeNull()
+  })
+})
+
+it('fails closed when a non-pending order advertises an initial payment action', async () => {
+  const { windowFixture } = await import('./paymentWindowFixtures')
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 41, status: 'CANCELLED', paymentWindow: windowFixture() }))))
+  expect((await getOrder('jwt', 41)).paymentWindow).toBeNull()
 })

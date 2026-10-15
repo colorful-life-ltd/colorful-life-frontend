@@ -7,7 +7,8 @@ describe('customer order read contracts', () => {
     const orders = [{ id: 42 }, { id: 41 }]
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify(orders))))
     vi.stubGlobal('fetch', fetcher)
-    expect(await listOrders('jwt')).toEqual(orders)
+    expect(await listOrders('jwt')).toEqual(orders.map(order => ({ ...order, paymentWindow: null })))
+    fetcher.mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: 41 }))))
     await readOrder('jwt', 41)
     expect(fetcher.mock.calls.map(([url]) => url)).toEqual(['/api/orders', '/api/orders/41'])
     for (const [, init] of fetcher.mock.calls) {
@@ -23,4 +24,9 @@ describe('customer order read contracts', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}', { status: 404 })))
     await expect(readOrder('jwt', 41)).rejects.toBeInstanceOf(AuthApiError)
   })
+})
+
+it('isolates a malformed list row rather than discarding other owned orders', async () => {
+  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify([{ id: 42 }, { id: 'bad' }, null, { id: -1 }, { id: 41 }]))))
+  expect((await listOrders('jwt')).map(order => order.id)).toEqual([42, 41])
 })

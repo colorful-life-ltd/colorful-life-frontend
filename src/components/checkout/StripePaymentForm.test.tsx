@@ -27,11 +27,12 @@ describe('Stripe payment submission', () => {
     await act(async () => resolve({ paymentIntent: { status: 'succeeded' } }))
     expect(verify).toHaveBeenCalledTimes(1); expect(container.textContent).not.toContain('Pay now')
   })
-  it('allows declined payment retry without declaring order success', async () => {
+  it('requires backend status checking after a decline before another attempt', async () => {
     mocks.confirm.mockResolvedValue({ error: { type: 'card_error', message: 'Your card was declined.' } })
     const verify = await mount(); await submit()
     expect(container.textContent).toContain('declined'); expect(verify).not.toHaveBeenCalled(); expect(container.querySelector('button')?.disabled).toBe(false)
-    mocks.confirm.mockResolvedValue({}); await submit(); expect(verify).toHaveBeenCalledTimes(1)
+    expect(container.textContent).not.toContain('Pay now'); await submit(); expect(mocks.confirm).toHaveBeenCalledTimes(1)
+    await act(async () => container.querySelector('button')!.click()); expect(verify).toHaveBeenCalledTimes(1)
   })
   it('routes an ambiguous provider/network outcome to status checking', async () => {
     mocks.confirm.mockRejectedValue(new Error('offline')); const verify = await mount(); await submit()
@@ -58,5 +59,38 @@ describe('Stripe payment submission', () => {
     container = document.createElement('div'); document.body.append(container); root = createRoot(container)
     await act(async () => root.render(<StripePaymentForm clientSecret="secret" orderId={41} onVerify={vi.fn()} />))
     expect(container.textContent).toContain(key ? 'Secure payment could not load' : 'Payments are not configured')
+  })
+})
+
+
+describe('Stripe callback lifecycle and backend confirmation gate', () => {
+  it('discards a confirmation result after the form is unmounted', async () => {
+    let finish!: (value: object) => void
+    mocks.confirm.mockImplementation(() => new Promise(resolve => { finish = resolve }))
+    const verify = await mount(); await submit()
+    await act(async () => root.unmount())
+    await act(async () => finish({ paymentIntent: { status: 'succeeded' } }))
+    expect(verify).not.toHaveBeenCalled()
+  })
+  it('discards an old SDK retrieval after switching checkout secrets', async () => {
+    let finish!: (value: object) => void
+    mocks.retrieve.mockImplementationOnce(() => new Promise(resolve => { finish = resolve })).mockResolvedValue({ paymentIntent: { status: 'requires_payment_method' } })
+    const verify = await mount()
+    await act(async () => root.render(<PaymentForm clientSecret="new_secret" orderId={42} onVerify={verify} />))
+    await act(async () => finish({ paymentIntent: { status: 'succeeded' } }))
+    expect(verify).not.toHaveBeenCalled(); expect(container.textContent).toContain('Pay now')
+  })
+  it('never calls Stripe confirm after a rejected backend permission check', async () => {
+    const beforeConfirm = vi.fn().mockResolvedValue(false)
+    container = document.createElement('div'); document.body.append(container); root = createRoot(container)
+    await act(async () => root.render(<PaymentForm clientSecret="secret" orderId={41} onVerify={vi.fn()} beforeConfirm={beforeConfirm} />))
+    await submit()
+    expect(beforeConfirm).toHaveBeenCalledOnce(); expect(mocks.confirm).not.toHaveBeenCalled()
+    expect(container.textContent).not.toContain('Pay now')
+  })
+  it.each(['future_status', 'canceled'])('does not enable confirmation from an unsupported SDK state %s', async status => {
+    mocks.retrieve.mockResolvedValue({ paymentIntent: { status } })
+    await mount(); await submit()
+    expect(mocks.confirm).not.toHaveBeenCalled(); expect(container.textContent).not.toContain('Pay now')
   })
 })

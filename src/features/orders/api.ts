@@ -1,8 +1,8 @@
 import { requestJson } from '../auth/api'
-import type { Order } from '../checkout/api'
+import { parseOrderPayment, type Order } from '../checkout/api'
 
 // The list projection deliberately has no payment or address fields.
-export type OrderSummary = Pick<Order, 'id' | 'status' | 'totalAmount' | 'orderItems'> & {
+export type OrderSummary = Pick<Order, 'id' | 'status' | 'totalAmount' | 'orderItems' | 'paymentWindow'> & {
   createdAt: string
   updatedAt: string
   shippingCarrier: string | null
@@ -16,5 +16,8 @@ export type OrderDetail = Order & OrderSummary & {
   deliveryCounty: string | null
   deliveryPhone: string | null
 }
-export const listOrders = (token: string) => requestJson<OrderSummary[]>('/orders', { method: 'GET' }, token)
-export const readOrder = (token: string, id: number) => requestJson<OrderDetail>(`/orders/${id}`, { method: 'GET' }, token)
+export async function listOrders(token: string) {
+  const orders = await requestJson<OrderSummary[]>('/orders', { method: 'GET' }, token)
+  return orders.filter(order => order && Number.isSafeInteger(order.id) && order.id > 0).map(order => parseOrderPayment(order))
+}
+export async function readOrder(token: string, id: number) { return parseOrderPayment(await requestJson<OrderDetail>(`/orders/${id}`, { method: 'GET' }, token), id) }
