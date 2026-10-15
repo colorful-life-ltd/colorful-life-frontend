@@ -18,3 +18,11 @@
 .checkout__notice { background: #edf0df; padding: 20px; border-radius: 12px; }
 .checkout__payment { margin: 24px 0; max-width: 650px; }
 @media (max-width: 700px) { .checkout__columns { grid-template-columns: 1fr; gap: 12px; } }
+
+/* Keep the shared cart controls compact inside checkout's larger action styles. */
+.checkout .cart-item__quantity button { margin: 0; padding: 0; flex-shrink: 0; border-radius: 50%; background: #fff9e9; color: #3e6962; font-size: 18px; }
+.checkout .cart-item__remove { margin: 4px 0 0 auto; padding: 3px 0 3px 10px; border: 0; background: transparent; color: #3e6962; }
+
+.checkout .cart-item__reduce { margin: 8px 0 0; padding: 6px 10px; border: 1px solid #527f78; border-radius: 6px; background: #fff9e9; color: #3e6962; font: 15px/1.4 'Segoe Print', 'Comic Sans MS', cursive; }
+.checkout .cart-item__reduce:disabled { opacity: .4; cursor: not-allowed; }
+.checkout .cart-item__reduce:focus-visible { outline: 2px solid #b68c42; outline-offset: 3px; }

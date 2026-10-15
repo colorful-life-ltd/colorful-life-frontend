@@ -27,3 +27,16 @@ describe('checkout HTTP contracts', () => {
     try { await createOrder('jwt', { items: [] }, 'uuid'); throw new Error('expected failure') } catch (error) { expect(error).toBeInstanceOf(CheckoutApiError); expect((error as CheckoutApiError).code).toBe(code); expect((error as Error).message).not.toContain('Email already in use') }
   })
 })
+
+
+describe('availability error envelope', () => {
+  it.each(['LISTING_UNAVAILABLE', 'OUT_OF_STOCK', 'INSUFFICIENT_STOCK', 'CART_QUANTITY_UNAVAILABLE'])('retains structured %s details', async code => {
+    const details = { reason: 'INSUFFICIENT_STOCK', productListingId: 42, availableQuantity: 2, requestedQuantity: 4 }
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code, message: 'internal', ...details } }), { status: 409 })))
+    await expect(createOrder('jwt', { items: [{ productListingId: 42, quantity: 4 }] }, 'uuid')).rejects.toMatchObject({ status: 409, code, details })
+  })
+  it('discards malformed optional details without inventing item identity or quantities', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: 'OUT_OF_STOCK', productListingId: '42', availableQuantity: -1, requestedQuantity: 0, reason: {} } }), { status: 409 })))
+    await expect(createOrder('jwt', { items: [] }, 'uuid')).rejects.toMatchObject({ details: { productListingId: undefined, availableQuantity: undefined, requestedQuantity: undefined, reason: undefined } })
+  })
+})

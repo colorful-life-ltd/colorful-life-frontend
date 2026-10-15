@@ -162,3 +162,24 @@ describe('new allocation-aware addition', () => {
     expect(cart.items[0]).toMatchObject({ quantity: 3, allocatedQuantity: 2, unallocatedQuantity: 1 })
   })
 })
+
+
+describe('stock-blocked allocation reduction persistence', () => {
+  it('PATCHes the allocated-only target and retains its provenance from the backend response', async () => {
+    sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+    vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
+    const before = { ...populated.items[0], quantity: 3, allocatedQuantity: 1, unallocatedQuantity: 2, availability: { status: 'OUT_OF_STOCK' as const, reason: 'OUT_OF_STOCK', availableQuantity: 0 } }
+    const after = { ...before, quantity: 1, unallocatedQuantity: 0, availability: { status: 'UNAVAILABLE' as const, reason: 'CART_QUANTITY_ALLOCATED', availableQuantity: 0 } }
+    vi.mocked(getCart).mockResolvedValue({ items: [before] })
+    vi.mocked(updateCartItem).mockResolvedValue({ items: [after] })
+    await mount(); await click('.stage-cart')
+    expect(updateCartItem).not.toHaveBeenCalled()
+    expect(cart.items[0]).toMatchObject({ quantity: 3, allocatedQuantity: 1, unallocatedQuantity: 2 })
+    await click('.cart-item__reduce')
+    expect(updateCartItem).toHaveBeenCalledExactlyOnceWith('customer-jwt', 42, 1)
+    expect(cart.items[0]).toMatchObject({ quantity: 1, allocatedQuantity: 1, unallocatedQuantity: 0 })
+    expect(deleteCartItem).not.toHaveBeenCalled()
+    expect(container.querySelector('.cart-item__reduce')).toBeNull()
+    expect(container.textContent).toContain('Already in a pending order')
+  })
+})

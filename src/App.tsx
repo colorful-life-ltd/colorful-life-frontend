@@ -18,6 +18,8 @@ import { CustomerOrders } from './components/account/CustomerOrders'
 import { VerifyEmail } from './components/account/VerifyEmail'
 import { ResetPassword } from './components/account/ResetPassword'
 import { isResetPasswordPath } from './features/auth/passwordReset'
+import { cartCopy } from './features/i18n/cartCopy'
+import { cartCheckoutBlocked, checkoutQuantity } from './features/cart/CartContext'
 import { navigateCheckout } from './features/checkout/state'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
@@ -69,7 +71,10 @@ function App() {
   const previouslyOpen = useRef(false)
   const previousAuthStatus = useRef<string | undefined>(undefined)
   const { state: authState, logout } = useAuth()
-  const { items: cartItems, refreshCart, addListing, isLoading: cartLoading, pendingItemIds } = useCart()
+  const { items: cartItems, refreshCart, addListing, isLoading: cartLoading, error: cartError, pendingItemIds } = useCart()
+  const cartCheckoutMessage = cartCheckoutBlocked(cartItems) ? cartCopy().blocked
+    : cartLoading || pendingItemIds.length > 0 ? cartCopy().updating
+    : cartError || (cartItems.length && !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0) ? cartCopy().freshNone : null)
   const showReference = import.meta.env.DEV && view === 'reference'
   const showGuestHint = (source: 'user' | 'cart') => {
     if (guestHintTimer.current !== null) window.clearTimeout(guestHintTimer.current)
@@ -381,7 +386,7 @@ function App() {
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
-        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, actions: <button className="cart-modal__action" disabled={cartLoading || pendingItemIds.length > 0} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>Checkout</button> } : { kind: 'empty' }} />}
+        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
     </>
   )
 }

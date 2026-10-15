@@ -82,4 +82,37 @@ describe('native Cart → Checkout navigation', () => {
   })
   it('does not offer checkout for an empty cart', async () => { cart.items = []; await mount(); await openCart(); expect([...container.querySelectorAll('button')].some(button => button.textContent === 'Checkout')).toBe(false) })
   it('waits for pending cart changes before checkout', async () => { cart.pendingItemIds = [11]; await mount(); await openCart(); expect([...container.querySelectorAll('button')].find(button => button.textContent === 'Checkout')?.disabled).toBe(true) })
+  it('refreshes on cart open and blocks mixed fresh intent with item explanations', async () => {
+    cart.items.push({ ...cart.items[0], productListingId: 12, availability: { status: 'OUT_OF_STOCK', reason: 'OUT_OF_STOCK', availableQuantity: 0 } })
+    await mount(); await openCart()
+    expect(cart.refreshCart).toHaveBeenCalledTimes(1)
+    const checkout = [...container.querySelectorAll('button')].find(b => b.textContent === 'Checkout')!
+    expect(checkout.disabled).toBe(true)
+    expect(checkout.getAttribute('aria-describedby')).toBe('cart-checkout-status')
+    expect(document.getElementById('cart-checkout-status')?.textContent).toContain('Resolve the items marked below')
+    expect(container.querySelectorAll('.cart-item')).toHaveLength(2)
+    expect(container.textContent).toContain('Out of stock')
+    expect(container.textContent).toContain('Resolve the items marked below')
+    await act(async () => checkout.click())
+    expect(location.pathname).toBe('/')
+  })
+  it('does not block unrelated new checkout for fully allocated unavailable lines', async () => {
+    cart.items.push({ ...cart.items[0], productListingId: 12, allocatedQuantity: 2, unallocatedQuantity: 0, availability: { status: 'UNAVAILABLE', reason: 'CART_QUANTITY_ALLOCATED', availableQuantity: 0 } })
+    await mount(); await openCart()
+    const checkout = [...container.querySelectorAll('button')].find(b => b.textContent === 'Checkout')!
+    expect(checkout.disabled).toBe(false)
+    expect(container.textContent).toContain('View My Orders')
+    await act(async () => checkout.click())
+    expect(location.pathname).toBe('/checkout')
+    expect(cart.refreshCart).toHaveBeenCalledTimes(2)
+  })
+  it('leaves only pending-order recovery enabled for a fully allocated cart', async () => {
+    cart.items[0] = { ...cart.items[0], allocatedQuantity: 2, unallocatedQuantity: 0, availability: { status: 'UNAVAILABLE', reason: 'CART_QUANTITY_ALLOCATED', availableQuantity: 5 } }
+    await mount(); await openCart()
+    const checkout = [...container.querySelectorAll('button')].find(b => b.textContent === 'Checkout')!
+    expect(checkout.disabled).toBe(true)
+    expect(document.getElementById(checkout.getAttribute('aria-describedby')!)?.textContent).toBe('These items are already in pending orders.')
+    expect([...container.querySelectorAll('button')].find(b => b.textContent === 'View My Orders')?.disabled).toBe(false)
+  })
+
 })

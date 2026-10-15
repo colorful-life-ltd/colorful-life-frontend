@@ -4,12 +4,14 @@ import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError } from '../../features/auth/api'
 import { countryLabel, deliverySelection, isUsableUkAddress } from '../../features/account/addressState'
 import { getAddresses, type Address } from '../../features/account/addressApi'
-import { checkoutQuantity, cartTotalPence, formatGbp, lineAmountPence, priceToPence, useCart } from '../../features/cart/CartContext'
+import { cartCheckoutBlocked, checkoutQuantity, cartTotalPence, formatGbp, lineAmountPence, priceToPence, useCart } from '../../features/cart/CartContext'
 import { checkoutOrderId, isExpired, navigateCheckout, orderInput } from '../../features/checkout/state'
 import { useCheckout } from '../../features/checkout/useCheckout'
 import { StripePaymentForm } from './StripePaymentForm'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
 import './Checkout.css'
+import { CartItems } from '../cart/CartItems'
+import { availabilityMessage, cartCopy } from '../../features/i18n/cartCopy'
 import { VerificationNotice } from '../account/VerificationNotice'
 
 export function Checkout({ onAccount, onAddresses = onAccount, addressRevision = 0 }: { onAccount: () => void; onAddresses?: () => void; addressRevision?: number }) {
@@ -34,10 +36,24 @@ function AddressCopy({ name, line1, line2, city, postcode, country }: { name: st
 
 function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, onAuthenticate }: { token: string; userId: number; onAddresses: () => void; addressRevision: number; onAuthenticate: () => void }) {
   const cart = useCart()
+  const copy = cartCopy()
   const orderId = checkoutOrderId(window.location.pathname)
   const checkout = useCheckout(token, userId, orderId)
   const { order, phase, message, secret, attempt } = checkout
   useConfirmedCartRefresh(order)
+  const [cartChecked, setCartChecked] = useState(false)
+  const refreshOnMount = useRef(cart.refreshCart)
+  useEffect(() => {
+    if (orderId) return
+    let active = true
+    void refreshOnMount.current().then(() => { if (active) setCartChecked(true) })
+    return () => { active = false }
+  }, [orderId])
+  const blocked = cartCheckoutBlocked(cart.items)
+  const reviewing = !orderId && !order && (phase === 'cart-conflict' || (!attempt && blocked))
+  useEffect(() => {
+    if (reviewing) document.getElementById('cart-review-title')?.focus()
+  }, [reviewing])
   const availableItems = cart.items.filter(item => (checkoutQuantity(item) ?? 0) > 0)
   const [addresses, setAddresses] = useState<Address[]>([])
   const deliberateDelivery = useRef(false)
@@ -73,7 +89,31 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
   const frozen = Boolean(attempt)
   const verificationBlocked = phase === 'verification'
   const definiteRejection = attempt?.rejection === 'EMAIL_VERIFICATION_REQUIRED'
-  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && !verificationBlocked && (frozen || (availableItems.length > 0 && !cart.error && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && isUsableUkAddress(selected) && billing && isUsableUkAddress(billing)) && !addressError && !addressLoading))
+  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && phase !== 'cart-conflict' && !verificationBlocked && (frozen || (cartChecked && !blocked && availableItems.length > 0 && !cart.error && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && isUsableUkAddress(selected) && billing && isUsableUkAddress(billing)) && !addressError && !addressLoading))
+
+  // Ambiguous attempts must keep their exact identity/payload for recovery.
+  // Definitive rejections and fresh blocked carts instead show editable review.
+  if (reviewing) {
+    const details = checkout.conflict?.details
+    const affected = cart.items.find(item => item.productListingId === details?.productListingId)
+    return <section aria-labelledby="cart-review-title">
+      <h1 id="cart-review-title" tabIndex={-1}>{copy.review}</h1>
+      <p id="cart-review-status" role="alert">{phase === 'cart-conflict' ? copy.conflict : copy.blocked}</p>
+      {checkout.conflict && <div className="checkout__notice" role="status">
+        {details?.productListingId !== undefined && <p>{copy.affected(affected?.listing.legoProduct.title ?? copy.listing(details.productListingId))}</p>}
+        <p>{availabilityMessage(details?.reason ?? checkout.conflict.code, details?.availableQuantity)}</p>
+        {details?.requestedQuantity !== undefined && <p>{copy.requested(details.requestedQuantity)}</p>}
+        {details?.availableQuantity !== undefined && <p>{copy.capacity(details.availableQuantity)}</p>}
+      </div>}
+      {phase === 'cart-conflict' && blocked && <p id="cart-review-blocked">{copy.blocked}</p>}
+      {(cart.isLoading || cart.pendingItemIds.length > 0) && <p id="cart-review-updating" role="status">{copy.updating}</p>}
+      {!!cart.items.length && !availableItems.length && <p id="cart-review-no-fresh">{copy.freshNone}</p>}
+      <CartItems items={cart.items} affectedListingId={details?.productListingId} />
+      <button disabled={cart.isLoading || !!cart.pendingItemIds.length} onClick={() => void cart.refreshCart()}>{copy.refresh}</button>
+      <button onClick={() => navigateCheckout('/account/orders')}>{copy.orders}</button>
+      {phase === 'cart-conflict' && <button aria-describedby={`cart-review-status${cart.error ? ' cart-items-error' : ''}${blocked ? ' cart-review-blocked' : ''}${cart.isLoading || cart.pendingItemIds.length ? ' cart-review-updating' : ''}${cart.items.length && !availableItems.length ? ' cart-review-no-fresh' : ''}`} disabled={!cartChecked || blocked || cart.isLoading || !!cart.error || !!cart.pendingItemIds.length || !availableItems.length} onClick={checkout.reviewComplete}>{copy.continue}</button>}
+    </section>
+  }
 
   return <>
     <p className="checkout__eyebrow">Build &amp; Bloom · Your purchase</p>
@@ -92,7 +132,7 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
           {cart.isLoading ? <p role="status">Loading your cart…</p> : <ul className="checkout__items">{availableItems.map(item => <li key={item.productListingId}><strong>{item.listing.legoProduct.title}</strong><span>{item.listing.condition === 'USED_LIKE_NEW' ? 'New – Outer Box Damage' : 'New'} · Quantity {checkoutQuantity(item)}</span><span>{formatGbp(priceToPence(item.listing.effectivePrice))} each · {formatGbp(lineAmountPence({ ...item, quantity: checkoutQuantity(item)! }))}</span></li>)}</ul>}
           {!cart.items.length && !cart.isLoading && <p>Your cart is empty. Add an item before checking out.</p>}
           <p className="checkout__total">Estimated total <strong>{formatGbp(cartTotalPence(availableItems.map(item => ({ ...item, quantity: checkoutQuantity(item)! }))))}</strong></p><p>Final prices and availability are confirmed when your order is reserved.</p>
-          {!!cart.items.length && !availableItems.length && !cart.isLoading && !cart.error && <p>These items are already in pending orders. <button onClick={() => navigateCheckout('/account/orders')}>View My Orders</button></p>}
+          {!!cart.items.length && !availableItems.length && !cart.isLoading && !cart.error && <p id="checkout-no-fresh">{copy.freshNone} <button onClick={() => navigateCheckout('/account/orders')}>{copy.orders}</button></p>}
           {cart.error && <p role="alert">{cart.error}</p>}
         </>}
       </section>
@@ -110,11 +150,10 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
         {!order && <p>Your saved default billing address will be used. Delivery selection does not change it.</p>}
       </section>
     </div>}
-    {!orderId && phase !== 'terminal' && <button disabled={!canCreate} onClick={() => {
+    {!orderId && phase !== 'terminal' && <button aria-describedby={!frozen && cart.items.length && !availableItems.length && !cart.isLoading && !cart.error ? 'checkout-no-fresh' : undefined} disabled={!canCreate} onClick={() => {
       try { const input = attempt?.input ?? (selected ? orderInput(cart.items, selected) : null); if (input) { setInputError(null); void checkout.create(input) } }
       catch (reason) { setInputError(reason instanceof Error ? reason.message : 'Please check your delivery address.') }
     }}>{phase === 'creating' ? 'Reserving your order…' : verificationBlocked ? 'Verify email before creating order' : definiteRejection ? 'Continue saved checkout' : frozen ? 'Retry saved order request' : 'Create order and review total'}</button>}
-    {phase === 'cart-conflict' && availableItems.length > 0 && <button className="checkout__secondary" onClick={() => navigateCheckout('/account/orders')}>View My Orders</button>}
     {!orderId && frozen && !definiteRejection && !pending && phase !== 'terminal' && <p>Retry first if the previous response was lost. Starting again abandons recovery of that request. <button className="checkout__secondary" onClick={checkout.restart}>Leave saved checkout and review cart</button></p>}
     {order && !confirmed && phase !== 'terminal' && <section className="checkout__payment" aria-labelledby="checkout-payment"><h2 id="checkout-payment">Payment</h2>
       {phase === 'reserved' && <><p>Your order is reserved. Review the final total above before continuing to payment.</p>{order.reservationExpiresAt && <p>Reserved until {new Date(order.reservationExpiresAt).toLocaleTimeString('en-GB')}.</p>}<button onClick={() => void checkout.prepare()}>Continue to secure payment</button></>}

@@ -11,10 +11,14 @@ export type Order = {
   orderItems: { id: number; quantity: number; unitPrice: string; lineTotal: string; conditionSnapshot: string; productListing: { id: number; legoProduct: { title: string; setNumber: string } } }[]
 }
 
+export type AvailabilityConflictDetails = { reason?: string; productListingId?: number; availableQuantity?: number; requestedQuantity?: number }
+export const availabilityConflictCodes = ['LISTING_UNAVAILABLE', 'OUT_OF_STOCK', 'INSUFFICIENT_STOCK', 'CART_QUANTITY_UNAVAILABLE']
+
 export class CheckoutApiError extends Error {
+  readonly details: AvailabilityConflictDetails
   readonly status: number
   readonly code?: string
-  constructor(status: number, code?: string, detail?: string) {
+  constructor(status: number, code?: string, detail?: string, details: AvailabilityConflictDetails = {}) {
     const messages: Record<string, string> = {
       CART_QUANTITY_UNAVAILABLE: 'Some cart quantity is already in another pending order or has changed. Review your cart or visit My Orders before trying again.',
       ORDER_IDEMPOTENCY_MISMATCH: 'This checkout request changed. Please return to your cart to start a new checkout.',
@@ -25,7 +29,7 @@ export class CheckoutApiError extends Error {
       EMAIL_VERIFICATION_REQUIRED: 'Please verify your email before checking out.',
     }
     super(code && messages[code] || (status === 401 ? 'Please sign in again to continue.' : status === 403 ? 'Please verify your email before checking out.' : status === 404 ? 'This order could not be found in your account.' : status === 400 && detail?.includes('stock') ? 'Some items are no longer available in the requested quantity. Please review your cart.' : status === 400 && detail?.includes('billing') ? 'Please add a default billing address in My Account.' : status === 400 ? 'Please check your items and delivery address.' : 'We could not complete this request. Please try again.'))
-    this.status = status; this.code = code
+    this.status = status; this.code = code; this.details = details
   }
 }
 
@@ -35,7 +39,12 @@ async function request<T>(token: string, path: string, init: RequestInit = {}): 
     response = await authenticatedFetch(`${apiBase()}${path}`, { ...init, signal: AbortSignal.timeout(10000), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init.headers } }, token)
   } catch { throw new Error('Connection interrupted. Please retry this saved checkout or recheck your order.') }
   const body = await response.json().catch(() => null)
-  if (!response.ok) throw new CheckoutApiError(response.status, body?.error?.code, typeof body?.error === 'string' ? body.error : body?.error?.message)
+  if (!response.ok) throw new CheckoutApiError(response.status, body?.error?.code, typeof body?.error === 'string' ? body.error : body?.error?.message, {
+    reason: typeof body?.error?.reason === 'string' ? body.error.reason : undefined,
+    productListingId: Number.isSafeInteger(body?.error?.productListingId) && body.error.productListingId > 0 ? body.error.productListingId : undefined,
+    availableQuantity: Number.isSafeInteger(body?.error?.availableQuantity) && body.error.availableQuantity >= 0 ? body.error.availableQuantity : undefined,
+    requestedQuantity: Number.isSafeInteger(body?.error?.requestedQuantity) && body.error.requestedQuantity > 0 ? body.error.requestedQuantity : undefined,
+  })
   return body as T
 }
 export const createOrder = (token: string, input: OrderInput, key: string) => request<{ id: number }>(token, '/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(input) })

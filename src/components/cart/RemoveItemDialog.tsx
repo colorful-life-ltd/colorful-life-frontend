@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef } from 'react'
 import sprig from '../../assets/account/account-hub-card-sprig.png'
 import { formatGbp, listingUnitPricePence, type CartItem } from '../../features/cart/CartContext'
+import { cartCopy } from '../../features/i18n/cartCopy'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
 import './RemoveItemDialog.css'
 
@@ -13,6 +14,7 @@ export interface RemoveItemDialogProps {
 
 /** Confirmation boundary only; the caller owns persistence and cart updates. */
 export function RemoveItemDialog({ item, onCancel, onConfirm, isConfirming = false }: RemoveItemDialogProps) {
+  const copy = cartCopy()
   const dialogRef = useRef<HTMLDialogElement>(null)
   const keepRef = useRef<HTMLButtonElement>(null)
   const titleId = useId()
@@ -46,7 +48,7 @@ export function RemoveItemDialog({ item, onCancel, onConfirm, isConfirming = fal
     }}>
     <img className="remove-item-dialog__sprig remove-item-dialog__sprig--top" src={sprig} alt="" aria-hidden="true" />
     <img className="remove-item-dialog__sprig remove-item-dialog__sprig--bottom" src={sprig} alt="" aria-hidden="true" />
-    <h2 id={titleId}>Remove this item?</h2>
+    <h2 id={titleId}>{copy.removeTitle}</h2>
     <div className="remove-item-dialog__divider"><BotanicalDivider /></div>
     <div className="remove-item-dialog__product">
       {image && <img className="remove-item-dialog__image" src={image.url} alt={image.altText ?? item.listing.legoProduct.title} />}
@@ -55,10 +57,10 @@ export function RemoveItemDialog({ item, onCancel, onConfirm, isConfirming = fal
         <p>{formatGbp(listingUnitPricePence(item))}</p>
       </div>
     </div>
-    <p className="remove-item-dialog__question" id={descriptionId}>Are you sure you want to take this out of your cart?</p>
+    <p className="remove-item-dialog__question" id={descriptionId}>{copy.removeQuestion}</p>
     <div className="remove-item-dialog__actions">
-      <button ref={keepRef} className="remove-item-dialog__keep" type="button" disabled={isConfirming} onClick={onCancel}>Keep it</button>
-      <button className="remove-item-dialog__remove" type="button" disabled={isConfirming} aria-busy={isConfirming} onClick={() => onConfirm(item)}>Remove</button>
+      <button ref={keepRef} className="remove-item-dialog__keep" type="button" disabled={isConfirming} onClick={onCancel}>{copy.keep}</button>
+      <button className="remove-item-dialog__remove" type="button" disabled={isConfirming} aria-busy={isConfirming} onClick={() => onConfirm(item)}>{copy.remove}</button>
     </div>
   </dialog>
 }

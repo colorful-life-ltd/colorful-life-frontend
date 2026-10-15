@@ -22,7 +22,7 @@ async function mount() { container = document.createElement('div'); document.bod
 async function click(text: string) { await act(async () => { const button = [...container.querySelectorAll('button')].find(button => button.textContent?.includes(text) || button.getAttribute('aria-label') === text); if (!button) throw new Error(`Missing ${text}`); button.click() }) }
 async function fill(label: string, value: string) { await act(async () => { const input = [...container.querySelectorAll('label')].find(element => element.textContent === label)!.querySelector('input')!; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value); input.dispatchEvent(new Event('input', { bubbles: true })) }) }
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/checkout'); book = []
+  vi.resetAllMocks(); vi.mocked(cart.refreshCart).mockResolvedValue(undefined); sessionStorage.clear(); history.replaceState({}, '', '/checkout'); book = []
   vi.mocked(getAddresses).mockImplementation(() => Promise.resolve(book))
   vi.mocked(createAddress).mockImplementation(async () => { book = [first]; return first })
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 0 })
