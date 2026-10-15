@@ -1,3 +1,4 @@
+import { parsePaymentWindow } from './paymentWindow'
 import type { Address } from '../account/addressApi'
 import { cartCheckoutBlocked, checkoutQuantity, type CartItem } from '../cart/CartContext'
 import type { DeliveryAddress, Order, OrderInput } from './api'
@@ -12,16 +13,37 @@ export function deliverySnapshot(address: Address): DeliveryAddress {
   return { recipientName: address.recipientName.trim(), line1: address.line1.trim(), city: address.city.trim(), postcode: address.postcode.trim(), countryCode, ...(address.line2?.trim() ? { line2: address.line2.trim() } : {}), ...(address.phone?.trim() ? { phone: address.phone.trim() } : {}) }
 }
 export const orderInput = (items: CartItem[], address: Address): OrderInput => { if (cartCheckoutBlocked(items)) throw new Error('Please resolve unavailable items in your cart before checking out.'); return ({ items: items.map(item => { const quantity = checkoutQuantity(item); if (quantity === null) throw new Error('Please refresh your cart before checking out.'); return { productListingId: item.productListingId, quantity } }).filter(item => item.quantity > 0), deliveryAddress: deliverySnapshot(address) }) }
-export const isConfirmed = (order: Order) => order.payment?.status === 'SUCCEEDED' && ['CONFIRMED', 'DISPATCHED', 'COMPLETED'].includes(order.status)
-export function isExpired(order: Order, now = Date.now()) {
-  return order.status === 'EXPIRED' || (order.payment?.status !== 'SUCCEEDED' && order.reservationExpiresAt !== null && Date.parse(order.reservationExpiresAt) <= now)
-}
-export const isTerminal = (order: Order) => isExpired(order) || ['CANCELLED', 'RETURNED'].includes(order.status) || order.payment?.status === 'CANCELED'
+export const isConfirmed = (order: Order) => parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && ['CONFIRMED', 'DISPATCHED', 'COMPLETED'].includes(order.status)
+export const isTerminal = (order: Order) => parsePaymentWindow(order.paymentWindow)?.state === 'NOT_PAYABLE'
 export function checkoutOrderId(path: string): number | null {
   const match = path.match(/^\/checkout\/orders\/([1-9]\d*)\/?$/)
   const id = match ? Number(match[1]) : null
   return id !== null && Number.isSafeInteger(id) ? id : null
 }
+/** Capture only an actual redirect hint; preserve router state and never persist secrets. */
+export function captureStripeReturn(orderId: number | null, userId?: number) {
+  const url = new URL(window.location.href)
+  const prior = window.history.state
+  const returned = !!orderId && /^pi_[A-Za-z0-9_]+$/.test(url.searchParams.get('payment_intent') ?? '') && url.searchParams.has('redirect_status')
+  const state = returned ? { ...prior, checkoutVerificationOrderId: orderId, ...(userId !== undefined ? { checkoutVerificationUserId: userId } : {}) } : prior
+  for (const name of ['payment_intent', 'payment_intent_client_secret', 'redirect_status']) url.searchParams.delete(name)
+  window.history.replaceState(state, '', url.pathname + url.search + url.hash)
+}
+/** One-shot handoff to an authenticated owned-order read, never proof of payment. */
+export function consumeStripeReturn(orderId: number | null, userId: number): boolean {
+  captureStripeReturn(orderId, userId)
+  const prior = window.history.state
+  const returned = orderId !== null && prior?.checkoutVerificationOrderId === orderId
+    && (prior?.checkoutVerificationUserId === undefined || prior.checkoutVerificationUserId === userId)
+  if (prior && ('checkoutVerificationOrderId' in prior || 'checkoutVerificationUserId' in prior)) {
+    const state = { ...prior }
+    delete state.checkoutVerificationOrderId
+    delete state.checkoutVerificationUserId
+    window.history.replaceState(Object.keys(state).length ? state : null, '')
+  }
+  return returned
+}
+
 export function navigateCheckout(path: string) {
   window.history.pushState({}, '', path)
   window.dispatchEvent(new PopStateEvent('popstate'))

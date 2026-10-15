@@ -1,3 +1,4 @@
+import { parsePaymentWindow, paymentAction, type PaymentWindow } from './paymentWindow'
 import { authenticatedFetch } from '../auth/session'
 import { apiBase } from '../auth/api'
 
@@ -5,6 +6,7 @@ export type DeliveryAddress = { recipientName: string; line1: string; line2?: st
 export type OrderInput = { items: { productListingId: number; quantity: number }[]; deliveryAddress?: DeliveryAddress }
 export type Order = {
   id: number; status: string; totalAmount: string; reservationExpiresAt: string | null
+  paymentWindow?: PaymentWindow | null
   payment: { status: string; paidAt: string | null } | null
   billingRecipientName: string; billingLine1: string; billingLine2: string | null; billingCity: string; billingPostcode: string; billingCountryCode: string
   deliveryRecipientName: string; deliveryLine1: string; deliveryLine2: string | null; deliveryCity: string; deliveryPostcode: string; deliveryCountryCode: string
@@ -23,7 +25,7 @@ export class CheckoutApiError extends Error {
       CART_QUANTITY_UNAVAILABLE: 'Some cart quantity is already in another pending order or has changed. Review your cart or visit My Orders before trying again.',
       ORDER_IDEMPOTENCY_MISMATCH: 'This checkout request changed. Please return to your cart to start a new checkout.',
       INVALID_IDEMPOTENCY_KEY: 'This checkout request could not be accepted. Please start a new checkout.',
-      ORDER_EXPIRED: 'Your inventory reservation has expired. Return to your cart to start again.',
+      ORDER_EXPIRED: 'This payment action is no longer available. Refresh the order for its current payment status.',
       ORDER_NOT_PAYABLE: 'This order is no longer available for payment.',
       PAYMENT_ALREADY_COMPLETED: 'Payment has already been recorded. Check your order status.',
       EMAIL_VERIFICATION_REQUIRED: 'Please verify your email before checking out.',
@@ -47,12 +49,21 @@ async function request<T>(token: string, path: string, init: RequestInit = {}): 
   })
   return body as T
 }
-export const createOrder = (token: string, input: OrderInput, key: string) => request<{ id: number }>(token, '/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(input) })
-export const getOrder = (token: string, id: number) => request<Order>(token, `/orders/${id}`)
+export async function createOrder(token: string, input: OrderInput, key: string): Promise<{ id: number; paymentWindow?: PaymentWindow | null }> {
+  return parseOrderPayment(await request<{ id: number; paymentWindow?: unknown }>(token, '/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(input) }))
+}
+export async function getOrder(token: string, id: number): Promise<Order> { return parseOrderPayment(await request<Order>(token, `/orders/${id}`), id) }
 export async function preparePayment(token: string, id: number) {
   const result = await request<{ clientSecret: string | null }>(token, `/orders/${id}/payments/stripe`, { method: 'POST' })
   if (!result?.clientSecret || typeof result.clientSecret !== 'string') throw new Error('Payment setup is unavailable. Please try again.')
   return result.clientSecret
 }
 
-export const recoverPayment = (token: string, id: number) => request<Order>(token, `/orders/${id}/payments/stripe/reconcile`, { method: 'POST' })
+export async function recoverPayment(token: string, id: number): Promise<Order> { return parseOrderPayment(await request<Order>(token, `/orders/${id}/payments/stripe/reconcile`, { method: 'POST' }), id) }
+
+export function parseOrderPayment<T extends { id: number; paymentWindow?: unknown }>(order: T, expectedId?: number): Omit<T, 'paymentWindow'> & { paymentWindow: PaymentWindow | null } {
+  if (!order || !Number.isSafeInteger(order.id) || order.id <= 0 || (expectedId !== undefined && order.id !== expectedId)) throw new Error('Unable to read this order. Please refresh.')
+  const window = parsePaymentWindow(order.paymentWindow)
+  // Contradictory order/action snapshots must also fail closed.
+  return { ...order, paymentWindow: 'status' in order && order.status !== 'PENDING' && paymentAction(window) ? null : window }
+}

@@ -1,9 +1,10 @@
+import { customerOrderFixture, windowFixture } from './paymentWindowFixtures'
 // @vitest-environment jsdom
 import { act, useEffect, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CheckoutApiError, createOrder, getOrder, preparePayment, recoverPayment, type Order } from './api'
-import { checkoutOrderId, clearAttempt, deliverySnapshot, isConfirmed, isExpired, orderInput, readAttempt, saveAttempt } from './state'
+import { checkoutOrderId, clearAttempt, deliverySnapshot, isConfirmed, orderInput, readAttempt, saveAttempt } from './state'
 import { useCheckout } from './useCheckout'
 import { AuthApiError, getCurrentUser } from '../auth/api'
 import type { Address } from '../account/addressApi'
@@ -13,14 +14,14 @@ vi.mock('../auth/api', async original => ({ ...await original<typeof import('../
 vi.mock('./api', async importOriginal => ({ ...await importOriginal<typeof import('./api')>(), createOrder: vi.fn(), getOrder: vi.fn(), preparePayment: vi.fn(), recoverPayment: vi.fn() }))
 const address: Address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'United Kingdom', phone: null, isDefaultShipping: true, isDefaultBilling: true }
 const input = { items: [{ productListingId: 16901, quantity: 1 }], deliveryAddress: deliverySnapshot(address) }
-export const pendingOrder: Order = { id: 41, status: 'PENDING', totalAmount: '20.50', reservationExpiresAt: new Date(Date.now() + 1800000).toISOString(), payment: null, billingRecipientName: 'Billing', billingLine1: '2 Street', billingLine2: null, billingCity: 'London', billingPostcode: 'SW1A 1AA', billingCountryCode: 'GB', deliveryRecipientName: 'Customer', deliveryLine1: '1 Street', deliveryLine2: null, deliveryCity: 'London', deliveryPostcode: 'SW1A 1AA', deliveryCountryCode: 'GB', orderItems: [{ id: 1, quantity: 1, unitPrice: '20.50', lineTotal: '20.50', conditionSnapshot: 'USED_LIKE_NEW', productListing: { id: 16901, legoProduct: { title: 'Flowers', setNumber: '123' } } }] }
-const paidOrder = { ...pendingOrder, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06T12:00:00Z' } }
+export const pendingOrder: Order = { paymentWindow: windowFixture(), id: 41, status: 'PENDING', totalAmount: '20.50', reservationExpiresAt: new Date(Date.now() + 1800000).toISOString(), payment: null, billingRecipientName: 'Billing', billingLine1: '2 Street', billingLine2: null, billingCity: 'London', billingPostcode: 'SW1A 1AA', billingCountryCode: 'GB', deliveryRecipientName: 'Customer', deliveryLine1: '1 Street', deliveryLine2: null, deliveryCity: 'London', deliveryPostcode: 'SW1A 1AA', deliveryCountryCode: 'GB', orderItems: [{ id: 1, quantity: 1, unitPrice: '20.50', lineTotal: '20.50', conditionSnapshot: 'USED_LIKE_NEW', productListing: { id: 16901, legoProduct: { title: 'Flowers', setNumber: '123' } } }] }
+const paidOrder = { ...pendingOrder, paymentWindow: windowFixture('PAID'), status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06T12:00:00Z' } }
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root
 let current: ReturnType<typeof useCheckout>
 function Harness({ id = null }: { id?: number | null }) { const value = useCheckout('token', 1, id); useEffect(() => { current = value }, [value]); return <p>{value.phase}</p> }
 async function mount(element: ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root.render(element)); return container }
-beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); window.history.replaceState({}, '', '/checkout'); vi.mocked(getOrder).mockResolvedValue(pendingOrder) })
+beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); window.history.replaceState({}, '', '/checkout'); vi.mocked(getOrder).mockImplementation(async () => ({ ...pendingOrder, paymentWindow: windowFixture(vi.mocked(preparePayment).mock.calls.length ? 'CHECKOUT_RESUMABLE' : 'INITIAL_PAYMENT') })) })
 afterEach(async () => { if (root) await act(async () => root.unmount()); vi.useRealTimers(); document.body.innerHTML = '' })
 
 describe('checkout address, identity and recovery rules', () => {
@@ -37,8 +38,7 @@ describe('checkout address, identity and recovery rules', () => {
     for (const status of ['CONFIRMED', 'DISPATCHED', 'COMPLETED']) expect(isConfirmed({ ...paidOrder, status })).toBe(true)
     expect(isConfirmed({ ...paidOrder, status: 'EXPIRED' })).toBe(false)
   })
-  it('recognizes elapsed unpaid reservations and validates URL ids', () => {
-    expect(isExpired({ ...pendingOrder, reservationExpiresAt: '2000-01-01' })).toBe(true)
+  it('does not infer expiry from elapsed reservations and validates URL ids', () => {
     expect(checkoutOrderId('/checkout/orders/41')).toBe(41)
     expect(checkoutOrderId('/checkout/orders/-1')).toBeNull()
   })
@@ -69,7 +69,7 @@ describe('checkout orchestration', () => {
     expect(current.phase).toBe('reserved'); expect(current.order?.totalAmount).toBe('20.50'); expect(createOrder).not.toHaveBeenCalled(); expect(preparePayment).not.toHaveBeenCalled()
   })
   it('recovers from a failed initial order read without creating or polling a new order', async () => {
-    vi.mocked(getOrder).mockRejectedValueOnce(new Error('offline')).mockResolvedValue(pendingOrder)
+    vi.mocked(getOrder).mockRejectedValueOnce(new Error('offline')).mockResolvedValue(customerOrderFixture(pendingOrder))
     await mount(<Harness id={41} />)
     expect(current.phase).toBe('failure')
     await act(async () => current.reloadOrder())
@@ -82,32 +82,33 @@ describe('checkout orchestration', () => {
     expect(preparePayment).toHaveBeenCalledWith('token', 41); expect(current.secret).toBe('secret'); expect(current.phase).toBe('payment')
   })
   it('opens confirmed orders directly without Stripe initialization', async () => {
-    vi.mocked(getOrder).mockResolvedValue(paidOrder)
+    vi.mocked(getOrder).mockResolvedValue(customerOrderFixture(paidOrder))
     await mount(<Harness id={41} />)
     expect(current.phase).toBe('confirmed'); expect(preparePayment).not.toHaveBeenCalled()
   })
   it('does not confirm from browser success; waits for backend success', async () => {
     vi.useFakeTimers()
     await mount(<Harness id={41} />)
-    vi.mocked(getOrder).mockResolvedValueOnce({ ...pendingOrder, payment: { status: 'PROCESSING', paidAt: null } }).mockResolvedValue(paidOrder)
+    vi.mocked(getOrder).mockResolvedValueOnce(customerOrderFixture({ ...pendingOrder, payment: { status: 'PROCESSING', paidAt: null } })).mockResolvedValue(customerOrderFixture(paidOrder))
     await act(async () => { void current.verify() })
-    expect(current.phase).toBe('waiting')
+    expect(current.phase).toBe('verifying')
     await act(async () => vi.advanceTimersByTimeAsync(1000))
     expect(current.phase).toBe('confirmed'); expect(current.secret).toBeNull()
   })
   it('bounds polling and permits a safe recheck without a new order', async () => {
-    vi.useFakeTimers(); await mount(<Harness id={41} />)
+    vi.useFakeTimers(); vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, paymentWindow: windowFixture('PROCESSING') }); await mount(<Harness id={41} />)
     await act(async () => { void current.verify() })
     await act(async () => vi.advanceTimersByTimeAsync(29000))
-    expect(current.phase).toBe('pending'); expect(getOrder).toHaveBeenCalledTimes(8)
-    vi.mocked(getOrder).mockResolvedValue(paidOrder)
+    expect(current.phase).toBe('verification-timeout'); expect(getOrder).toHaveBeenCalledTimes(8)
+    vi.mocked(getOrder).mockResolvedValue(customerOrderFixture(paidOrder))
     await act(async () => current.verify())
     expect(current.phase).toBe('confirmed'); expect(createOrder).not.toHaveBeenCalled()
   })
   it.each(['CONFIRMED', 'DISPATCHED', 'COMPLETED'])('explicit recovery recognizes paid %s without a new order, intent or key', async status => {
     saveAttempt(1, { key: 'original-key', input })
     const uuid = vi.spyOn(crypto, 'randomUUID')
-    vi.mocked(recoverPayment).mockResolvedValue({ ...paidOrder, status })
+    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, paymentWindow: windowFixture('PROCESSING') })
+    vi.mocked(recoverPayment).mockResolvedValue(customerOrderFixture({ ...paidOrder, status }))
     await mount(<Harness id={41} />)
     expect(recoverPayment).not.toHaveBeenCalled()
     await act(async () => current.recheck())
@@ -121,22 +122,25 @@ describe('checkout orchestration', () => {
     expect(readAttempt(1)).toEqual({ key: 'original-key', input })
   })
   it.each(['PENDING', 'PROCESSING', 'FAILED', 'SUCCEEDED'])('does not confirm a non-success %s recovery response or offer another payment', async status => {
-    vi.mocked(recoverPayment).mockResolvedValue({ ...pendingOrder, payment: { status, paidAt: null } })
+    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, paymentWindow: windowFixture('PROCESSING') })
+    vi.mocked(recoverPayment).mockResolvedValue({ ...customerOrderFixture({ ...pendingOrder, payment: { status, paidAt: null } }), ...(['PENDING', 'PROCESSING'].includes(status) ? { paymentWindow: windowFixture('PROCESSING') } : {}) })
     await mount(<Harness id={41} />); await act(async () => current.recheck())
     expect(current.phase).toBe('pending'); expect(current.order?.payment?.status).toBe(status)
     expect(current.secret).toBeNull(); expect(preparePayment).not.toHaveBeenCalled()
     await act(async () => current.recheck())
-    expect(recoverPayment).toHaveBeenCalledTimes(2); expect(createOrder).not.toHaveBeenCalled()
+    expect(recoverPayment).toHaveBeenCalledTimes(status === 'SUCCEEDED' ? 1 : 2); expect(createOrder).not.toHaveBeenCalled()
   })
-  it.each(['CANCELED', 'expired'])('stops %s authoritative recovery without restarting payment', async status => {
-    vi.mocked(recoverPayment).mockResolvedValue(status === 'expired' ? { ...pendingOrder, status: 'EXPIRED' } : { ...pendingOrder, payment: { status, paidAt: null } })
+  it.each(['CANCELED', 'expired'])('uses the %s backend window without restarting payment', async status => {
+    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, paymentWindow: windowFixture('PROCESSING') })
+    vi.mocked(recoverPayment).mockResolvedValue(customerOrderFixture(status === 'expired' ? { ...pendingOrder, status: 'EXPIRED' } : { ...pendingOrder, payment: { status, paidAt: null } }))
     await mount(<Harness id={41} />); await act(async () => current.recheck())
-    expect(current.phase).toBe('terminal'); await act(async () => current.recheck())
-    expect(recoverPayment).toHaveBeenCalledTimes(1); expect(preparePayment).not.toHaveBeenCalled()
+    expect(current.phase).toBe(status === 'expired' ? 'terminal' : 'pending'); await act(async () => current.recheck())
+    expect(recoverPayment).toHaveBeenCalledTimes(status === 'expired' ? 1 : 2); expect(preparePayment).not.toHaveBeenCalled()
   })
   it.each([new Error('offline'), new CheckoutApiError(503), new CheckoutApiError(409, 'STRIPE_RECOVERY_UNAVAILABLE'), new CheckoutApiError(409, 'STRIPE_RECOVERY_MISMATCH')])('keeps recovery failures retryable without creation or payment setup: %s', async reason => {
     saveAttempt(1, { key: 'original-key', input })
-    vi.mocked(recoverPayment).mockRejectedValueOnce(reason).mockResolvedValue(paidOrder)
+    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, paymentWindow: windowFixture('PROCESSING') })
+    vi.mocked(recoverPayment).mockRejectedValueOnce(reason).mockResolvedValue(customerOrderFixture(paidOrder))
     await mount(<Harness id={41} />); await act(async () => current.recheck())
     expect(current.phase).toBe('pending'); expect(current.message).toBeTruthy(); expect(current.secret).toBeNull()
     expect(readAttempt(1)).toEqual({ key: 'original-key', input })
@@ -145,6 +149,7 @@ describe('checkout orchestration', () => {
     expect(createOrder).not.toHaveBeenCalled(); expect(preparePayment).not.toHaveBeenCalled()
   })
   it.each([401, 403, 404])('preserves recovery authentication/ownership failures (%s)', async status => {
+    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, paymentWindow: windowFixture('PROCESSING') })
     vi.mocked(recoverPayment).mockRejectedValue(new CheckoutApiError(status))
     await mount(<Harness id={41} />); await act(async () => current.recheck())
     expect(current.phase).toBe(status === 404 ? 'terminal' : 'auth')
@@ -152,6 +157,7 @@ describe('checkout orchestration', () => {
   })
   it('locks duplicate rechecks until the existing recovery completes', async () => {
     let finish!: (order: Order) => void
+    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, paymentWindow: windowFixture('PROCESSING') })
     vi.mocked(recoverPayment).mockImplementation(() => new Promise(resolve => { finish = resolve }))
     await mount(<Harness id={41} />)
     await act(async () => { void current.recheck(); void current.recheck() })
@@ -159,43 +165,43 @@ describe('checkout orchestration', () => {
     await act(async () => finish(paidOrder)); expect(current.phase).toBe('confirmed')
   })
   it('does not recover during normal order reads, polling or redirect return', async () => {
-    vi.mocked(getOrder).mockResolvedValue(paidOrder)
+    vi.mocked(getOrder).mockResolvedValue(customerOrderFixture(paidOrder))
     history.replaceState({}, '', '/checkout/orders/41?payment_intent=pi_mock')
     await mount(<Harness id={41} />); await act(async () => current.reloadOrder()); await act(async () => current.verify())
     expect(recoverPayment).not.toHaveBeenCalled()
   })
   it('resolves the non-payable initiation race through authoritative confirmation', async () => {
     await mount(<Harness id={41} />)
-    vi.mocked(getOrder).mockResolvedValueOnce(pendingOrder).mockResolvedValue(paidOrder)
+    vi.mocked(getOrder).mockResolvedValueOnce(customerOrderFixture(pendingOrder)).mockResolvedValue(customerOrderFixture(paidOrder))
     vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'ORDER_NOT_PAYABLE'))
     await act(async () => current.prepare())
     expect(getOrder).toHaveBeenCalledTimes(3); expect(current.phase).toBe('confirmed')
     expect(current.secret).toBeNull(); expect(current.message).toBeNull(); expect(recoverPayment).not.toHaveBeenCalled()
   })
-  it('does not reread or conceal unrelated payment initiation errors', async () => {
+  it('refreshes after unrelated initiation errors and prevents blind repeats', async () => {
     await mount(<Harness id={41} />)
     vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'OTHER_CONFLICT'))
     await act(async () => current.prepare())
-    expect(getOrder).toHaveBeenCalledTimes(2); expect(current.phase).toBe('failure')
+    expect(getOrder).toHaveBeenCalledTimes(3); expect(current.actionRejected).toBe(true)
     expect(current.message).toBeTruthy()
   })
   it('stops expired orders and never starts Stripe', async () => {
-    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, status: 'EXPIRED' })
+    vi.mocked(getOrder).mockResolvedValue(customerOrderFixture({ ...pendingOrder, status: 'EXPIRED' }))
     await mount(<Harness id={41} />); await act(async () => current.prepare())
     expect(current.phase).toBe('terminal'); expect(preparePayment).not.toHaveBeenCalled()
   })
-  it('stops an open payment form when its reservation expires', async () => {
+  it('does not stop an open payment form when its original reservation expires', async () => {
     vi.useFakeTimers()
-    vi.mocked(getOrder).mockResolvedValue({ ...pendingOrder, reservationExpiresAt: new Date(Date.now() + 1000).toISOString() })
+    vi.mocked(getOrder).mockImplementation(async () => ({ ...pendingOrder, reservationExpiresAt: new Date(Date.now() + 1000).toISOString(), paymentWindow: windowFixture(vi.mocked(preparePayment).mock.calls.length ? 'CHECKOUT_RESUMABLE' : 'INITIAL_PAYMENT') }))
     vi.mocked(preparePayment).mockResolvedValue('secret')
     await mount(<Harness id={41} />); await act(async () => current.prepare())
     expect(current.phase).toBe('payment')
     await act(async () => vi.advanceTimersByTimeAsync(1000))
-    expect(current.phase).toBe('terminal'); expect(current.secret).toBeNull()
+    expect(current.phase).toBe('payment'); expect(current.secret).toBe('secret')
   })
   it('verifies a Stripe redirect return and strips provider parameters', async () => {
     history.replaceState({}, '', '/checkout/orders/41?payment_intent=pi_test&payment_intent_client_secret=secret&redirect_status=succeeded')
-    vi.mocked(getOrder).mockResolvedValueOnce(pendingOrder).mockResolvedValue(paidOrder)
+    vi.mocked(getOrder).mockResolvedValueOnce(customerOrderFixture(pendingOrder)).mockResolvedValue(customerOrderFixture(paidOrder))
     await mount(<Harness id={41} />)
     expect(current.phase).toBe('confirmed'); expect(location.search).toBe(''); expect(createOrder).not.toHaveBeenCalled()
   })
@@ -205,11 +211,11 @@ describe('checkout orchestration', () => {
     await act(async () => current.verify())
     expect(current.phase).toBe('auth')
   })
-  it('maps a non-payable backend order to a terminal state', async () => {
+  it('blocks a rejected initiation until explicit refreshed review', async () => {
     await mount(<Harness id={41} />)
     vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'ORDER_NOT_PAYABLE'))
     await act(async () => current.prepare())
-    expect(current.phase).toBe('terminal'); expect(current.secret).toBeNull(); expect(current.message).toContain('no longer available'); expect(getOrder).toHaveBeenCalledTimes(3)
+    expect(current.actionRejected).toBe(true); expect(current.secret).toBeNull(); expect(current.message).toContain('Refresh the order'); expect(getOrder).toHaveBeenCalledTimes(3)
   })
   it('retains the original identity after a definite verification rejection and blocks another order POST', async () => {
     vi.mocked(createOrder).mockRejectedValue(new CheckoutApiError(403, 'EMAIL_VERIFICATION_REQUIRED'))
@@ -242,7 +248,7 @@ describe('checkout orchestration', () => {
   })
   it('re-reads an already-completed payment rather than offering another charge', async () => {
     await mount(<Harness id={41} />)
-    vi.mocked(getOrder).mockResolvedValueOnce(pendingOrder).mockResolvedValue(paidOrder)
+    vi.mocked(getOrder).mockResolvedValueOnce(customerOrderFixture(pendingOrder)).mockResolvedValue(customerOrderFixture(paidOrder))
     vi.mocked(preparePayment).mockRejectedValue(new CheckoutApiError(409, 'PAYMENT_ALREADY_COMPLETED'))
     await act(async () => current.prepare())
     expect(current.phase).toBe('confirmed'); expect(current.secret).toBeNull()
