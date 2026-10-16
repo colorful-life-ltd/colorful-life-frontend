@@ -34,7 +34,7 @@ describe('payment window customer presentation', () => {
   })
   it('restores the existing Stripe form only after explicit authenticated reuse', async () => {
     mocks.read.mockResolvedValue({ ...owned, paymentWindow: windowFixture('CHECKOUT_RESUMABLE') })
-    await mount(); await act(async () => root.render(<Checkout onAccount={vi.fn()} />))
+    await mount(); expect(container.textContent).toContain('An existing Stripe checkout can be resumed'); await act(async () => root.render(<Checkout onAccount={vi.fn()} />))
     expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.form).not.toHaveBeenCalled()
     await click('Resume existing Stripe checkout')
     expect(mocks.prepare).toHaveBeenCalledExactlyOnceWith('jwt', 41)
@@ -87,4 +87,17 @@ it('does not put the changing checked-at timestamp in a screen-reader live regio
   await click('Refresh payment information')
   expect([...container.querySelectorAll('[role="status"]')].map(node => node.textContent)).toEqual(liveBefore)
   expect([...container.querySelectorAll('[role="status"]')].some(node => node.textContent?.includes('Payment information checked'))).toBe(false)
+})
+
+it('describes a freshly initialized first payment as ready, without implying a previous checkout', async () => {
+  mocks.read.mockResolvedValueOnce({ ...owned, paymentWindow: windowFixture('INITIAL_PAYMENT') })
+    .mockResolvedValueOnce({ ...owned, paymentWindow: windowFixture('INITIAL_PAYMENT') })
+    .mockResolvedValue({ ...owned, paymentWindow: windowFixture('CHECKOUT_RESUMABLE') })
+  await mount()
+  expect(container.textContent).toContain('Your order is ready for an initial payment')
+  await click('Continue to secure payment')
+  expect(mocks.prepare).toHaveBeenCalledExactlyOnceWith('jwt', 41)
+  expect(container.textContent).toContain('Secure Stripe checkout is ready')
+  expect(container.textContent).not.toContain('An existing Stripe checkout can be resumed')
+  expect(mocks.form).toHaveBeenCalledWith(expect.objectContaining({ clientSecret: 'secret' }))
 })

@@ -59,6 +59,12 @@ describe('My Orders entry and list', () => {
     expect([...container.querySelectorAll('h2')].map(h => h.textContent)).toEqual(['Order #42', 'Order #41'])
     expect(container.textContent).not.toContain('Payment status'); expect(container.textContent).not.toContain('pending payment')
   })
+  it.each([0, 1, 2])('uses correct item-count grammar for %i requested units', async quantity => {
+    fetcher.mockResolvedValue(response([{ ...summary, orderItems: [{ ...item, quantity }] }]))
+    await mount()
+    expect(container.textContent).toContain(`${quantity} ${quantity === 1 ? 'item' : 'items'} · Flowers`)
+    expect(container.textContent).not.toContain('1 items')
+  })
   it('shows loading and empty history', async () => {
     let finish!: (value: Response) => void
     fetcher.mockImplementation(() => new Promise(resolve => { finish = resolve }))
