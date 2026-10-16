@@ -18,7 +18,7 @@ let root: Root | null = null
 let container: HTMLDivElement
 let auth: ReturnType<typeof useAuth>
 const user = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: null, phone: null }
-const savedAttempt = { key: 'original-checkout-key', input: { items: [{ productListingId: 16901, quantity: 2 }] }, rejection: 'EMAIL_VERIFICATION_REQUIRED' as const }
+const savedAttempt = { key: 'original-checkout-key', input: { shippingMethod: 'STANDARD' as const, items: [{ productListingId: 16901, quantity: 2 }] }, rejection: 'EMAIL_VERIFICATION_REQUIRED' as const }
 const verificationError = () => new AuthApiError(403, 'Verify', 'Different backend wording', 'EMAIL_VERIFICATION_REQUIRED')
 function Capture() { const value = useAuth(); useEffect(() => { auth = value }, [value]); return <p data-auth>{value.state.status}</p> }
 async function mount(element: ReactNode, strict = false) {

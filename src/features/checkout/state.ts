@@ -2,6 +2,7 @@ import { parsePaymentWindow } from './paymentWindow'
 import type { Address } from '../account/addressApi'
 import { cartCheckoutBlocked, checkoutQuantity, type CartItem } from '../cart/CartContext'
 import type { DeliveryAddress, Order, OrderInput } from './api'
+import { isShippingMethod, type ShippingMethodCode } from './shipping'
 
 export function deliverySnapshot(address: Address): DeliveryAddress {
   const country = address.country.trim().toUpperCase()
@@ -12,7 +13,8 @@ export function deliverySnapshot(address: Address): DeliveryAddress {
   for (const field of ['recipientName', 'line1', 'city', 'postcode'] as const) if (!address[field].trim()) throw new Error('Please complete the required fields in your saved delivery address.')
   return { recipientName: address.recipientName.trim(), line1: address.line1.trim(), city: address.city.trim(), postcode: address.postcode.trim(), countryCode, ...(address.line2?.trim() ? { line2: address.line2.trim() } : {}), ...(address.phone?.trim() ? { phone: address.phone.trim() } : {}) }
 }
-export const orderInput = (items: CartItem[], address: Address): OrderInput => { if (cartCheckoutBlocked(items)) throw new Error('Please resolve unavailable items in your cart before checking out.'); return ({ items: items.map(item => { const quantity = checkoutQuantity(item); if (quantity === null) throw new Error('Please refresh your cart before checking out.'); return { productListingId: item.productListingId, quantity } }).filter(item => item.quantity > 0), deliveryAddress: deliverySnapshot(address) }) }
+// The customer's explicit method is sent as identity only; there is deliberately no default.
+export const orderInput = (items: CartItem[], address: Address, shippingMethod: ShippingMethodCode | null): OrderInput => { if (!isShippingMethod(shippingMethod)) throw new Error('Choose Standard or Express delivery before creating your order.'); if (cartCheckoutBlocked(items)) throw new Error('Please resolve unavailable items in your cart before checking out.'); return ({ shippingMethod, items: items.map(item => { const quantity = checkoutQuantity(item); if (quantity === null) throw new Error('Please refresh your cart before checking out.'); return { productListingId: item.productListingId, quantity } }).filter(item => item.quantity > 0), deliveryAddress: deliverySnapshot(address) }) }
 export const isConfirmed = (order: Order) => parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && ['CONFIRMED', 'DISPATCHED', 'COMPLETED'].includes(order.status)
 export const isTerminal = (order: Order) => parsePaymentWindow(order.paymentWindow)?.state === 'NOT_PAYABLE'
 export function checkoutOrderId(path: string): number | null {
@@ -49,7 +51,8 @@ export function navigateCheckout(path: string) {
   window.dispatchEvent(new PopStateEvent('popstate'))
 }
 
-export type CreationAttempt = { key: string; input: OrderInput; rejection?: 'EMAIL_VERIFICATION_REQUIRED' }
+// REPLAY_REJECTED: a saved request was refused on replay; an earlier send may still have created an order.
+export type CreationAttempt = { key: string; input: OrderInput; rejection?: 'EMAIL_VERIFICATION_REQUIRED' | 'REPLAY_REJECTED' }
 const storageKey = (userId: number) => `colorful-life:checkout-attempt:${userId}`
 export function readAttempt(userId: number): CreationAttempt | null {
   try {
@@ -62,4 +65,6 @@ export function saveAttempt(userId: number, attempt: CreationAttempt) {
   try { sessionStorage.setItem(storageKey(userId), JSON.stringify(attempt)) }
   catch { throw new Error('Your browser cannot save checkout recovery information. Enable session storage before continuing.') }
 }
+/** A request saved before shipping became mandatory must never be replayed with an invented method. */
+export const isLegacyAttempt = (attempt: CreationAttempt | null) => !!attempt && !isShippingMethod(attempt.input.shippingMethod)
 export function clearAttempt(userId: number) { try { sessionStorage.removeItem(storageKey(userId)) } catch { /* The durable order URL still allows recovery. */ } }

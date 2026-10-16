@@ -13,7 +13,7 @@ import { cartListing, offer } from '../catalogue/catalogueFixtures'
 vi.mock('../auth/api', async original => ({ ...await original<typeof import('../auth/api')>(), getCurrentUser: vi.fn() }))
 vi.mock('./api', async importOriginal => ({ ...await importOriginal<typeof import('./api')>(), createOrder: vi.fn(), getOrder: vi.fn(), preparePayment: vi.fn(), recoverPayment: vi.fn() }))
 const address: Address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'United Kingdom', phone: null, isDefaultShipping: true, isDefaultBilling: true }
-const input = { items: [{ productListingId: 16901, quantity: 1 }], deliveryAddress: deliverySnapshot(address) }
+const input = { shippingMethod: 'STANDARD' as const, items: [{ productListingId: 16901, quantity: 1 }], deliveryAddress: deliverySnapshot(address) }
 export const pendingOrder: Order = { paymentWindow: windowFixture(), id: 41, status: 'PENDING', totalAmount: '20.50', reservationExpiresAt: new Date(Date.now() + 1800000).toISOString(), payment: null, billingRecipientName: 'Billing', billingLine1: '2 Street', billingLine2: null, billingCity: 'London', billingPostcode: 'SW1A 1AA', billingCountryCode: 'GB', deliveryRecipientName: 'Customer', deliveryLine1: '1 Street', deliveryLine2: null, deliveryCity: 'London', deliveryPostcode: 'SW1A 1AA', deliveryCountryCode: 'GB', orderItems: [{ id: 1, quantity: 1, unitPrice: '20.50', lineTotal: '20.50', conditionSnapshot: 'USED_LIKE_NEW', productListing: { id: 16901, legoProduct: { title: 'Flowers', setNumber: '123' } } }] }
 const paidOrder = { ...pendingOrder, paymentWindow: windowFixture('PAID'), status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-06T12:00:00Z' } }
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -30,7 +30,7 @@ describe('checkout address, identity and recovery rules', () => {
   it('blocks missing address fields and preserves distinct listing quantities', () => {
     expect(() => deliverySnapshot({ ...address, city: '' })).toThrow('required fields')
     const listing = cartListing(offer(16901, { legoProductId: 500 }))
-    expect(orderInput([{ productListingId: 16901, listing, quantity: 1 }, { productListingId: 16902, listing: { ...listing, id: 16902 }, quantity: 3 }], address).items).toEqual([{ productListingId: 16901, quantity: 1 }, { productListingId: 16902, quantity: 3 }])
+    expect(orderInput([{ productListingId: 16901, listing, quantity: 1 }, { productListingId: 16902, listing: { ...listing, id: 16902 }, quantity: 3 }], address, 'STANDARD').items).toEqual([{ productListingId: 16901, quantity: 1 }, { productListingId: 16902, quantity: 3 }])
   })
   it('requires both paid and legitimate confirmed/fulfilment state', () => {
     expect(isConfirmed(pendingOrder)).toBe(false)
@@ -59,7 +59,8 @@ describe('checkout orchestration', () => {
     await act(async () => root.unmount())
     await mount(<Harness />)
     vi.mocked(createOrder).mockResolvedValue({ id: 41 })
-    await act(async () => current.create({ items: [{ productListingId: 999, quantity: 2 }] }))
+    // A refreshed caller asking for a different method must not change the saved request.
+    await act(async () => current.create({ shippingMethod: 'EXPRESS', items: [{ productListingId: 999, quantity: 2 }] }))
     expect(createOrder).toHaveBeenLastCalledWith('token', input, key)
     expect(window.location.pathname).toBe('/checkout/orders/41')
     expect(readAttempt(1)).toBeNull()
@@ -234,7 +235,7 @@ describe('checkout orchestration', () => {
     saveAttempt(1, { key: 'original-key', input, rejection: 'EMAIL_VERIFICATION_REQUIRED' })
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'test@example.com', firstName: null, lastName: null, phone: null })
     vi.mocked(createOrder).mockRejectedValueOnce(new Error('Response lost')).mockResolvedValue({ id: 41 })
-    await mount(<Harness />); await act(async () => current.create({ items: [{ productListingId: 999, quantity: 3 }] }))
+    await mount(<Harness />); await act(async () => current.create({ shippingMethod: 'EXPRESS', items: [{ productListingId: 999, quantity: 3 }] }))
     expect(current.phase).toBe('failure'); expect(readAttempt(1)).toEqual({ key: 'original-key', input })
     await act(async () => current.create(input))
     expect(createOrder).toHaveBeenNthCalledWith(1, 'token', input, 'original-key')

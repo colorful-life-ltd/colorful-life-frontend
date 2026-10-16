@@ -5,7 +5,10 @@ import { AuthApiError } from '../../features/auth/api'
 import { countryLabel, deliverySelection, isUsableUkAddress } from '../../features/account/addressState'
 import { getAddresses, type Address } from '../../features/account/addressApi'
 import { cartCheckoutBlocked, checkoutQuantity, cartTotalPence, formatGbp, lineAmountPence, priceToPence, useCart } from '../../features/cart/CartContext'
-import { checkoutOrderId, captureStripeReturn, navigateCheckout, orderInput } from '../../features/checkout/state'
+import { checkoutOrderId, captureStripeReturn, isLegacyAttempt, navigateCheckout, orderInput } from '../../features/checkout/state'
+import { estimatedTotalPence, getShippingOptions, isShippingMethod, shippingCharge, type ShippingMethodCode, type ShippingOptions } from '../../features/checkout/shipping'
+import { ShippingMethodSelector } from './ShippingMethodSelector'
+import { OrderFinancialSummary } from './OrderFinancialSummary'
 import { useCheckout } from '../../features/checkout/useCheckout'
 import { canRecoverPayment, parsePaymentWindow, paymentAction, paymentActionLabel } from '../../features/checkout/paymentWindow'
 import { PaymentWindowNotice } from './PaymentWindowNotice'
@@ -68,6 +71,28 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
   const [addressAuthRequired, setAddressAuthRequired] = useState(false)
   const [reload, setReload] = useState(0)
   const [inputError, setInputError] = useState<string | null>(null)
+  // Delivery prices come only from the backend catalogue. There is deliberately no default method.
+  const [shippingOptions, setShippingOptions] = useState<ShippingOptions | null>(null)
+  const [shippingLoading, setShippingLoading] = useState(!orderId)
+  const [shippingError, setShippingError] = useState<string | null>(null)
+  const [shippingReload, setShippingReload] = useState(0)
+  const [shippingMethod, setShippingMethod] = useState<ShippingMethodCode | null>(null)
+  const [shippingInvalid, setShippingInvalid] = useState(false)
+  useEffect(() => {
+    if (orderId) return
+    let active = true
+    void Promise.resolve().then(() => { if (active) setShippingLoading(true) })
+    void getShippingOptions().then(options => {
+      if (!active) return
+      setShippingOptions(options); setShippingError(null)
+      // A method withdrawn from the catalogue is cleared, never swapped for another.
+      setShippingMethod(current => current && options.methods.some(option => option.code === current) ? current : null)
+    }).catch(reason => {
+      if (!active) return
+      setShippingOptions(null); setShippingError(reason instanceof Error ? reason.message : 'Delivery options are unavailable right now.')
+    }).finally(() => { if (active) setShippingLoading(false) })
+    return () => { active = false }
+  }, [orderId, shippingReload])
   useEffect(() => {
     if (orderId) return
     let active = true
@@ -93,7 +118,14 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
   const frozen = Boolean(attempt)
   const verificationBlocked = phase === 'verification'
   const definiteRejection = attempt?.rejection === 'EMAIL_VERIFICATION_REQUIRED'
-  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && phase !== 'cart-conflict' && !verificationBlocked && (frozen || (cartChecked && !blocked && availableItems.length > 0 && !cart.error && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && isUsableUkAddress(selected) && billing && isUsableUkAddress(billing)) && !addressError && !addressLoading))
+  const legacyAttempt = isLegacyAttempt(attempt)
+  // Saved requests that may already have created an order: recovery via My Orders only, never another send.
+  const recoveryOnly = legacyAttempt || attempt?.rejection === 'REPLAY_REJECTED'
+  const savedShipping = attempt && isShippingMethod(attempt.input.shippingMethod) ? attempt.input.shippingMethod : null
+  const displayedShipping = frozen ? savedShipping : shippingMethod
+  const shippingOption = shippingOptions?.methods.find(option => option.code === displayedShipping) ?? null
+  const merchandisePence = cartTotalPence(availableItems.map(item => ({ ...item, quantity: checkoutQuantity(item)! })))
+  const canCreate = !orderId && !order && !pending && phase !== 'terminal' && phase !== 'cart-conflict' && !verificationBlocked && (frozen ? !recoveryOnly : (Boolean(shippingOptions) && !shippingLoading && cartChecked && !blocked && availableItems.length > 0 && !cart.error && !cart.isLoading && !cart.pendingItemIds.length && Boolean(selected && isUsableUkAddress(selected) && billing && isUsableUkAddress(billing)) && !addressError && !addressLoading))
 
   // Ambiguous attempts must keep their exact identity/payload for recovery.
   // Definitive rejections and fresh blocked carts instead show editable review.
@@ -132,17 +164,22 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
 
     {(order || !orderId) && <div className="checkout__columns">
       <section aria-labelledby="checkout-summary"><h2 id="checkout-summary">{order ? 'Order summary' : 'Items for this checkout'}</h2>
-        {order ? <><ul className="checkout__items">{order.orderItems.map(item => <li key={item.id}><strong>{item.productListing.legoProduct.title}</strong><span>{item.conditionSnapshot === 'USED_LIKE_NEW' ? 'New – Outer Box Damage' : 'New'} · Quantity {item.quantity}</span><span>{formatGbp(priceToPence(item.unitPrice))} each · {formatGbp(priceToPence(item.lineTotal))}</span></li>)}</ul><p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.totalAmount))}</strong></p></> : <>
+        {order ? <><ul className="checkout__items">{order.orderItems.map(item => <li key={item.id}><strong>{item.productListing.legoProduct.title}</strong><span>{item.conditionSnapshot === 'USED_LIKE_NEW' ? 'New – Outer Box Damage' : 'New'} · Quantity {item.quantity}</span><span>{formatGbp(priceToPence(item.unitPrice))} each · {formatGbp(priceToPence(item.lineTotal))}</span></li>)}</ul><OrderFinancialSummary order={order} /></> : <>
           {cart.isLoading ? <p role="status">Loading your cart…</p> : <ul className="checkout__items">{availableItems.map(item => <li key={item.productListingId}><strong>{item.listing.legoProduct.title}</strong><span>{item.listing.condition === 'USED_LIKE_NEW' ? 'New – Outer Box Damage' : 'New'} · Quantity {checkoutQuantity(item)}</span><span>{formatGbp(priceToPence(item.listing.effectivePrice))} each · {formatGbp(lineAmountPence({ ...item, quantity: checkoutQuantity(item)! }))}</span></li>)}</ul>}
           {!cart.items.length && !cart.isLoading && <p>Your cart is empty. Add an item before checking out.</p>}
-          <p className="checkout__total">Estimated total <strong>{formatGbp(cartTotalPence(availableItems.map(item => ({ ...item, quantity: checkoutQuantity(item)! }))))}</strong></p><p>Final prices and availability are confirmed when your order is reserved.</p>
+          <dl className="checkout__financials" aria-label="Estimated price breakdown">
+            <div><dt>Merchandise subtotal</dt><dd>{formatGbp(merchandisePence)}</dd></div>
+            <div><dt>Delivery</dt><dd>{shippingOption ? `${shippingOption.method} · ${shippingCharge(shippingOption)}` : displayedShipping ? 'Confirmed when your order is reserved' : 'Choose a delivery method'}</dd></div>
+            <div className="checkout__total"><dt>Estimated total</dt><dd><strong>{shippingOption && !frozen ? formatGbp(estimatedTotalPence(merchandisePence, shippingOption)) : frozen ? 'Confirmed when your order is reserved' : 'Shown after you choose delivery'}</strong></dd></div>
+          </dl>
+          <p>Final prices, delivery charge and availability are confirmed when your order is reserved.</p>
           {!!cart.items.length && !availableItems.length && !cart.isLoading && !cart.error && <p id="checkout-no-fresh">{copy.freshNone} <button onClick={() => navigateCheckout('/account/orders')}>{copy.orders}</button></p>}
           {cart.error && <p role="alert">{cart.error}</p>}
         </>}
       </section>
       <section aria-labelledby="checkout-delivery"><h2 id="checkout-delivery">Delivery address</h2>
         {order ? <AddressCopy name={order.deliveryRecipientName} line1={order.deliveryLine1} line2={order.deliveryLine2} city={order.deliveryCity} postcode={order.deliveryPostcode} country={order.deliveryCountryCode} /> : <>
-          {frozen ? <><p>{definiteRejection ? 'Your checkout request is saved. Continuing after verification uses the same items and delivery address.' : 'A checkout request is saved. Retry uses the original items and delivery address, even if your cart has since changed.'}</p><ul>{attempt?.input.items.map(item => <li key={item.productListingId}>Listing #{item.productListingId} · Quantity {item.quantity}</li>)}</ul>{attempt?.input.deliveryAddress && <AddressCopy name={attempt.input.deliveryAddress.recipientName} line1={attempt.input.deliveryAddress.line1} line2={attempt.input.deliveryAddress.line2} city={attempt.input.deliveryAddress.city} postcode={attempt.input.deliveryAddress.postcode} country={attempt.input.deliveryAddress.countryCode} />}</> : addressLoading ? <p role="status">Loading addresses…</p> : <>
+          {frozen ? <><p>{definiteRejection ? 'Your checkout request is saved. Continuing after verification uses the same items and delivery address.' : 'A checkout request is saved. Retry uses the original items, delivery address and delivery method, even if your cart has since changed.'}</p><ul>{attempt?.input.items.map(item => <li key={item.productListingId}>Listing #{item.productListingId} · Quantity {item.quantity}</li>)}</ul>{attempt?.input.deliveryAddress && <AddressCopy name={attempt.input.deliveryAddress.recipientName} line1={attempt.input.deliveryAddress.line1} line2={attempt.input.deliveryAddress.line2} city={attempt.input.deliveryAddress.city} postcode={attempt.input.deliveryAddress.postcode} country={attempt.input.deliveryAddress.countryCode} />}</> : addressLoading ? <p role="status">Loading addresses…</p> : <>
             {addresses.length === 0 ? <><p>You need a delivery address before continuing.</p><button disabled={pending} onClick={onAddresses}>Add delivery address</button></> : <><label>Saved delivery address<select value={addressId ?? ''} onChange={event => { deliberateDelivery.current = true; selectedDelivery.current = Number(event.target.value); setAddressId(selectedDelivery.current); setInputError(null) }} disabled={pending}><option value="" disabled>Choose an address</option>{addresses.map(address => <option key={address.id} value={address.id}>{address.recipientName} · {address.line1} · {address.postcode}</option>)}</select></label>
             {(!selected || !isUsableUkAddress(selected)) && <p>Please add or update a valid United Kingdom delivery address before continuing.</p>}{selected && <AddressCopy name={selected.recipientName} line1={selected.line1} line2={selected.line2} city={selected.city} postcode={selected.postcode} country={selected.country} />}</>}
           </>}
@@ -154,11 +191,16 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
         {!order && <p>Your saved default billing address will be used. Delivery selection does not change it.</p>}
       </section>
     </div>}
+    {!orderId && !order && phase !== 'terminal' && <ShippingMethodSelector options={shippingOptions} loading={shippingLoading} error={shippingError} selected={displayedShipping} locked={frozen}
+      disabled={pending} invalid={shippingInvalid && !frozen && !shippingMethod} onRetry={() => setShippingReload(value => value + 1)}
+      onSelect={code => { setShippingMethod(code); setShippingInvalid(false); setInputError(null) }} />}
+    {!orderId && recoveryOnly && <div className="checkout__notice" role="status"><p>{legacyAttempt ? 'This saved checkout request was made before delivery options were introduced, so it cannot be sent again. An order may already exist: check My Orders before starting again.' : 'An order may already exist from this saved checkout request. Check My Orders before starting a new checkout.'}</p><button onClick={() => navigateCheckout('/account/orders')}>View My Orders</button><button className="checkout__secondary" onClick={checkout.restart}>Leave saved checkout and review cart</button></div>}
     {!orderId && phase !== 'terminal' && <button aria-describedby={!frozen && cart.items.length && !availableItems.length && !cart.isLoading && !cart.error ? 'checkout-no-fresh' : undefined} disabled={!canCreate} onClick={() => {
-      try { const input = attempt?.input ?? (selected ? orderInput(cart.items, selected) : null); if (input) { setInputError(null); void checkout.create(input) } }
+      if (!frozen && !shippingMethod) { setShippingInvalid(true); document.querySelector<HTMLInputElement>('input[name="shipping-method"]')?.focus(); return }
+      try { const input = attempt?.input ?? (selected ? orderInput(cart.items, selected, shippingMethod) : null); if (input) { setInputError(null); void checkout.create(input) } }
       catch (reason) { setInputError(reason instanceof Error ? reason.message : 'Please check your delivery address.') }
     }}>{phase === 'creating' ? 'Reserving your order…' : verificationBlocked ? 'Verify email before creating order' : definiteRejection ? 'Continue saved checkout' : frozen ? 'Retry saved order request' : 'Create order and review total'}</button>}
-    {!orderId && frozen && !definiteRejection && !pending && phase !== 'terminal' && <p>Retry first if the previous response was lost. Starting again abandons recovery of that request. <button className="checkout__secondary" onClick={checkout.restart}>Leave saved checkout and review cart</button></p>}
+    {!orderId && frozen && !recoveryOnly && !definiteRejection && !pending && phase !== 'terminal' && <p>Retry first if the previous response was lost. Starting again abandons recovery of that request. <button className="checkout__secondary" onClick={checkout.restart}>Leave saved checkout and review cart</button></p>}
     {order && <section className="checkout__payment" aria-labelledby="checkout-payment"><h2 id="checkout-payment">Payment</h2>
       <PaymentWindowNotice checkoutActive={phase === 'payment' || phase === 'submitting'} value={order.paymentWindow} verification={['verifying', 'waiting'].includes(phase) ? 'active' : phase === 'verification-timeout' ? 'timeout' : undefined} />
       {parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && !confirmed && <p>Payment is recorded, but this order is not yet confirmed for fulfilment. Please wait for an update or contact us; do not pay again.</p>}

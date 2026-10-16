@@ -1,7 +1,8 @@
 import { useCart } from '../cart/CartContext'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { availabilityConflictCodes, CheckoutApiError, createOrder, getOrder, parseOrderPayment, preparePayment, recoverPayment, type Order, type OrderInput } from './api'
-import { clearAttempt, consumeStripeReturn, isConfirmed, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
+import { clearAttempt, consumeStripeReturn, isConfirmed, isLegacyAttempt, isTerminal, navigateCheckout, readAttempt, saveAttempt, type CreationAttempt } from './state'
+import { isShippingMethod } from './shipping'
 import { canRecoverPayment, isOlderPaymentSnapshot, parsePaymentWindow, paymentAction } from './paymentWindow'
 import { AuthApiError, getCurrentUser, isVerificationRequired } from '../auth/api'
 
@@ -56,7 +57,13 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
   const create = async (input: OrderInput) => {
     if (busy.current || obtainedOrderId.current || orderId || order || (phase === 'verification' || phase === 'cart-conflict')) return
     if (!attemptRef.current && input.items.length === 0) return
+    // A pre-shipping saved request may already have created an order. Never replay it with an
+    // invented delivery method; the customer must check My Orders or deliberately start again.
+    if (isLegacyAttempt(attemptRef.current)) { setMessage('This saved checkout request was made before delivery options were introduced, so it cannot be sent again. Check My Orders for an existing order, or leave the saved checkout to start again.'); return }
+    if (attemptRef.current?.rejection === 'REPLAY_REJECTED') { setMessage('This saved checkout request can no longer be accepted, and an earlier attempt may already have created an order. Check My Orders before starting a new checkout.'); return }
+    if (!attemptRef.current && !isShippingMethod(input.shippingMethod)) { setMessage('Choose Standard or Express delivery before creating your order.'); return }
     const currentRun = run.current
+    let replay = false
     busy.current = true; setMessage(null); setPhase('creating')
     try {
       if (attemptRef.current?.rejection === 'EMAIL_VERIFICATION_REQUIRED') {
@@ -69,6 +76,7 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
         }
       }
       const saved = attemptRef.current
+      replay = Boolean(saved)
       const current: CreationAttempt = saved ? { key: saved.key, input: saved.input } : { key: crypto.randomUUID(), input }
       // Persist before sending. A lost response must replay the same key AND payload.
       saveAttempt(userId, current); attemptRef.current = current; setAttempt(current)
@@ -85,6 +93,21 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
           clearAttempt(userId); attemptRef.current = null; setAttempt(null)
           setConflict(reason); setMessage(null); setPhase('cart-conflict')
           await refreshCart()
+          return
+        }
+        if (reason instanceof CheckoutApiError && reason.status === 400 && reason.code !== 'INVALID_IDEMPOTENCY_KEY' && replay && attemptRef.current) {
+          // Validation precedes the idempotency lookup, so a replay's 400 does not prove that no order exists.
+          // Keep the exact request and key, stop further sends, and send the customer to My Orders first.
+          const rejected: CreationAttempt = { ...attemptRef.current, rejection: 'REPLAY_REJECTED' }
+          attemptRef.current = rejected; setAttempt(rejected)
+          try { saveAttempt(userId, rejected) } catch { /* The original request remains persisted. */ }
+          setMessage('This saved checkout request can no longer be accepted, and an earlier attempt may already have created an order. Check My Orders before starting a new checkout.'); setPhase('ready')
+          return
+        }
+        if (reason instanceof CheckoutApiError && reason.status === 400 && reason.code !== 'INVALID_IDEMPOTENCY_KEY') {
+          // A first send's validation failure creates no order. Retire it for explicit review; never resubmit automatically.
+          clearAttempt(userId); attemptRef.current = null; setAttempt(null)
+          setMessage(reason.message); setPhase('ready')
           return
         }
         if (reason instanceof CheckoutApiError && reason.status === 403 && reason.code === 'EMAIL_VERIFICATION_REQUIRED' && attemptRef.current) {
