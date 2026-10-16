@@ -1,12 +1,15 @@
 import { parsePaymentWindow, paymentAction, type PaymentWindow } from './paymentWindow'
+import { parseOrderFinancials, type OrderFinancials, type ShippingMethodCode } from './shipping'
 import { authenticatedFetch } from '../auth/session'
 import { apiBase } from '../auth/api'
 
 export type DeliveryAddress = { recipientName: string; line1: string; line2?: string; city: string; county?: string; postcode: string; countryCode: string; phone?: string }
-export type OrderInput = { items: { productListingId: number; quantity: number }[]; deliveryAddress?: DeliveryAddress }
+// Shipping method identity only: the backend prices delivery and owns every payable amount.
+export type OrderInput = { shippingMethod: ShippingMethodCode; items: { productListingId: number; quantity: number }[]; deliveryAddress?: DeliveryAddress }
 export type Order = {
   id: number; status: string; totalAmount: string; reservationExpiresAt: string | null
   paymentWindow?: PaymentWindow | null
+  financials?: OrderFinancials | null
   payment: { status: string; paidAt: string | null } | null
   billingRecipientName: string; billingLine1: string; billingLine2: string | null; billingCity: string; billingPostcode: string; billingCountryCode: string
   deliveryRecipientName: string; deliveryLine1: string; deliveryLine2: string | null; deliveryCity: string; deliveryPostcode: string; deliveryCountryCode: string
@@ -30,7 +33,7 @@ export class CheckoutApiError extends Error {
       PAYMENT_ALREADY_COMPLETED: 'Payment has already been recorded. Check your order status.',
       EMAIL_VERIFICATION_REQUIRED: 'Please verify your email before checking out.',
     }
-    super(code && messages[code] || (status === 401 ? 'Please sign in again to continue.' : status === 403 ? 'Please verify your email before checking out.' : status === 404 ? 'This order could not be found in your account.' : status === 400 && detail?.includes('stock') ? 'Some items are no longer available in the requested quantity. Please review your cart.' : status === 400 && detail?.includes('billing') ? 'Please add a default billing address in My Account.' : status === 400 ? 'Please check your items and delivery address.' : 'We could not complete this request. Please try again.'))
+    super(status === 400 && detail === 'shippingMethod' ? 'Please choose Standard or Express delivery and try again. No order was created.' : code && messages[code] || (status === 401 ? 'Please sign in again to continue.' : status === 403 ? 'Please verify your email before checking out.' : status === 404 ? 'This order could not be found in your account.' : status === 400 && detail?.includes('stock') ? 'Some items are no longer available in the requested quantity. Please review your cart.' : status === 400 && detail?.includes('billing') ? 'Please add a default billing address in My Account.' : status === 400 ? 'Please check your items and delivery address.' : 'We could not complete this request. Please try again.'))
     this.status = status; this.code = code; this.details = details
   }
 }
@@ -41,7 +44,9 @@ async function request<T>(token: string, path: string, init: RequestInit = {}): 
     response = await authenticatedFetch(`${apiBase()}${path}`, { ...init, signal: AbortSignal.timeout(10000), headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...init.headers } }, token)
   } catch { throw new Error('Connection interrupted. Please retry this saved checkout or recheck your order.') }
   const body = await response.json().catch(() => null)
-  if (!response.ok) throw new CheckoutApiError(response.status, body?.error?.code, typeof body?.error === 'string' ? body.error : body?.error?.message, {
+  // Zod field errors name the rejected field; a shipping rejection gets specific guidance.
+  const fieldError = body?.error && typeof body.error === 'object' && 'shippingMethod' in body.error ? 'shippingMethod' : undefined
+  if (!response.ok) throw new CheckoutApiError(response.status, body?.error?.code, typeof body?.error === 'string' ? body.error : body?.error?.message ?? fieldError, {
     reason: typeof body?.error?.reason === 'string' ? body.error.reason : undefined,
     productListingId: Number.isSafeInteger(body?.error?.productListingId) && body.error.productListingId > 0 ? body.error.productListingId : undefined,
     availableQuantity: Number.isSafeInteger(body?.error?.availableQuantity) && body.error.availableQuantity >= 0 ? body.error.availableQuantity : undefined,
@@ -49,8 +54,8 @@ async function request<T>(token: string, path: string, init: RequestInit = {}): 
   })
   return body as T
 }
-export async function createOrder(token: string, input: OrderInput, key: string): Promise<{ id: number; paymentWindow?: PaymentWindow | null }> {
-  return parseOrderPayment(await request<{ id: number; paymentWindow?: unknown }>(token, '/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(input) }))
+export async function createOrder(token: string, input: OrderInput, key: string): Promise<{ id: number; paymentWindow?: PaymentWindow | null; financials?: OrderFinancials | null }> {
+  return parseOrderPayment(await request<{ id: number; paymentWindow?: unknown; financials?: unknown }>(token, '/orders', { method: 'POST', headers: { 'Idempotency-Key': key }, body: JSON.stringify(input) }))
 }
 export async function getOrder(token: string, id: number): Promise<Order> { return parseOrderPayment(await request<Order>(token, `/orders/${id}`), id) }
 export async function preparePayment(token: string, id: number) {
@@ -61,9 +66,9 @@ export async function preparePayment(token: string, id: number) {
 
 export async function recoverPayment(token: string, id: number): Promise<Order> { return parseOrderPayment(await request<Order>(token, `/orders/${id}/payments/stripe/reconcile`, { method: 'POST' }), id) }
 
-export function parseOrderPayment<T extends { id: number; paymentWindow?: unknown }>(order: T, expectedId?: number): Omit<T, 'paymentWindow'> & { paymentWindow: PaymentWindow | null } {
+export function parseOrderPayment<T extends { id: number; paymentWindow?: unknown; financials?: unknown }>(order: T, expectedId?: number): Omit<T, 'paymentWindow' | 'financials'> & { paymentWindow: PaymentWindow | null; financials: OrderFinancials | null } {
   if (!order || !Number.isSafeInteger(order.id) || order.id <= 0 || (expectedId !== undefined && order.id !== expectedId)) throw new Error('Unable to read this order. Please refresh.')
   const window = parsePaymentWindow(order.paymentWindow)
   // Contradictory order/action snapshots must also fail closed.
-  return { ...order, paymentWindow: 'status' in order && order.status !== 'PENDING' && paymentAction(window) ? null : window }
+  return { ...order, paymentWindow: 'status' in order && order.status !== 'PENDING' && paymentAction(window) ? null : window, financials: parseOrderFinancials(order.financials) }
 }

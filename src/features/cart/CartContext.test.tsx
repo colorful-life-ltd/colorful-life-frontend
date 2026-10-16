@@ -91,17 +91,17 @@ describe('old and new cart allocation contracts', () => {
     expect(items[0]).toMatchObject({ quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 })
     const html = renderToStaticMarkup(<CartItems items={items} />)
     expect(html).toContain('Quantity: 2'); expect(html).toContain('1 allocated to a pending order'); expect(html).toContain('1 requested for a new checkout')
-    expect(orderInput(items, address).items).toEqual([{ productListingId: 41, quantity: 1 }])
+    expect(orderInput(items, address, 'STANDARD').items).toEqual([{ productListingId: 41, quantity: 1 }])
   })
   it('preserves old totals and omits allocation wording when there are none', () => {
     const old = mapCart({ items: [{ productListingId: 41, productListing: listing, quantity: 2 }] })
-    expect(checkoutQuantity(old[0])).toBe(2); expect(orderInput(old, address).items[0].quantity).toBe(2)
+    expect(checkoutQuantity(old[0])).toBe(2); expect(orderInput(old, address, 'STANDARD').items[0].quantity).toBe(2)
     expect(renderToStaticMarkup(<CartItems items={old} />)).not.toContain('pending order')
     expect(renderToStaticMarkup(<CartItems items={[{ ...old[0], allocatedQuantity: 0, unallocatedQuantity: 2 }]} />)).not.toContain('pending order')
   })
   it('excludes fully allocated lines and keeps exact listing identities', () => {
     const items = [{ productListingId: 41, listing, quantity: 2, allocatedQuantity: 2, unallocatedQuantity: 0 }, { productListingId: 42, listing, quantity: 3, allocatedQuantity: 1, unallocatedQuantity: 2 }]
-    expect(orderInput(items, address).items).toEqual([{ productListingId: 42, quantity: 2 }])
+    expect(orderInput(items, address, 'STANDARD').items).toEqual([{ productListingId: 42, quantity: 2 }])
   })
   it.each([
     { allocatedQuantity: 1 }, { unallocatedQuantity: 1 },

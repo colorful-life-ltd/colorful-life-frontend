@@ -7,7 +7,7 @@ describe('customer order read contracts', () => {
     const orders = [{ id: 42 }, { id: 41 }]
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify(orders))))
     vi.stubGlobal('fetch', fetcher)
-    expect(await listOrders('jwt')).toEqual(orders.map(order => ({ ...order, paymentWindow: null })))
+    expect(await listOrders('jwt')).toEqual(orders.map(order => ({ ...order, paymentWindow: null, financials: null })))
     fetcher.mockImplementation(() => Promise.resolve(new Response(JSON.stringify({ id: 41 }))))
     await readOrder('jwt', 41)
     expect(fetcher.mock.calls.map(([url]) => url)).toEqual(['/api/orders', '/api/orders/41'])

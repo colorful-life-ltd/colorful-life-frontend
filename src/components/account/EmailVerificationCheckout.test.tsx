@@ -11,6 +11,7 @@ import { readAttempt } from '../../features/checkout/state'
 
 vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
 vi.mock('../checkout/StripePaymentForm', () => ({ StripePaymentForm: () => null }))
+import { shippingOptionsFixture } from '../../features/checkout/shippingFixtures'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const user = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: null, phone: null }
 const address = { id: 1, recipientName: 'Test', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'GB', phone: null, isDefaultShipping: true, isDefaultBilling: true }
@@ -28,6 +29,8 @@ async function mount() {
   container = document.createElement('div'); document.body.append(container); root = createRoot(container)
   await act(async () => root!.render(<AuthProvider><Capture /><CartContext.Provider value={cart}><App /></CartContext.Provider></AuthProvider>))
 }
+// Explicit customer choice: checkout never preselects a delivery method.
+async function chooseShipping(code: 'STANDARD' | 'EXPRESS' = 'STANDARD') { await act(async () => { const input = container.querySelector<HTMLInputElement>(`input[name="shipping-method"][value="${code}"]`); if (!input) throw new Error(`Shipping option missing: ${code}`); input.click() }) }
 async function click(text: string) {
   await act(async () => { const button = [...container.querySelectorAll('button')].find(button => button.textContent?.includes(text)); if (!button) throw new Error(`Missing ${text}`); button.click() })
 }
@@ -39,6 +42,7 @@ beforeEach(() => {
   fetcher = vi.fn((url: string) => {
     if (url === '/api/users/me') return verified ? response(user) : required()
     if (url === '/api/users/me/addresses') return response([address])
+    if (url === '/api/orders/shipping-options') return response(shippingOptionsFixture)
     if (url === '/api/orders') return ambiguous ? Promise.reject(new Error('offline')) : verified ? response({ id: 41 }, 201) : required()
     if (url === '/api/auth/verify-email') { verified = true; return response({ message: 'Email verified' }) }
     if (url === '/api/auth/login') return response({ token: 'jwt', refreshToken: 'r'.repeat(43), accessTokenExpiresAt: '2030-01-01T00:00:00Z', refreshExpiresAt: '2030-02-01T00:00:00Z' })
@@ -53,7 +57,7 @@ afterEach(async () => { if (root) await act(async () => root!.unmount()); root =
 describe('email verification and preserved checkout integration', () => {
   it('distinguishes definite 403, resends, verifies, signs in and independently continues the identical checkout', async () => {
     await mount(); verified = false
-    await click('Create order')
+    await chooseShipping(); await click('Create order')
     const saved = readAttempt(1)!
     expect(saved.rejection).toBe('EMAIL_VERIFICATION_REQUIRED')
     expect(container.textContent).toContain('No order was created by this request')
@@ -86,14 +90,14 @@ describe('email verification and preserved checkout integration', () => {
     expect(readAttempt(1)).toBeNull(); expect(cart.removeItem).not.toHaveBeenCalled()
   })
   it('keeps the saved attempt and verification UX after reload with an unverified session', async () => {
-    await mount(); verified = false; await click('Create order'); const saved = readAttempt(1)
+    await mount(); verified = false; await chooseShipping(); await click('Create order'); const saved = readAttempt(1)
     await act(async () => root!.unmount()); root = null; await mount()
     expect(container.textContent).toContain('Verify your email'); expect(container.textContent).toContain('Resend verification email')
     expect(container.textContent).not.toContain('Retry saved order request'); expect(container.textContent).not.toContain('response was lost')
     expect(readAttempt(1)).toEqual(saved); expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBe('jwt'); expect(orderCalls()).toHaveLength(1)
   })
   it('preserves the genuinely ambiguous response messaging and identity', async () => {
-    await mount(); ambiguous = true; await click('Create order')
+    await mount(); ambiguous = true; await chooseShipping(); await click('Create order')
     expect(container.textContent).toContain('Retry saved order request'); expect(container.textContent).toContain('response was lost')
     const key = readAttempt(1)?.key
     await click('Retry saved order request')

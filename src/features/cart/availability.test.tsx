@@ -66,7 +66,7 @@ describe('authoritative cart availability', () => {
     const items = [line(), line({ productListingId: 42, availability: { status: 'OUT_OF_STOCK', reason: 'OUT_OF_STOCK', availableQuantity: 0 } })]
     expect(cartCheckoutBlocked(items)).toBe(true)
     expect(availableCartSubtotal(items)).toBe(1000)
-    expect(() => orderInput(items, address)).toThrow('resolve unavailable')
+    expect(() => orderInput(items, address, 'STANDARD')).toThrow('resolve unavailable')
     expect(items).toHaveLength(2)
   })
   it.each(['CART_QUANTITY_ALLOCATED', 'PRODUCT_UNPUBLISHED', 'USED_OFFER_UNAVAILABLE'])('fully allocated %s lines do not block unrelated new intent', reason => {
@@ -74,12 +74,12 @@ describe('authoritative cart availability', () => {
     const fresh = line({ productListingId: 42 })
     expect(cartCheckoutBlocked([allocated, fresh])).toBe(false)
     expect(availableCartSubtotal([allocated, fresh])).toBe(1000)
-    expect(orderInput([allocated, fresh], address).items).toEqual([{ productListingId: 42, quantity: 1 }])
+    expect(orderInput([allocated, fresh], address, 'STANDARD').items).toEqual([{ productListingId: 42, quantity: 1 }])
   })
   it('partially allocated insufficient intent remains blocked even when the allocated part is safe', () => {
     const item = line({ quantity: 4, allocatedQuantity: 2, unallocatedQuantity: 2, availability: { status: 'INSUFFICIENT_STOCK', reason: 'INSUFFICIENT_STOCK', availableQuantity: 1 } })
     expect(cartCheckoutBlocked([item])).toBe(true)
-    expect(() => orderInput([item], address)).toThrow()
+    expect(() => orderInput([item], address, 'STANDARD')).toThrow()
   })
   it('uses EN/FR page language for explanations, labels, pending allocations and resolution actions', async () => {
     setup(); document.documentElement.lang = 'fr-FR'

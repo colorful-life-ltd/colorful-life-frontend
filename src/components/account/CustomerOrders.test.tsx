@@ -296,3 +296,32 @@ describe('order confirmation cart refresh and country presentation', () => {
     expect(fetcher.mock.calls.every(([, init]) => init.method === 'GET')).toBe(true)
   })
 })
+
+describe('persisted order financials in customer views', () => {
+  const express = { currency: 'GBP', merchandiseSubtotal: '20.50', shipping: { code: 'EXPRESS', method: 'Express Delivery', chargePence: 799, minWorkingDays: 1, maxWorkingDays: 3, estimatesFrom: 'DISPATCH' }, totalAmount: '28.49' }
+  const historical = { currency: 'GBP', merchandiseSubtotal: '20.50', shipping: null, totalAmount: '20.50' }
+  function serve(financials: unknown, totalAmount: string) {
+    fetcher.mockImplementation((url: string) => {
+      if (url === '/api/orders') return response([{ ...summary, totalAmount, financials }])
+      if (url === '/api/orders/41') return response({ ...detail, totalAmount, financials })
+      throw new Error(`Unexpected test request ${url}`)
+    })
+  }
+  it('lists and details the persisted delivery method, charge and total', async () => {
+    serve(express, '28.49'); await mount()
+    expect(container.textContent).toContain('Delivery: Express Delivery · £7.99'); expect(container.textContent).toContain('Order total £28.49')
+    await click('View order #41')
+    const breakdown = container.querySelector('dl[aria-label="Order price breakdown"]')!
+    expect(breakdown.textContent).toContain('Merchandise subtotal£20.50'); expect(breakdown.textContent).toContain('Express Delivery · £7.99')
+    expect(breakdown.textContent).toContain('Estimated 1–3 working days after dispatch'); expect(breakdown.textContent).toContain('Order total£28.49')
+    expect(fetcher.mock.calls.every(([url]) => !String(url).includes('shipping-options'))).toBe(true)
+  })
+  it('shows historical orders without fabricated delivery data or free shipping', async () => {
+    serve(historical, '20.50'); await mount()
+    expect(container.textContent).toContain('Delivery: details unavailable')
+    await click('View order #41')
+    expect(container.textContent).toContain('Delivery details unavailable'); expect(container.textContent).toContain('does not mean delivery was free')
+    expect(container.textContent).not.toMatch(/£0\.00|Standard Delivery|Express Delivery|Free/)
+    expect(container.textContent).toContain('Order total£20.50')
+  })
+})

@@ -26,3 +26,30 @@
 .checkout .cart-item__reduce { margin: 8px 0 0; padding: 6px 10px; border: 1px solid #527f78; border-radius: 6px; background: #fff9e9; color: #3e6962; font: 15px/1.4 'Segoe Print', 'Comic Sans MS', cursive; }
 .checkout .cart-item__reduce:disabled { opacity: .4; cursor: not-allowed; }
 .checkout .cart-item__reduce:focus-visible { outline: 2px solid #b68c42; outline-offset: 3px; }
+
+/* Delivery method: explicit choice, clearly selected, comfortable touch targets. */
+.checkout__shipping { margin: 28px 0 12px; max-width: 650px; }
+.checkout__shipping fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.checkout__shipping legend { padding: 0; margin-bottom: 6px; font-weight: 600; color: #5a496c; }
+.checkout__shipping-option { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 12px; margin: 10px 0; padding: 14px 16px; border: 1px solid #b9a9c8; border-radius: 12px; background: white; cursor: pointer; }
+.checkout__shipping-option input { width: 20px; height: 20px; margin: 0; accent-color: #66527c; }
+.checkout__shipping-option:focus-within { outline: 3px solid #9379b1; outline-offset: 3px; }
+.checkout__shipping-option--selected { border: 2px solid #66527c; background: #f3eefa; }
+.checkout__shipping-name { font-weight: 600; }
+.checkout__shipping-charge { font-weight: 600; white-space: nowrap; }
+.checkout__shipping-estimate { grid-column: 2 / -1; color: #5d5266; font-size: 15px; }
+.checkout__shipping fieldset:disabled .checkout__shipping-option { cursor: default; }
+.checkout__shipping--invalid .checkout__shipping-option { border-color: #8f343c; }
+
+/* Price breakdowns: estimates before reservation, persisted backend values afterwards. */
+.checkout__financials { margin: 16px 0 0; }
+.checkout__financials > div { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; }
+.checkout__financials dt { font-weight: 600; }
+.checkout__financials dd { margin: 0; text-align: right; }
+.checkout__financials .checkout__total { font-size: 21px; border-top: 1px solid #dfd4c9; padding-top: 12px; margin-top: 6px; }
+.checkout__financials-note { display: block; font-size: 15px; color: #5d5266; }
+@media (max-width: 700px) {
+  .checkout__shipping-option { grid-template-columns: auto 1fr; }
+  .checkout__shipping-charge { grid-column: 2; }
+  .checkout__financials > div { flex-wrap: wrap; }
+}

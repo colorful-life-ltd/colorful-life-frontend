@@ -7,6 +7,7 @@ import { listOrders, readOrder, type OrderSummary, type OrderDetail } from '../.
 import { canCheckPayment, canResumeCheckout, displayDate, orderDetailId, orderStatusLabel } from '../../features/orders/presentation'
 import { isOlderPaymentSnapshot, parsePaymentWindow, paymentActionLabel, paymentMessage } from '../../features/checkout/paymentWindow'
 import { PaymentWindowNotice } from '../checkout/PaymentWindowNotice'
+import { OrderFinancialSummary } from '../checkout/OrderFinancialSummary'
 import { CheckoutApiError, recoverPayment } from '../../features/checkout/api'
 import { isConfirmed, navigateCheckout } from '../../features/checkout/state'
 import { formatGbp, priceToPence } from '../../features/cart/CartContext'
@@ -97,7 +98,8 @@ function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: numb
       <p>Order status: {orderStatusLabel(order.status)}</p>
       <p>{paymentMessage(order.paymentWindow)}</p>
       <p>{order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} {order.orderItems.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'} · {order.orderItems.map(item => item.productListing.legoProduct.title).join(', ')}</p>
-      <p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.totalAmount))}</strong></p>
+      <p>Delivery: {order.financials?.shipping ? `${order.financials.shipping.method} · ${formatGbp(order.financials.shipping.chargePence)}` : 'details unavailable'}</p>
+      <p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.financials?.totalAmount ?? order.totalAmount))}</strong></p>
       <button onClick={() => navigateCheckout(`/account/orders/${order.id}`)}>View order #{order.id}</button>
     </li>)}</ul> : <p>You haven’t placed any orders yet.</p>}
     <button className="checkout__secondary" disabled={checking} onClick={reload}>Refresh {id === null ? 'orders' : 'order'}</button>
@@ -121,7 +123,7 @@ function Detail({ order, checking }: { order: OrderDetail; checking: boolean }) 
       <strong>{item.productListing.legoProduct.title}</strong><span>Set {item.productListing.legoProduct.setNumber} · Quantity {item.quantity}</span>
       <span>{item.conditionSnapshot === 'USED_LIKE_NEW' ? 'New – Outer Box Damage' : item.conditionSnapshot === 'NEW' ? 'New' : 'Condition unavailable'}</span>
       <span>{formatGbp(priceToPence(item.unitPrice))} each · {formatGbp(priceToPence(item.lineTotal))}</span>
-    </li>)}</ul><p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.totalAmount))}</strong></p></section>
+    </li>)}</ul><OrderFinancialSummary order={order} /></section>
     <div className="checkout__columns"><section aria-labelledby="order-delivery"><h2 id="order-delivery">Delivery address</h2><Address order={order} kind="delivery" /></section>
       <section aria-labelledby="order-billing"><h2 id="order-billing">Billing address</h2><Address order={order} kind="billing" /></section></div>
     {order.status === 'DISPATCHED' && <p>{order.dispatchedAt && <>Dispatched {displayDate(order.dispatchedAt)}. </>}{order.shippingCarrier}{order.trackingNumber && <> · Tracking {order.trackingNumber}</>}</p>}

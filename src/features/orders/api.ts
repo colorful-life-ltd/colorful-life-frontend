@@ -2,7 +2,7 @@ import { requestJson } from '../auth/api'
 import { parseOrderPayment, type Order } from '../checkout/api'
 
 // The list projection deliberately has no payment or address fields.
-export type OrderSummary = Pick<Order, 'id' | 'status' | 'totalAmount' | 'orderItems' | 'paymentWindow'> & {
+export type OrderSummary = Pick<Order, 'id' | 'status' | 'totalAmount' | 'orderItems' | 'paymentWindow' | 'financials'> & {
   createdAt: string
   updatedAt: string
   shippingCarrier: string | null
