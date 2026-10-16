@@ -232,9 +232,16 @@ describe('real auth and native navigation', () => {
     await click('Open your account'); expect(container.textContent).toContain('Signed in as')
     expect(fetcher.mock.calls.every(([, init]) => (init.method ?? 'GET') === 'GET')).toBe(true)
   })
+  it('does not insert a mouse hint during a touch tap on the account control', async () => {
+    await mount(true)
+    await act(async () => container.querySelector('button.stage-user')!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'touch' })))
+    expect(container.textContent).not.toContain('Hi! Sign in or')
+    await click('Open your account')
+    expect(container.querySelector('.account-modal')).not.toBeNull()
+  })
   it.each(['verified', 'unverified'])('ignores a stale guest hint immediately on %s authentication transition', async kind => {
     await mount(true)
-    await act(async () => container.querySelector('button.stage-user')!.dispatchEvent(new MouseEvent('mouseover', { bubbles: true })))
+    await act(async () => container.querySelector('button.stage-user')!.dispatchEvent(new PointerEvent('pointerover', { bubbles: true, pointerType: 'mouse' })))
     expect(container.textContent).toContain('Hi! Sign in or')
     fetcher.mockImplementation((url: string) => Promise.resolve(url === '/api/auth/login' ? result(original) : kind === 'verified' ? result(user) : result({ error: { code: 'EMAIL_VERIFICATION_REQUIRED' } }, 403)))
     await act(async () => auth.authenticate('signin', { email: user.email, password: 'Synthetic-test-password' }))

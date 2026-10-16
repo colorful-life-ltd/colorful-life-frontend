@@ -14,7 +14,7 @@ export function BookOwnedUser({ onOpenAccount, onGuestHint }: { onOpenAccount: (
   const [frame,setFrame]=useState(0); const running=useRef(false); const timers=useRef<number[]>([])
   useEffect(()=>()=>timers.current.forEach(window.clearTimeout),[])
   const wave=()=>{if(running.current||window.matchMedia('(prefers-reduced-motion: reduce)').matches)return; running.current=true; timers.current=frames.slice(1).map((_,i)=>window.setTimeout(()=>{setFrame(i+1);if(i===frames.length-2)running.current=false},(i+1)*100))}
-  return <button className="stage-user" type="button" aria-label="Open your account" onClick={onOpenAccount} onMouseEnter={() => { wave(); onGuestHint?.() }} onFocus={() => { wave(); onGuestHint?.() }}>
+  return <button className="stage-user" type="button" aria-label="Open your account" onClick={onOpenAccount} onPointerEnter={event => { if (event.pointerType === 'mouse') { wave(); onGuestHint?.() } }} onFocus={event => { if (event.currentTarget.matches(':focus-visible')) { wave(); onGuestHint?.() } }}>
     <img src={frames[frame]} alt="" width={270} height={378} />
   </button>
 }

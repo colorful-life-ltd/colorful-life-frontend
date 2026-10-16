@@ -96,7 +96,7 @@ function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: numb
       <h2>Order #{order.id}</h2><p>Placed {displayDate(order.createdAt)}</p>
       <p>Order status: {orderStatusLabel(order.status)}</p>
       <p>{paymentMessage(order.paymentWindow)}</p>
-      <p>{order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} items · {order.orderItems.map(item => item.productListing.legoProduct.title).join(', ')}</p>
+      <p>{order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} {order.orderItems.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'} · {order.orderItems.map(item => item.productListing.legoProduct.title).join(', ')}</p>
       <p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.totalAmount))}</strong></p>
       <button onClick={() => navigateCheckout(`/account/orders/${order.id}`)}>View order #{order.id}</button>
     </li>)}</ul> : <p>You haven’t placed any orders yet.</p>}
