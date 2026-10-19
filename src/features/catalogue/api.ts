@@ -46,6 +46,9 @@ export interface ProductListingOffer {
 
 /** One LegoProduct per catalogue result. Offers never become separate cards. */
 export interface CatalogueProduct {
+  availability?: 'IN_STOCK' | 'OUT_OF_STOCK' | 'MORE_ON_THE_WAY' | 'DISCONTINUED'
+  availabilityState?: 'STANDARD' | 'MORE_ON_THE_WAY' | 'DISCONTINUED'
+  isPublished?: boolean
   id: number
   /** LegoProduct metadata shared by all offers for this set. */
   isRetired: boolean
@@ -74,11 +77,12 @@ export function isSellableOffer(offer: ProductListingOffer): boolean {
   return offer.active && offer.availableStock > 0 && (offer.condition === 'NEW' || offer.usedLifecycle === 'AVAILABLE')
 }
 
-export function sellableOffers(product: Pick<CatalogueProduct, 'offers'>): ProductListingOffer[] {
+export function sellableOffers(product: Pick<CatalogueProduct, 'offers' | 'availability' | 'availabilityState' | 'isPublished'>): ProductListingOffer[] {
+  if (product.isPublished === false || product.availability === 'DISCONTINUED' || product.availabilityState === 'DISCONTINUED') return []
   return product.offers.filter(isSellableOffer)
 }
 
-export function isSellableProduct(product: Pick<CatalogueProduct, 'offers'>): boolean {
+export function isSellableProduct(product: Pick<CatalogueProduct, 'offers' | 'availability' | 'availabilityState' | 'isPublished'>): boolean {
   return sellableOffers(product).length > 0
 }
 
@@ -139,7 +143,9 @@ function isProductListingOffer(value: unknown, productId: number): value is Prod
 function isCatalogueProduct(value: unknown): value is CatalogueProduct {
   if (!value || typeof value !== 'object') return false
   const item = value as Partial<CatalogueProduct>
-  return Number.isSafeInteger(item.id) && item.id! > 0 && typeof item.setNumber === 'string' && typeof item.title === 'string' &&
+  return (item.availability === undefined || ['IN_STOCK','OUT_OF_STOCK','MORE_ON_THE_WAY','DISCONTINUED'].includes(item.availability)) &&
+    (item.availabilityState === undefined || ['STANDARD','MORE_ON_THE_WAY','DISCONTINUED'].includes(item.availabilityState)) &&
+    (item.isPublished === undefined || typeof item.isPublished === 'boolean') && Number.isSafeInteger(item.id) && item.id! > 0 && typeof item.setNumber === 'string' && typeof item.title === 'string' &&
     (item.description === null || typeof item.description === 'string') && typeof item.theme === 'string' &&
     (item.ageRecommendation === null || typeof item.ageRecommendation === 'string') &&
     (item.pieceCount === null || Number.isInteger(item.pieceCount)) && (item.category === null || Boolean(item.category && Number.isSafeInteger(item.category.id))) &&
@@ -218,4 +224,12 @@ export async function getCatalogueProduct(productId: number, signal?: AbortSigna
   const data: unknown = await response.json()
   if (!isCatalogueProduct(data) || data.id !== productId) throw new Error('Invalid product response')
   return data
+}
+
+/** Explicit Backend state only; zero stock or unknown suppliers never imply discontinuation. */
+export function productAvailabilityLabel(product: Pick<CatalogueProduct,'availability'|'availabilityState'|'offers'|'isPublished'>): string {
+  if (product.availability === 'DISCONTINUED' || product.availabilityState === 'DISCONTINUED') return 'Discontinued'
+  if (product.isPublished === false) return 'Currently unavailable'
+  if (sellableOffers(product).length) return 'In stock'
+  return product.availability === 'MORE_ON_THE_WAY' || product.availabilityState === 'MORE_ON_THE_WAY' ? 'More on the Way' : 'Sold Out'
 }

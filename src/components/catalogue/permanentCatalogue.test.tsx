@@ -47,12 +47,12 @@ describe('sold-out product cards and details', () => {
   it('prints a real From price for an in-stock card', () => {
     const markup = renderToStaticMarkup(<CatalogueProduct product={inStock} onViewDetails={vi.fn()} />)
     expect(markup).toContain('£25.99')
-    expect(markup).not.toContain('Out of stock')
+    expect(markup).not.toContain('Sold Out')
   })
 
-  it.each([['zero stock', zeroStock], ['all offers sold out', allSoldOut], ['no offers', noOffers]])('labels a %s card Out of stock with no price', (_, item) => {
+  it.each([['zero stock', zeroStock], ['all offers sold out', allSoldOut], ['no offers', noOffers]])('labels a %s card Sold Out with no price', (_, item) => {
     const markup = renderToStaticMarkup(<CatalogueProduct product={item} onViewDetails={vi.fn()} />)
-    expect(markup).toContain('Out of stock')
+    expect(markup).toContain('Sold Out')
     expect(markup).not.toContain('£')
     expect(markup).toContain(`href="/products/${item.id}"`)
   })
@@ -68,7 +68,7 @@ describe('sold-out product cards and details', () => {
     expect(markup).toContain(`data-detail-product-id="${item.id}"`)
     expect(markup).toContain(item.title)
     expect(markup).toContain(item.description!)
-    expect(markup).toContain('Out of stock')
+    expect(markup).toContain('Sold Out')
     expect(markup).not.toContain('£')
     expect(markup).not.toContain('Choose an offer')
     expect(markup).toMatch(/<button type="button" class="product-details__add" disabled="">/)
@@ -101,7 +101,7 @@ describe('sold-out product cards and details', () => {
     document.body.append(container)
     root = createRoot(container)
     await act(async () => root!.render(<LeafletProduct product={noOffers} browseOnly linkedTitle onDetails={onDetails} />))
-    expect(container.textContent).toContain('Out of stock')
+    expect(container.textContent).toContain('Sold Out')
     await act(async () => container.querySelector<HTMLButtonElement>('.leaflet-product__title-button')!.click())
     expect(onDetails).toHaveBeenCalledWith(5)
   })

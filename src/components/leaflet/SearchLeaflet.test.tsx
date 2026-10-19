@@ -60,7 +60,7 @@ describe('Search Leaflet presentation', () => {
     expect(html).toContain('data-leaflet-product="12"')
     // Sold-out products remain discoverable, with no price and an explicit stock state.
     const soldOut = html.slice(html.indexOf('data-leaflet-product="99"'))
-    expect(soldOut).toContain('<p class="leaflet-product__price"></p><span class="leaflet-product__stock">Out of stock</span>')
+    expect(soldOut).toContain('<p class="leaflet-product__price"></p><span class="leaflet-product__stock">Sold Out</span>')
     expect(html).toContain('search-leaflet__product-category">City')
     expect(html).toContain('25 matches found')
     expect(html.match(/View details/g)).toHaveLength(9)

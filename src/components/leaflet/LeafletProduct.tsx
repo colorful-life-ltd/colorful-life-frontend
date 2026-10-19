@@ -1,4 +1,4 @@
-import { sellableOffers, type CatalogueProduct } from '../../features/catalogue/api'
+import { productAvailabilityLabel, sellableOffers, type CatalogueProduct } from '../../features/catalogue/api'
 import { effectivePricePence, formatGbp } from '../../features/cart/CartContext'
 import { ProductPrintImage } from '../catalogue/CategoryOpeningSpread'
 
@@ -21,8 +21,8 @@ export function LeafletProduct({ product, featured = false, showDescription = fe
       {featured && showDescription && product.description && <p className="leaflet-product__description">{product.description}</p>}
       <div className={`leaflet-product__purchase${browseOnly ? ' leaflet-product__purchase--browse' : ''}`}>
         <p className="leaflet-product__price">{leastExpensiveOffer && <>{!browseOnly && <small>From </small>}<strong>{formatGbp(effectivePricePence(leastExpensiveOffer))}</strong></>}</p>
-        {browseOnly ? <span className="leaflet-product__stock">{leastExpensiveOffer ? 'Available' : 'Out of stock'}</span>
-          : <span className="leaflet-product__stock">{leastExpensiveOffer ? `${availableOffers.reduce((sum, offer) => sum + offer.availableStock, 0)} available` : 'Out of stock'}</span>}
+        {browseOnly ? <span className="leaflet-product__stock">{leastExpensiveOffer ? 'Available' : productAvailabilityLabel(product)}</span>
+          : <span className="leaflet-product__stock">{leastExpensiveOffer ? `${availableOffers.reduce((sum, offer) => sum + offer.availableStock, 0)} available` : productAvailabilityLabel(product)}</span>}
       </div>
       {!browseOnly && <button type="button" onClick={openDetails} aria-label={`View details for ${product.title}`}>Take a closer look <span aria-hidden="true">→</span></button>}
     </div>
