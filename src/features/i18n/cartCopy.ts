@@ -63,6 +63,7 @@ export function cartCopy() {
 export function availabilityMessage(reason?: string | null, availableQuantity = 0): string {
   const copy = cartCopy()
   switch (reason) {
+    case 'PRODUCT_DISCONTINUED': return 'This product has been discontinued and is no longer available to buy.'
     case 'PRODUCT_UNPUBLISHED': return copy.unpublished
     case 'LISTING_INACTIVE': return copy.inactive
     case 'USED_OFFER_UNAVAILABLE': return copy.used

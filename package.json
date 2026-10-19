@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:run": "vitest run",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:contracts": "node scripts/verify-shared-contract.mjs"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "^7.0.0",

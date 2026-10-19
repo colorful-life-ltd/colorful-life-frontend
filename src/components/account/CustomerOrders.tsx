@@ -1,3 +1,4 @@
+import { OrderProgress } from './OrderProgress'
 import { countryLabel } from '../../features/account/addressState'
 import { useConfirmedCartRefresh } from '../../features/cart/useConfirmedCartRefresh'
 import { useEffect, useRef, useState } from 'react'
@@ -96,7 +97,7 @@ function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: numb
     {state.detail ? <><Detail order={state.detail} checking={checking} />{canCheckPayment(state.detail) && <button disabled={checking} onClick={() => void checkPayment()}>{checking ? 'Checking payment status…' : 'Check payment status'}</button>}{feedback && <p role="status">{feedback}</p>}</> : state.orders.length ? <ul className="checkout__items">{state.orders.map(order => <li key={order.id}>
       <h2>Order #{order.id}</h2><p>Placed {displayDate(order.createdAt)}</p>
       <p>Order status: {orderStatusLabel(order.status)}</p>
-      <p>{paymentMessage(order.paymentWindow)}</p>
+      <p>{paymentMessage(order.paymentWindow)}</p><OrderProgress order={order} />
       <p>{order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} {order.orderItems.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'} · {order.orderItems.map(item => item.productListing.legoProduct.title).join(', ')}</p>
       <p>Delivery: {order.financials?.shipping ? `${order.financials.shipping.method} · ${formatGbp(order.financials.shipping.chargePence)}` : 'details unavailable'}</p>
       <p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.financials?.totalAmount ?? order.totalAmount))}</strong></p>
@@ -117,7 +118,7 @@ function Address({ order, kind }: { order: OrderDetail; kind: 'delivery' | 'bill
 function Detail({ order, checking }: { order: OrderDetail; checking: boolean }) {
   return <>
     <p>Placed {displayDate(order.createdAt)}</p><p>Order status: {orderStatusLabel(order.status)}</p>
-    <PaymentWindowNotice value={order.paymentWindow} />
+    <PaymentWindowNotice value={order.paymentWindow} /><OrderProgress order={order} />
     {parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && order.payment?.paidAt && <p>Paid {displayDate(order.payment.paidAt)}</p>}
     <section aria-labelledby="order-items"><h2 id="order-items">Items</h2><ul className="checkout__items">{order.orderItems.map(item => <li key={item.id}>
       <strong>{item.productListing.legoProduct.title}</strong><span>Set {item.productListing.legoProduct.setNumber} · Quantity {item.quantity}</span>

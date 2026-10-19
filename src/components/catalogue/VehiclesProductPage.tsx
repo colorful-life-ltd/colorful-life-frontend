@@ -1,5 +1,5 @@
 import { useState, type MouseEvent } from 'react'
-import { defaultProductOffer, isSellableOffer, sellableOffers, type CatalogueProduct, type ProductListingOffer } from '../../features/catalogue/api'
+import { productAvailabilityLabel, defaultProductOffer, isSellableOffer, sellableOffers, type CatalogueProduct, type ProductListingOffer } from '../../features/catalogue/api'
 import type { ProductSpread } from '../../features/catalogue/productSpreads'
 import type { VehiclesState } from '../../features/catalogue/useVehicles'
 import { effectivePricePence, formatGbp, useCart } from '../../features/cart/CartContext'
@@ -27,7 +27,7 @@ function ProductCopy({ product, onViewDetails }: { product: CatalogueProduct; on
       {age && <li>{/^ages?\b/i.test(age) ? age : `Ages ${age}${/^\d+$/.test(age) ? '+' : ''}`}</li>}
     </ul>
     <div className="vehicle-product__footer">
-      <p className="vehicle-product__price">{Number.isFinite(price) ? <><span className="vehicle-product__from">From </span><span>{formatGbp(price)}</span></> : <span className="vehicle-product__sold-out">Out of stock</span>}</p>
+      <p className="vehicle-product__price">{Number.isFinite(price) ? <><span className="vehicle-product__from">From </span><span>{formatGbp(price)}</span></> : <span className="vehicle-product__sold-out">{productAvailabilityLabel(product)}</span>}</p>
       {onViewDetails && <a className="vehicle-product__details" href={productPath(product.id)}
         aria-label={`View details for ${product.title}`} onClick={productLinkClick(product.id, onViewDetails)}>View Details →</a>}
     </div>
@@ -77,7 +77,7 @@ export function CatalogueProductDetails({ product, selectedOfferId, side, onAddT
   unavailableMessage?: string
 }) {
   if (!product) return <p className="vehicles-page__message">{unavailableMessage}</p>
-  const initialOffer = product.offers.find(offer => offer.id === selectedOfferId && isSellableOffer(offer)) ?? defaultProductOffer(product)
+  const initialOffer = sellableOffers(product).find(offer => offer.id === selectedOfferId) ?? defaultProductOffer(product)
   return side === 'left'
     ? <section className="product-details" aria-label="Product photographs"><h2>Take a closer look</h2><ProductGallery product={product} /></section>
     : <ProductDetailsContent key={`${product.id}:${selectedOfferId ?? ''}`} product={product} initialOffer={initialOffer} onAddToCart={onAddToCart} />
@@ -107,10 +107,10 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
       </label>)}
     </fieldset> : <div className="product-details__selected-offer"><strong>{offer.condition === 'NEW' ? 'New' : 'New – Outer Box Damage'}</strong>
       {offer.condition === 'USED_LIKE_NEW' && <p className="product-details__damage-copy">{damageCopy}</p>}</div>}
-    <p className="product-details__stock">{offer ? `Stock: ${offer.availableStock}` : 'Out of stock'}</p>
+    <p className="product-details__stock">{offer ? `Stock: ${offer.availableStock}` : productAvailabilityLabel(product)}</p>
     <p className="product-details__description">{product.description ?? 'No description available.'}</p>
     {onAddToCart && <button type="button" className="product-details__add" disabled={atLimit} onClick={() => { if (offer && !atLimit) onAddToCart(offer, product.title) }}>
-      <span>{offer ? 'Add to cart' : 'Out of stock'}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
+      <span>{offer ? 'Add to cart' : productAvailabilityLabel(product)}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
       {cartQuantity > 0 && <span className="product-details__cart-quantity">In cart: {cartQuantity}{atLimit && ' · Maximum available'}</span>}
     </button>}
   </article>
