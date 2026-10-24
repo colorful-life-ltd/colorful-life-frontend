@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
+import { COMPANY } from '../../features/legal/company'
 import cottage from '../../assets/illustrations/opening-welcome-illustration.png'
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import { useAuth } from '../../features/auth/AuthProvider'
@@ -95,6 +96,10 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
             })}
           </div>
           {!creating && onForgotPassword && <button type="button" className="account-form__forgot" onClick={onForgotPassword}>Forgot password?</button>}
+          {creating && <p className="account-form__legal" id="account-create-legal">
+            By creating an account you agree to our <a href="/legal/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.
+            Our <a href="/legal/privacy" target="_blank" rel="noopener">Privacy Policy</a> explains how {COMPANY.legalName} (Build &amp; Bloom) uses your data.
+          </p>}
           <button className="account-form__submit" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : creating ? 'Create Account' : 'Sign In'}</button>
         </form>
         <p className="account-experience__switch">

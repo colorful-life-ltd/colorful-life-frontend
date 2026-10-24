@@ -27,7 +27,7 @@
 .front-matter__contents-heading h2 { font-size: clamp(23px, 7cqw, 30px); font-weight: 500; line-height: 1.4; color: #436c5c; }
 .front-matter__contents-heading img { display: block; width: 25px; height: auto; margin: 12px auto 0; opacity: .8; pointer-events: none; }
 .front-matter__entries { display: flex; flex-direction: column; justify-content: space-evenly; flex: 1; gap: 10px; margin: 18px 0; padding: 0; list-style: none; }
-.front-matter__entry { display: block; width: 100%; border: 0; padding: 6px 0; background: none; color: #486556; font: inherit; text-align: left; cursor: pointer; }
+.front-matter__entry { display: block; width: 100%; border: 0; padding: 6px 0; background: none; color: #486556; font: inherit; text-align: left; cursor: pointer; text-decoration: none; }
 .front-matter__entry-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; font-size: clamp(17px, 5cqw, 22px); line-height: 1.5; }
 .front-matter__entry-description { display: block; margin-top: 3px; color: #776652; font: 400 clamp(12px, 3.2cqw, 14px)/1.5 Georgia, 'Times New Roman', serif; }
 .front-matter__arrow { color: #8e7048; font-size: 16px; }

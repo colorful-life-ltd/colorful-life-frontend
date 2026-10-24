@@ -13,6 +13,7 @@ import { useCheckout } from '../../features/checkout/useCheckout'
 import { canRecoverPayment, parsePaymentWindow, paymentAction, paymentActionLabel } from '../../features/checkout/paymentWindow'
 import { PaymentWindowNotice } from './PaymentWindowNotice'
 import { StripePaymentForm } from './StripePaymentForm'
+import { PreContractSummary } from '../legal/PreContractSummary'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
 import './Checkout.css'
 import { CartItems } from '../cart/CartItems'
@@ -195,6 +196,7 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
       disabled={pending} invalid={shippingInvalid && !frozen && !shippingMethod} onRetry={() => setShippingReload(value => value + 1)}
       onSelect={code => { setShippingMethod(code); setShippingInvalid(false); setInputError(null) }} />}
     {!orderId && recoveryOnly && <div className="checkout__notice" role="status"><p>{legacyAttempt ? 'This saved checkout request was made before delivery options were introduced, so it cannot be sent again. An order may already exist: check My Orders before starting again.' : 'An order may already exist from this saved checkout request. Check My Orders before starting a new checkout.'}</p><button onClick={() => navigateCheckout('/account/orders')}>View My Orders</button><button className="checkout__secondary" onClick={checkout.restart}>Leave saved checkout and review cart</button></div>}
+    {!orderId && phase !== 'terminal' && <PreContractSummary stage="order" />}
     {!orderId && phase !== 'terminal' && <button aria-describedby={!frozen && cart.items.length && !availableItems.length && !cart.isLoading && !cart.error ? 'checkout-no-fresh' : undefined} disabled={!canCreate} onClick={() => {
       if (!frozen && !shippingMethod) { setShippingInvalid(true); document.querySelector<HTMLInputElement>('input[name="shipping-method"]')?.focus(); return }
       try { const input = attempt?.input ?? (selected ? orderInput(cart.items, selected, shippingMethod) : null); if (input) { setInputError(null); void checkout.create(input) } }
@@ -206,6 +208,7 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
       {parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && !confirmed && <p>Payment is recorded, but this order is not yet confirmed for fulfilment. Please wait for an update or contact us; do not pay again.</p>}
       {order.status === 'PENDING' && paymentAction(order.paymentWindow) && !checkout.actionRejected && !['auth', 'verification', 'terminal', 'loading', 'preparing', 'waiting', 'payment', 'submitting', 'verifying', 'verification-timeout'].includes(phase) && <button onClick={() => void checkout.prepare()}>{paymentActionLabel(order.paymentWindow)}</button>}
       {phase === 'preparing' && <p role="status">Checking your payment window and preparing secure payment…</p>}
+      {['payment', 'submitting'].includes(phase) && secret && <PreContractSummary stage="payment" />}
       {['payment', 'submitting'].includes(phase) && secret && <StripePaymentForm key={secret} clientSecret={secret} orderId={order.id} onVerify={checkout.paymentSubmitted} onRecheck={() => void checkout.recheck()} beforeConfirm={checkout.beforeConfirm} onSubmissionSettled={checkout.submissionSettled} />}
       {['waiting', 'verifying'].includes(phase) && <p role="status">Payment is being verified. Confirming your order…</p>}
       {phase === 'verification-timeout' && <button onClick={() => void checkout.verify()}>Check order status again</button>}

@@ -15,26 +15,28 @@ describe('Catalogue front matter', () => {
     expect(text).toContain('There’s always something wonderful waiting to be built.')
   })
 
-  it('offers Catalogue then Find a Set, with future chapters unavailable and legal copy quiet', () => {
+  it('offers Catalogue, Find a Set and the live help chapters, with the rest unavailable and legal links quiet', () => {
     const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} onSearch={() => {}} />)
     const buttons = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
-    expect(buttons).toHaveLength(5)
+    expect(buttons).toHaveLength(3)
     expect(buttons[0][1]).not.toContain('disabled')
     expect(buttons[0][2]).toContain('Our Catalogue')
     expect(buttons[0][2]).toContain('Explore the Build &amp; Bloom collections')
     expect(buttons[1][1]).not.toContain('disabled')
     expect(buttons[1][2]).toContain('Find a Set')
     expect(buttons[1][2]).toContain('Search by name or set number')
-    for (const button of buttons.slice(2)) expect(button[1]).toContain('disabled')
-    for (const copy of ['Delivery &amp; Returns', 'Everything about getting your order home', 'Contact Us', 'Come and say hello', 'Help &amp; FAQs', 'A little help when you need it', 'Privacy · Cookies · Terms &amp; Conditions']) {
-      expect(markup).toContain(copy)
-    }
-    expect(markup).not.toMatch(/<a\b|category-entry/)
+    expect(buttons[2][1]).toContain('disabled')
+    expect(buttons[2][2]).toContain('Help &amp; FAQs')
+    expect(markup).toMatch(/<a class="front-matter__entry" href="\/legal\/delivery-returns">[\s\S]*Delivery &amp; Returns/)
+    expect(markup).toMatch(/<a class="front-matter__entry" href="mailto:support@build-and-bloom\.co\.uk">[\s\S]*Contact Us/)
+    for (const href of ['/legal/privacy', '/legal/cookies', '/legal/terms']) expect(markup).toContain(`href="${href}"`)
+    expect(markup).not.toMatch(/category-entry/)
   })
 
   it('disables the contents action while a page is turning', () => {
     const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} onSearch={() => {}} turning />)
-    expect(markup.match(/disabled=""/g)).toHaveLength(5)
+    expect(markup.match(/ disabled=""/g)).toHaveLength(3)
+    expect(markup.match(/aria-disabled="true"/g)).toHaveLength(2)
   })
 
   it('mounts welcome and contents in the existing physical book without category duplication', () => {

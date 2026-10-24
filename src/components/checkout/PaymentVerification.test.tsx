@@ -10,7 +10,7 @@ import type { Order } from '../../features/checkout/api'
 const mocks = vi.hoisted(() => ({ read: vi.fn(), prepare: vi.fn(), recover: vi.fn(), create: vi.fn(), confirm: vi.fn(), retrieve: vi.fn() }))
 vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'authenticated', token: 'jwt', user: { id: 1 } }, logout: vi.fn() }) }))
 vi.mock('../../features/checkout/api', async original => ({ ...await original<typeof import('../../features/checkout/api')>(), getOrder: mocks.read, preparePayment: mocks.prepare, recoverPayment: mocks.recover, createOrder: mocks.create }))
-vi.mock('@stripe/stripe-js', () => ({ loadStripe: vi.fn() }))
+vi.mock('@stripe/stripe-js/pure', () => ({ loadStripe: vi.fn() }))
 vi.mock('@stripe/react-stripe-js', () => {
   const stripe = { confirmPayment: mocks.confirm, retrievePaymentIntent: mocks.retrieve }
   return { useStripe: () => stripe, useElements: () => ({}), PaymentElement: () => <input aria-label="Card number" /> }

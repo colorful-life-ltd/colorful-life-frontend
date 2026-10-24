@@ -57,6 +57,8 @@ export interface CatalogueProduct {
   description: string | null
   theme: string
   ageRecommendation: string | null
+  /** Manufacturer packaging warnings, shown before purchase. Absent from older API builds. */
+  safetyWarnings?: string | null
   pieceCount: number | null
   category: BackendCategory | null
   catalogueArtworkUrl: string | null
@@ -148,6 +150,7 @@ function isCatalogueProduct(value: unknown): value is CatalogueProduct {
     (item.isPublished === undefined || typeof item.isPublished === 'boolean') && Number.isSafeInteger(item.id) && item.id! > 0 && typeof item.setNumber === 'string' && typeof item.title === 'string' &&
     (item.description === null || typeof item.description === 'string') && typeof item.theme === 'string' &&
     (item.ageRecommendation === null || typeof item.ageRecommendation === 'string') &&
+    (item.safetyWarnings === undefined || item.safetyWarnings === null || typeof item.safetyWarnings === 'string') &&
     (item.pieceCount === null || Number.isInteger(item.pieceCount)) && (item.category === null || Boolean(item.category && Number.isSafeInteger(item.category.id))) &&
     typeof item.isRetired === 'boolean' && typeof item.isFeatureProduct === 'boolean' &&
     (item.catalogueArtworkUrl === null || typeof item.catalogueArtworkUrl === 'string') &&

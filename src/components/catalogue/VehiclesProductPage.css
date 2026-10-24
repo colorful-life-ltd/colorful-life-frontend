@@ -138,3 +138,23 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
 .product-details__damage-copy { margin: 5px 0; color: #6b5947; font: 12px/1.5 Georgia, serif; }
 .product-details__selected-offer { margin: 10px 0; font: 15px/1.4 Georgia, serif; }
 .product-details__stock { color: #6b5947; font: 12px/1.4 'Segoe UI', system-ui, sans-serif; }
+
+.product-details__age,
+.product-details__delivery {
+  margin: 6px 0;
+  font-size: 0.9em;
+}
+
+.product-details__safety {
+  margin: 8px 0;
+  padding: 6px 10px;
+  border: 1px solid #b38f00;
+  border-radius: 8px;
+  background: #fff8db;
+  font-size: 0.9em;
+}
+
+.product-details__safety p {
+  margin: 2px 0 0;
+  white-space: pre-line;
+}
