@@ -69,7 +69,7 @@
   .leaflet-dialog:has(.leaflet__environment)::backdrop { background: #30271fb3; backdrop-filter: blur(2px); }
   .leaflet-dialog:has(.leaflet__environment) { width: 94vw; }
   body:has(.leaflet[data-side="front"] .leaflet__environment) .catalogue-stage {
-    background-image: url('../../assets/backgrounds/desktop-tabletop-leaflet-background.png');
+    background-image: url('../../assets/backgrounds/desktop-tabletop-background.png');
   }
   .leaflet:has(.leaflet__environment) {
     height: min(92svh, 960px);

@@ -1,0 +1,16 @@
+{
+  "sourceBranch": "main",
+  "sourceCommit": "9d44830cd6ed3d1e410c3c724710e05ca4de623a",
+  "sourceWorktreeUnchanged": true,
+  "copiedFiles": {
+    "src/assets/backgrounds/desktop-tabletop-background.png": "c51b43627b3cb630cc2a4d78f2aad9ce56c11133938fe314b9df769bbe1421db",
+    "src/components/leaflet/CategoryLeaflet.css": "294c310b208eb36823967bccb754be866eccb193472e27f9f63bbf114ca67a99",
+    "src/features/cart/CartRemoval.test.tsx": "7106062a59fc46f6178d4c941888b57023a738f39cd3c2e6e968ffcbc9089ba7",
+    "docs/preserved-assets/desktop-tabletop-leaflet-background.png": "a616d733ce32417df4083eb4b5e2f8df37bd32b82458ad7799978f5d6a5a460f"
+  },
+  "ownerStagedRemoval": {
+    "oldPath": "src/assets/backgrounds/desktop-tabletop-leaflet-background.png",
+    "preservedAt": "docs/preserved-assets/desktop-tabletop-leaflet-background.png",
+    "sha256": "a616d733ce32417df4083eb4b5e2f8df37bd32b82458ad7799978f5d6a5a460f"
+  }
+}
