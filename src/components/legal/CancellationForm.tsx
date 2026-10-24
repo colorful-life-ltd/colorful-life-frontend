@@ -15,7 +15,7 @@ export function CancellationForm() {
   return <LegalLayout title="Cancellation Form" updated="24 October 2026">
     <p>Complete and return this form only if you wish to cancel your contract. You do not have to use it: a clear email or letter is enough. See <a href="/legal/delivery-returns">Delivery &amp; Returns</a> for how cancellation and refunds work.</p>
     <section className="legal-form" aria-labelledby="model-form-heading">
-      <h2 id="model-form-heading">Model cancellation form</h2>
+      <h3 id="model-form-heading">Model cancellation form</h3>
       <p>To: {COMPANY.legalName} (trading as {COMPANY.brand}), {returnsAddressLine}. Email: {COMPANY.supportEmail}</p>
       <p>I hereby give notice that I cancel my contract of sale of the following goods:</p>
       {field('goods', 'Goods (item names)', 'text', true)}

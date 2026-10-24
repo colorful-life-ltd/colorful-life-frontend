@@ -1,7 +1,7 @@
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import leaf from '../../assets/shared/hr-leaf.png'
 import './FrontMatterSpread.css'
-import { COMPANY } from '../../features/legal/company'
+import { legalHref, type LegalSlug } from '../../features/legal/routes'
 
 /** Front matter belongs to the same physical page slots as the category spreads. */
 export function FrontMatterWelcomePage() {
@@ -19,15 +19,17 @@ export function FrontMatterWelcomePage() {
   </article>
 }
 
-const linkedSections = [
-  ['Delivery & Returns', 'Everything about getting your order home', '/legal/delivery-returns'],
-  ['Contact Us', 'Come and say hello', `mailto:${COMPANY.supportEmail}`],
-] as const
+/** Customer Information pages open as spreads of this book (see features/legal/routes.ts). */
+const informationSections: ReadonlyArray<readonly [string, string, LegalSlug]> = [
+  ['Delivery & Returns', 'Everything about getting your order home', 'delivery-returns'],
+  ['Contact Us', 'Come and say hello', 'contact'],
+  ['Customer Information', 'Terms, privacy, cookies and cancelling an order', 'terms'],
+]
 const futureSections = [
   ['Help & FAQs', 'A little help when you need it'],
 ] as const
 
-export function FrontMatterContentsPage({ onCatalogue, onSearch, turning = false }: { onCatalogue: () => void; onSearch: () => void; turning?: boolean }) {
+export function FrontMatterContentsPage({ onCatalogue, onSearch, onLegal, turning = false }: { onCatalogue: () => void; onSearch: () => void; onLegal?: (slug: LegalSlug) => void; turning?: boolean }) {
   return <nav className="front-matter front-matter--contents" aria-labelledby="front-matter-contents-title">
     <header className="front-matter__contents-heading">
       <h2 id="front-matter-contents-title">Contents</h2>
@@ -42,9 +44,14 @@ export function FrontMatterContentsPage({ onCatalogue, onSearch, turning = false
         <span className="front-matter__entry-title">Find a Set <svg className="front-matter__search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="10" cy="10" r="6" /><path d="m15 15 5 5" /></svg></span>
         <span className="front-matter__entry-description">Search by name or set number</span>
       </button></li>
-      {linkedSections.map(([title, description, href]) => <li key={title}>
-        <a className="front-matter__entry" href={href} aria-disabled={turning || undefined} tabIndex={turning ? -1 : undefined}
-          onClick={event => { if (turning) event.preventDefault() }}>
+      {informationSections.map(([title, description, slug]) => <li key={title}>
+        <a className="front-matter__entry" href={legalHref(slug)} aria-disabled={turning || undefined} tabIndex={turning ? -1 : undefined}
+          onClick={event => {
+            // Plain clicks turn the page; modified clicks open the page's own URL.
+            if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+            if (turning || onLegal) event.preventDefault()
+            if (!turning) onLegal?.(slug)
+          }}>
           <span className="front-matter__entry-title">{title} <span className="front-matter__arrow" aria-hidden="true">→</span></span>
           <span className="front-matter__entry-description">{description}</span>
         </a>
@@ -57,6 +64,5 @@ export function FrontMatterContentsPage({ onCatalogue, onSearch, turning = false
       </li>)}
     </ol>
     <span id="front-matter-future-note" className="catalogue-spread-status">This section is not available yet.</span>
-    <p className="front-matter__legal"><a href="/legal/delivery-returns">Delivery &amp; Returns</a> · <a href="/legal/privacy">Privacy</a> · <a href="/legal/cookies">Cookies</a> · <a href="/legal/terms">Terms &amp; Conditions</a></p>
   </nav>
 }

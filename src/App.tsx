@@ -23,7 +23,7 @@ import { cartCheckoutBlocked, checkoutQuantity } from './features/cart/CartConte
 import { navigateCheckout } from './features/checkout/state'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
-import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
+import { CustomerInformationFallback, CustomerInformationNotebook } from './components/homepage/CustomerInformationFallback'
 import { useAuth } from './features/auth/AuthProvider'
 import { isSignedIn } from './features/auth/state'
 import { useCart } from './features/cart/CartContext'
@@ -33,9 +33,8 @@ import { useConditionConfirmation } from './features/catalogue/useConditionConfi
 import { resolveCatalogueCategories } from './components/catalogue/categories'
 import { useRouteHead } from './features/seo/documentHead'
 import { catalogueRouteHead, isPrivatePath, privateRouteHead } from './features/seo/routeHead'
-import { isLegalPath } from './features/legal/routes'
-import { LegalPage } from './components/legal/LegalPage'
-import { LegalLinks, SiteFooter } from './components/legal/LegalLayout'
+import { isLegalPath, legalHref } from './features/legal/routes'
+import { SiteFooter } from './components/legal/LegalLayout'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
@@ -317,11 +316,6 @@ function App() {
     })
   }
 
-  if (isLegalPath(pathname)) return <>
-    <div inert={accountOpen}><LegalPage pathname={pathname} /></div>
-    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
-  </>
-
   if (pathname === '/account/orders' || pathname.startsWith('/account/orders/')) return <>
     <div inert={accountOpen}><CustomerOrders path={pathname} onAccount={openAccount} onAuthenticate={() => { logout(); openAccount() }} /><SiteFooter /></div>
     {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
@@ -364,8 +358,10 @@ function App() {
             <button type="button" onClick={openAccount}>Account</button>
             <button type="button" onClick={isSignedIn(authState) ? openCart : undefined}>Cart</button>
           </div>
-          {!catalogueOpen && !opening && !closing && <CustomerInformationFallback />}
-          <nav className="catalogue-legal-bar" aria-label="Shop information"><LegalLinks /></nav>
+          {!catalogueOpen && !opening && !closing && <>
+            <CustomerInformationNotebook onActivate={() => openCityBookmark(legalHref('contact'))} />
+            <CustomerInformationFallback onActivate={() => openCityBookmark(legalHref('contact'))} />
+          </>}
           <span className="catalogue-spread-status" role="status">
             {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : isCategoryIndexSpread(spread) ? `Catalogue spread ${categorySpreadIndex(spread) + 1} of ${Math.max(1, Math.ceil(Math.ceil(resolvedCategories.length / 3) / 2))}` : spread === 'front-matter' ? 'Welcome and Contents' : 'Opening spread'}
           </span>
@@ -392,7 +388,6 @@ function App() {
           {closing && <ClosingTransition onComplete={finishClosing} />}
         </main>
       )}
-      {!showReference && <SiteFooter compact />}
       {!showReference && conditionConfirmation.pending && <ConditionConfirmationDialog offer={conditionConfirmation.pending.offer} productTitle={conditionConfirmation.pending.productTitle}
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}

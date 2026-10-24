@@ -9,12 +9,12 @@ export function PrivacyPolicy() {
   return <LegalLayout title="Privacy Policy" updated="24 October 2026">
     <p>This policy explains how {COMPANY.legalName}, trading as {COMPANY.brand} ("we", "us"), uses your personal data when you visit our shop, create an account or buy from us, and the rights you have under UK data protection law.</p>
 
-    <h2>Who we are</h2>
+    <h3>Who we are</h3>
     <p>{COMPANY.legalName} is the controller of your personal data. You can contact us about privacy at:</p>
     <ContactBlock />
     <p>ICO registration reference: <OwnerDecisionPlaceholder id="icoRegistration" /></p>
 
-    <h2>The personal data we collect</h2>
+    <h3>The personal data we collect</h3>
     <ul>
       <li><strong>Account details:</strong> your email address and password. We store only a secure one-way hash of your password, never the password itself. You may add your first name, last name and phone number.</li>
       <li><strong>Addresses:</strong> the delivery and billing addresses you save, including the recipient name and an optional phone number.</li>
@@ -26,7 +26,7 @@ export function PrivacyPolicy() {
     </ul>
     <p>We do not use analytics, advertising or social-media tracking, we do not send marketing emails, and we do not sell your data.</p>
 
-    <h2>How we use your data, and our lawful bases</h2>
+    <h3>How we use your data, and our lawful bases</h3>
     <table className="legal-table">
       <thead><tr><th scope="col">Purpose</th><th scope="col">Lawful basis</th></tr></thead>
       <tbody>
@@ -40,7 +40,7 @@ export function PrivacyPolicy() {
     </table>
     <p>Automated security checks may temporarily limit repeated sign-in, checkout or payment attempts, or hold an order for manual review. They never decide anything else about you. If you are affected, contact us and a person will look at it.</p>
 
-    <h2>Who we share it with</h2>
+    <h3>Who we share it with</h3>
     <ul>
       <li><strong>Stripe</strong> processes payments and helps prevent fraud. Stripe also acts as a controller for some of this data under its own privacy policy.</li>
       <li><strong>Amazon Web Services (AWS)</strong> hosts our website, database and backups in the UK (London region), and sends our transactional emails.</li>
@@ -49,10 +49,10 @@ export function PrivacyPolicy() {
       <li>Our professional advisers, and authorities such as HMRC or the police where the law requires it.</li>
     </ul>
 
-    <h2>International transfers</h2>
+    <h3>International transfers</h3>
     <p>Stripe and Cloudinary may process data outside the UK, including in the United States. Where they do, the transfer relies on: <OwnerDecisionPlaceholder id="transferSafeguards" /></p>
 
-    <h2>How long we keep it</h2>
+    <h3>How long we keep it</h3>
     <ul>
       <li><strong>Account and saved addresses:</strong> until you delete your account.</li>
       <li><strong>Orders and invoices:</strong> for 7 years from the order date, to meet tax and accounting record-keeping requirements. After that, names, address lines and phone numbers on the order are permanently removed.</li>
@@ -63,7 +63,7 @@ export function PrivacyPolicy() {
     </ul>
     <p><OwnerDecisionPlaceholder id="retentionPeriods" /></p>
 
-    <h2>Your rights</h2>
+    <h3>Your rights</h3>
     <p>You have the right to access your data, to have it corrected, to have it deleted, to restrict or object to its use, and to receive it in a portable format. You can:</p>
     <ul>
       <li>download a copy of your data from <strong>My Account → Your data</strong>;</li>
@@ -73,19 +73,19 @@ export function PrivacyPolicy() {
     </ul>
     <p>We will reply within one month. We may need to confirm your identity first.</p>
 
-    <h2>Children</h2>
+    <h3>Children</h3>
     <p>Many of our products are toys intended for children, but our shop is for adults buying for themselves or others. We do not knowingly create accounts for, or collect personal data from, children. Minimum age to create an account and buy: <OwnerDecisionPlaceholder id="purchaserAge" /></p>
 
-    <h2>Security</h2>
+    <h3>Security</h3>
     <p>Connections to our shop are encrypted, passwords are hashed, staff access to customer data requires two-step verification, and our database is encrypted and accessible only from our own servers.</p>
 
-    <h2>Cookies and browser storage</h2>
+    <h3>Cookies and browser storage</h3>
     <p>See our <a href="/legal/cookies">Cookie Notice</a>.</p>
 
-    <h2>Complaints</h2>
+    <h3>Complaints</h3>
     <p>If you are unhappy with how we have used your data, please contact us first so we can put it right. You can also complain to the Information Commissioner's Office (ICO): <a href="https://ico.org.uk/make-a-complaint/">ico.org.uk/make-a-complaint</a>, telephone 0303 123 1113.</p>
 
-    <h2>Changes to this policy</h2>
+    <h3>Changes to this policy</h3>
     <p>If our use of personal data changes, we will update this page and the date at the top.</p>
   </LegalLayout>
 }
