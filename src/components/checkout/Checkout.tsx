@@ -12,6 +12,8 @@ import { OrderFinancialSummary } from './OrderFinancialSummary'
 import { useCheckout } from '../../features/checkout/useCheckout'
 import { canRecoverPayment, parsePaymentWindow, paymentAction, paymentActionLabel } from '../../features/checkout/paymentWindow'
 import { PaymentWindowNotice } from './PaymentWindowNotice'
+import { sandboxCheckout } from '../../features/checkout/sandbox'
+import { PayPalSandboxButtons } from './PayPalSandboxButtons'
 import { StripePaymentForm } from './StripePaymentForm'
 import { PreContractSummary } from '../legal/PreContractSummary'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
@@ -206,12 +208,14 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
     {order && <section className="checkout__payment" aria-labelledby="checkout-payment"><h2 id="checkout-payment">Payment</h2>
       <PaymentWindowNotice checkoutActive={phase === 'payment' || phase === 'submitting'} value={order.paymentWindow} verification={['verifying', 'waiting'].includes(phase) ? 'active' : phase === 'verification-timeout' ? 'timeout' : undefined} />
       {parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && !confirmed && <p>Payment is recorded, but this order is not yet confirmed for fulfilment. Please wait for an update or contact us; do not pay again.</p>}
-      {order.status === 'PENDING' && paymentAction(order.paymentWindow) && !checkout.actionRejected && !['auth', 'verification', 'terminal', 'loading', 'preparing', 'waiting', 'payment', 'submitting', 'verifying', 'verification-timeout'].includes(phase) && <button onClick={() => void checkout.prepare()}>{paymentActionLabel(order.paymentWindow)}</button>}
+      {!sandboxCheckout && order.status === 'PENDING' && paymentAction(order.paymentWindow) && !checkout.actionRejected && !['auth', 'verification', 'terminal', 'loading', 'preparing', 'waiting', 'payment', 'submitting', 'verifying', 'verification-timeout'].includes(phase) && <button onClick={() => void checkout.prepare()}>{paymentActionLabel(order.paymentWindow)}</button>}
       {phase === 'preparing' && <p role="status">Checking your payment window and preparing secure payment…</p>}
-      {['payment', 'submitting'].includes(phase) && secret && <PreContractSummary stage="payment" />}
-      {['payment', 'submitting'].includes(phase) && secret && <StripePaymentForm key={secret} clientSecret={secret} orderId={order.id} onVerify={checkout.paymentSubmitted} onRecheck={() => void checkout.recheck()} beforeConfirm={checkout.beforeConfirm} onSubmissionSettled={checkout.submissionSettled} />}
+      {!sandboxCheckout && ['payment', 'submitting'].includes(phase) && secret && <PreContractSummary stage="payment" />}
+      {!sandboxCheckout && ['payment', 'submitting'].includes(phase) && secret && <StripePaymentForm key={secret} clientSecret={secret} orderId={order.id} onVerify={checkout.paymentSubmitted} onRecheck={() => void checkout.recheck()} beforeConfirm={checkout.beforeConfirm} onSubmissionSettled={checkout.submissionSettled} />}
       {['waiting', 'verifying'].includes(phase) && <p role="status">Payment is being verified. Confirming your order…</p>}
       {phase === 'verification-timeout' && <button onClick={() => void checkout.verify()}>Check order status again</button>}
+      {sandboxCheckout && order.status === 'PENDING' && order.paymentWindow?.provider === 'PAYPAL' && paymentAction(order.paymentWindow) && !['verifying','verification-timeout','waiting'].includes(phase) && <PayPalSandboxButtons token={token} orderId={order.id} onVerification={() => checkout.paymentSubmitted()} onRefresh={() => { void checkout.reloadOrder() }} />}
+      {sandboxCheckout && order.paymentWindow?.provider !== 'PAYPAL' && order.paymentWindow?.state !== 'PAID' && <p role="status">Sandbox PayPal payment is unavailable. Refresh the order; live payments are disabled.</p>}
       {canRecoverPayment(order.paymentWindow) && !['auth', 'verification'].includes(phase) && <button disabled={pending} onClick={() => void checkout.recheck()}>Recheck order status</button>}
       <button className="checkout__secondary" disabled={pending || phase === 'auth' || phase === 'verification'} onClick={() => void checkout.reloadOrder()}>Refresh payment information</button>
     </section>}

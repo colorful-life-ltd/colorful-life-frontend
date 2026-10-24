@@ -1,3 +1,4 @@
+import { sandboxCheckout } from '../../features/checkout/sandbox'
 import { type RefObject, useEffect, useRef, useState } from 'react'
 import { AccountForms, type AccountFormsMode } from '../account/AccountForms'
 import { useAuth } from '../../features/auth/AuthProvider'
@@ -33,7 +34,7 @@ export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount, onOpe
             <img className="account-hub-card__feature account-hub-card__feature--house" src={accountHouse} alt="" aria-hidden="true" />
             {onOpenAccount && <button className="account-hub-card__action" type="button" aria-label="Open My Account" onClick={onOpenAccount} />}
           </article>
-          <article className="account-hub-card" aria-labelledby="account-hub-orders-title">
+          {!sandboxCheckout && <article className="account-hub-card" aria-labelledby="account-hub-orders-title">
             <img className="account-hub-card__sprig account-hub-card__sprig--orders" src={cardSprig} alt="" aria-hidden="true" />
             <div className="account-hub-card__copy">
               <h3 id="account-hub-orders-title">My Orders</h3>
@@ -41,7 +42,7 @@ export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount, onOpe
             </div>
             <img className="account-hub-card__feature account-hub-card__feature--parcel" src={ordersParcel} alt="" aria-hidden="true" />
             {onOpenOrders && <button className="account-hub-card__action" type="button" aria-label="Open My Orders" onClick={onOpenOrders} />}
-          </article>
+          </article>}
         </div>
         <div className="account-hub__divider" aria-hidden="true"><span><img src={dividerLeaf} alt="" /></span></div>
         <div className="account-hub__signout">

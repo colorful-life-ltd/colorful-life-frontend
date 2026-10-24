@@ -18,3 +18,6 @@
 body {
   margin: 0;
 }
+
+/* Sandbox builds only; the storybook and legal layouts remain unchanged. */
+.sandbox-banner { position: sticky; top: 0; z-index: 10000; padding: .55rem 1rem; text-align: center; background: #fff0bc; color: #48381f; font: 600 .9rem/1.4 system-ui, sans-serif; }

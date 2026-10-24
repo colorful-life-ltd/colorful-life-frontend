@@ -72,3 +72,14 @@ export function parseOrderPayment<T extends { id: number; paymentWindow?: unknow
   // Contradictory order/action snapshots must also fail closed.
   return { ...order, paymentWindow: 'status' in order && order.status !== 'PENDING' && paymentAction(window) ? null : window, financials: parseOrderFinancials(order.financials) }
 }
+
+export async function createPayPalOrder(token: string, id: number): Promise<string> {
+ const value = await request<{paypalOrderId: string}>(token, `/orders/${id}/payments/paypal`, {method:'POST'})
+ if (!value || typeof value.paypalOrderId !== 'string' || !/^[A-Za-z0-9-]{1,128}$/.test(value.paypalOrderId)) throw new Error('PayPal setup is unavailable. Refresh order status.')
+ return value.paypalOrderId
+}
+export async function capturePayPalOrder(token: string, id: number, expected: string): Promise<Order> {
+ const result = await request<{paypalOrderId: string}>(token, `/orders/${id}/payments/paypal/capture`, {method:'POST'})
+ if (result?.paypalOrderId !== expected) throw new Error('Payment outcome requires verification. Do not pay again.')
+ return getOrder(token,id)
+}

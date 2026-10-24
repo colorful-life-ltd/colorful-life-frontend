@@ -62,3 +62,20 @@ it('fails closed when a non-pending order advertises an initial payment action',
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ id: 41, status: 'CANCELLED', paymentWindow: windowFixture() }))))
   expect((await getOrder('jwt', 41)).paymentWindow).toBeNull()
 })
+
+it('PayPal requests contain no client amount or capture identity and require authoritative order read',async()=>{
+ const {createPayPalOrder,capturePayPalOrder}=await import('./api')
+ const fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({paypalOrderId:'PP-fixture'})))
+  .mockResolvedValueOnce(new Response(JSON.stringify({paypalOrderId:'PP-fixture',captureId:'CAP-fixture'})))
+  .mockResolvedValueOnce(new Response(JSON.stringify({id:41,status:'PENDING'})))
+ vi.stubGlobal('fetch',fetcher)
+ expect(await createPayPalOrder('jwt',41)).toBe('PP-fixture')
+ const actual=await capturePayPalOrder('jwt',41,'PP-fixture');expect(actual.status).toBe('PENDING')
+ expect(fetcher.mock.calls.map(x=>x[0])).toEqual(['/api/orders/41/payments/paypal','/api/orders/41/payments/paypal/capture','/api/orders/41'])
+ for(const call of fetcher.mock.calls.slice(0,2)){expect(call[1].body).toBeUndefined();expect(call[1].headers.Authorization).toBe('Bearer jwt')}
+})
+it('rejects mismatched capture identity rather than treating it as success',async()=>{
+ const {capturePayPalOrder}=await import('./api')
+ const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({paypalOrderId:'WRONG'})));vi.stubGlobal('fetch',fetcher)
+ await expect(capturePayPalOrder('jwt',41,'PP-fixture')).rejects.toThrow('verification');expect(fetcher).toHaveBeenCalledTimes(1)
+})

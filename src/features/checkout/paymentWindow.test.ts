@@ -27,7 +27,7 @@ describe('payment window v1 boundary', () => {
   })
   it('does not copy additional secrets or operational diagnostics', () => {
     const window = parsePaymentWindow({ ...windowFixture(), clientSecret: 'private', providerReference: 'private', diagnostics: { private: true } })
-    expect(Object.keys(window!)).toHaveLength(10)
+    expect(Object.keys(window!)).toHaveLength(11)
     expect(JSON.stringify(window)).not.toContain('private')
   })
   it.each([

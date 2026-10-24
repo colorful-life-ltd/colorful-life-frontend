@@ -1,3 +1,4 @@
+import { sandboxCheckout } from '../../features/checkout/sandbox'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { COMPANY } from '../../features/legal/company'
 import cottage from '../../assets/illustrations/opening-welcome-illustration.png'
@@ -59,7 +60,7 @@ function AccountWelcome() {
 }
 
 export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange, onSubmit, error, submitting, onForgotPassword }: AccountViewProps) {
-  const creating = mode === 'create'
+  const creating = !sandboxCheckout && mode === 'create'
   const [visible, setVisible] = useState<Record<'password' | 'confirmPassword', boolean>>({ password: false, confirmPassword: false })
   return (
     <div className="account-experience" data-account-mode={mode}>
@@ -95,19 +96,19 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
               )
             })}
           </div>
-          {!creating && onForgotPassword && <button type="button" className="account-form__forgot" onClick={onForgotPassword}>Forgot password?</button>}
+          {!sandboxCheckout && !creating && onForgotPassword && <button type="button" className="account-form__forgot" onClick={onForgotPassword}>Forgot password?</button>}
           {creating && <p className="account-form__legal" id="account-create-legal">
             By creating an account you agree to our <a href="/legal/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.
             Our <a href="/legal/privacy" target="_blank" rel="noopener">Privacy Policy</a> explains how {COMPANY.legalName} (Build &amp; Bloom) uses your data.
           </p>}
           <button className="account-form__submit" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : creating ? 'Create Account' : 'Sign In'}</button>
         </form>
-        <p className="account-experience__switch">
+        {!sandboxCheckout && <p className="account-experience__switch">
           {creating ? 'Already part of our little world?' : 'New to our little world?'}{' '}
           <button type="button" onClick={() => onModeChange(creating ? 'signin' : 'create')}>
             {creating ? 'Sign In' : 'Create Account'}<span aria-hidden="true"> →</span>
           </button>
-        </p>
+        </p>}
       </div>
     </div>
   )
@@ -227,7 +228,7 @@ export function ForgotPasswordView({ initialEmail = '', onBack }: { initialEmail
 export type AccountFormsMode = 'signin' | 'forgot'
 
 export function AccountForms({ initialMode = 'signin' }: { initialMode?: AccountFormsMode }) {
-  const [mode, setMode] = useState<AccountMode | 'forgot'>(initialMode)
+  const [mode, setMode] = useState<AccountMode | 'forgot'>(sandboxCheckout ? 'signin' : initialMode)
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
   const previousMode = useRef(mode)
@@ -247,7 +248,7 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
   }, [mode])
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (mode === 'forgot') return
+    if (mode === 'forgot' || (sandboxCheckout && mode !== 'signin')) return
     const current = drafts[mode]
     if (!current.email.trim()) return setFormError('Enter your email address.')
     if (!current.password) return setFormError('Enter your password.')

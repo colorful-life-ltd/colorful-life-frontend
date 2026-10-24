@@ -25,6 +25,9 @@ export function CookieNotice() {
     <h3>Payments: Stripe (strictly necessary, checkout only)</h3>
     <p>Stripe's payment form loads <strong>only when you reach the payment step</strong>, not while you browse. To process your payment and prevent fraud, Stripe may set its own cookies (for example <code>__stripe_mid</code> and <code>__stripe_sid</code>) and collect device information. See Stripe's privacy and cookie policies at <a href="https://stripe.com/privacy">stripe.com/privacy</a>.</p>
 
+    <h3>PayPal Sandbox (only when requested)</h3>
+    <p>In the clearly marked test environment, selecting PayPal Sandbox loads PayPal's JavaScript SDK and connects to PayPal. PayPal may use cookies, browser storage and device information to provide the requested payment service and prevent fraud. The SDK is not loaded while you browse. Only Sandbox accounts and test money may be used. We do not load optional PayPal marketing components. See <a href="https://www.paypal.com/uk/legalhub/paypal/cookie-full">PayPal's cookie notice</a> for its storage and duration information.</p>
+
     <h3>Product images: Cloudinary</h3>
     <p>Product photographs are delivered from Cloudinary's servers. Your browser sends your IP address and browser details with each image request, as with any website image. We do not use Cloudinary to track you.</p>
 

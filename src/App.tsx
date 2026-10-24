@@ -1,3 +1,4 @@
+import { sandboxCheckout } from './features/checkout/sandbox'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import openingSpreadReference from './assets/reference/opening-spread-master.png'
 import { CategoryCatalogue } from './components/catalogue/CategoryCatalogue'
@@ -346,7 +347,7 @@ function App() {
             />
             <BookOwnedCart onGuestClick={openCart} />
             {authState.status === 'signedOut' && guestHint && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
-              {guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
+              {!sandboxCheckout && guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
               <span aria-hidden="true" />
             </button>}
             {userDialogue && <div className="guest-cart-bubble user-dialogue-bubble" role="status" aria-live="polite">
@@ -392,7 +393,7 @@ function App() {
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
-        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
+        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{!sandboxCheckout && cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
     </>
   )
 }
