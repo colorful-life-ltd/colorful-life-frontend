@@ -1,6 +1,6 @@
 import {it,expect,vi} from 'vitest'
 import {renderToStaticMarkup} from 'react-dom/server'
-vi.mock('../../features/checkout/sandbox',()=>({sandboxCheckout:true,sandboxClientId:'fixture'}))
+vi.mock('../../features/checkout/sandbox',()=>({sandboxCheckout:true,registrationAvailable:false,sandboxClientId:'fixture'}))
 import {SandboxBanner} from './SandboxBanner'
 import {AccountView} from '../account/AccountForms'
 import {AuthenticatedAccountHub} from '../homepage/AccountModal'
