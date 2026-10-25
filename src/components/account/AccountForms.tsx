@@ -1,4 +1,4 @@
-import { sandboxCheckout } from '../../features/checkout/sandbox'
+import { registrationAvailable, sandboxCheckout } from '../../features/checkout/sandbox'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { COMPANY } from '../../features/legal/company'
 import cottage from '../../assets/illustrations/opening-welcome-illustration.png'
@@ -60,7 +60,7 @@ function AccountWelcome() {
 }
 
 export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange, onSubmit, error, submitting, onForgotPassword }: AccountViewProps) {
-  const creating = !sandboxCheckout && mode === 'create'
+  const creating = registrationAvailable && mode === 'create'
   const [visible, setVisible] = useState<Record<'password' | 'confirmPassword', boolean>>({ password: false, confirmPassword: false })
   return (
     <div className="account-experience" data-account-mode={mode}>
@@ -75,7 +75,7 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
         {error && <p className="account-form__message account-form__message--error" role="alert">{error}</p>}
         <form key={mode} className="account-form" aria-labelledby="account-task-title" onSubmit={onSubmit} noValidate>
           <div className="account-form__fields">
-            {fields[mode].map(({ name, label, type, autoComplete }) => {
+            {fields[creating ? 'create' : 'signin'].map(({ name, label, type, autoComplete }) => {
               const id = `account-${mode}-${name}`
               const isPassword = type === 'password'
               return (
@@ -103,7 +103,7 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
           </p>}
           <button className="account-form__submit" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : creating ? 'Create Account' : 'Sign In'}</button>
         </form>
-        {!sandboxCheckout && <p className="account-experience__switch">
+        {registrationAvailable && <p className="account-experience__switch">
           {creating ? 'Already part of our little world?' : 'New to our little world?'}{' '}
           <button type="button" onClick={() => onModeChange(creating ? 'signin' : 'create')}>
             {creating ? 'Sign In' : 'Create Account'}<span aria-hidden="true"> →</span>
@@ -248,7 +248,7 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
   }, [mode])
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (mode === 'forgot' || (sandboxCheckout && mode !== 'signin')) return
+    if (mode === 'forgot' || (!registrationAvailable && mode === 'create')) return
     const current = drafts[mode]
     if (!current.email.trim()) return setFormError('Enter your email address.')
     if (!current.password) return setFormError('Enter your password.')
