@@ -1,13 +1,30 @@
 name: Storefront integration
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Sandbox host action (deploy builds current main)
+        type: choice
+        options: [deploy, rollback, status]
+        default: deploy
+      rollback_to:
+        description: Optional 40-hex release SHA for rollback (default is the previous release)
+        required: false
+        default: ''
 permissions:
   contents: read
 jobs:
   verify:
+    # Rollback/status must work even when main is broken, so they skip verification.
+    if: github.event_name != 'workflow_dispatch' || inputs.action == 'deploy'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
           cache: npm
@@ -17,8 +34,98 @@ jobs:
       - run: npm run lint
       - run: npm run test:run
       - run: npm run build
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: colorful-life-storefront
           path: dist/
           if-no-files-found: error
+
+  # Push-to-Sandbox delivery. Inert until the owner sets repository variable SANDBOX_DEPLOY_ENABLED=true.
+  # Only main can assume the deploy role (OIDC subject is pinned in colorful-life-infra), and the role can
+  # run only the ColorfulLife-DeployStorefront SSM document. There is no production target here.
+  deploy-sandbox:
+    needs: verify
+    if: >-
+      !cancelled() && vars.SANDBOX_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (needs.verify.result == 'success' || (needs.verify.result == 'skipped' && inputs.action != 'deploy'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: sandbox-storefront
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: eu-west-2
+      RELEASE_BUCKET: colorful-life-sandbox-releases-919693204623
+      INSTANCE_ID: i-02b28336518077a8f
+      DEPLOY_DOCUMENT: ColorfulLife-DeployStorefront
+      ACTION: ${{ github.event_name == 'workflow_dispatch' && inputs.action || 'deploy' }}
+      ROLLBACK_TO: ${{ inputs.rollback_to }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: env.ACTION == 'deploy'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: env.ACTION == 'deploy'
+        with:
+          node-version: 24
+          cache: npm
+      - name: Build and check the Sandbox release
+        if: env.ACTION == 'deploy'
+        env:
+          VITE_API_BASE_URL: /api
+          VITE_PAYMENT_MODE: paypal-sandbox
+          VITE_PAYPAL_SANDBOX_CLIENT_ID: ${{ vars.VITE_PAYPAL_SANDBOX_CLIENT_ID }}
+        run: |
+          npm ci
+          npm run build
+          node scripts/check-sandbox-bundle.mjs dist
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -C dist -cf - . | gzip -n > storefront.tar.gz
+          echo "RELEASE_SHA256=$(sha256sum storefront.tar.gz | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: arn:aws:iam::919693204623:role/ColorfulLife-SandboxStorefrontDeploy
+          role-session-name: storefront-${{ github.run_id }}
+          aws-region: eu-west-2
+          allowed-account-ids: '919693204623'
+      - name: Upload release archive
+        if: env.ACTION == 'deploy'
+        run: |
+          key="storefront/${GITHUB_SHA}.tar.gz"
+          aws s3 cp storefront.tar.gz "s3://${RELEASE_BUCKET}/${key}" --only-show-errors
+          url=$(aws s3 presign "s3://${RELEASE_BUCKET}/${key}" --expires-in 300)
+          echo "::add-mask::${url}"
+          echo "RELEASE_URL=${url}" >> "$GITHUB_ENV"
+      - name: Run the host action through SSM and wait for its result
+        run: |
+          sha=""
+          if [ "$ACTION" = deploy ]; then sha="$GITHUB_SHA"; fi
+          if [ "$ACTION" = rollback ] && [ -n "$ROLLBACK_TO" ]; then
+            [[ "$ROLLBACK_TO" =~ ^[0-9a-f]{40}$ ]] || { echo "rollback_to must be a 40-hex SHA"; exit 1; }
+            sha="$ROLLBACK_TO"
+          fi
+          params=$(jq -nc --arg a "$ACTION" --arg u "${RELEASE_URL:-}" --arg h "${RELEASE_SHA256:-}" --arg s "$sha" \
+            '{Action:[$a],Url:[$u],Sha256:[$h],Sha:[$s]}')
+          id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "$DEPLOY_DOCUMENT" \
+            --comment "storefront ${ACTION} ${GITHUB_SHA::12} run ${GITHUB_RUN_ID}" --timeout-seconds 600 \
+            --parameters "$params" --query Command.CommandId --output text)
+          status=Pending
+          for _ in $(seq 1 150); do
+            sleep 4
+            status=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)
+            case "$status" in Pending|InProgress|Delayed) continue ;; *) break ;; esac
+          done
+          output=$(aws ssm get-command-invocation --command-id "$id" --instance-id "$INSTANCE_ID" --query StandardOutputContent --output text 2>/dev/null || true)
+          echo "$output"
+          {
+            echo "### Sandbox Storefront ${ACTION}: ${status}"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            [ -z "${RELEASE_SHA256:-}" ] || echo "- Archive sha256: \`${RELEASE_SHA256}\`"
+            echo "- SSM command: \`${id}\`"
+            echo '```'; echo "$output"; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          test "$status" = Success
