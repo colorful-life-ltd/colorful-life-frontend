@@ -362,3 +362,14 @@
 
 .reset-password .account-form { max-width: 420px; }
 .reset-password__show { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; margin-top: 8px; font-size: 14px; color: #69614f; cursor: pointer; }
+
+.account-form__legal {
+  margin: 4px 0 12px;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.account-form__legal a {
+  color: inherit;
+  text-decoration: underline;
+}

@@ -1,3 +1,4 @@
+import { sandboxCheckout } from './features/checkout/sandbox'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import openingSpreadReference from './assets/reference/opening-spread-master.png'
 import { CategoryCatalogue } from './components/catalogue/CategoryCatalogue'
@@ -23,7 +24,7 @@ import { cartCheckoutBlocked, checkoutQuantity } from './features/cart/CartConte
 import { navigateCheckout } from './features/checkout/state'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
-import { CustomerInformationFallback } from './components/homepage/CustomerInformationFallback'
+import { CustomerInformationFallback, CustomerInformationNotebook } from './components/homepage/CustomerInformationFallback'
 import { useAuth } from './features/auth/AuthProvider'
 import { isSignedIn } from './features/auth/state'
 import { useCart } from './features/cart/CartContext'
@@ -33,6 +34,8 @@ import { useConditionConfirmation } from './features/catalogue/useConditionConfi
 import { resolveCatalogueCategories } from './components/catalogue/categories'
 import { useRouteHead } from './features/seo/documentHead'
 import { catalogueRouteHead, isPrivatePath, privateRouteHead } from './features/seo/routeHead'
+import { isLegalPath, legalHref } from './features/legal/routes'
+import { SiteFooter } from './components/legal/LegalLayout'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
@@ -300,7 +303,8 @@ function App() {
   }, [spread])
 
   // The open book owns catalogue metadata; private routes are never indexable.
-  useRouteHead(isPrivatePath(pathname) ? privateRouteHead(pathname)
+  // Legal pages set their own head.
+  useRouteHead(isLegalPath(pathname) ? null : isPrivatePath(pathname) ? privateRouteHead(pathname)
     : catalogueOpen ? null
       : catalogueRouteHead({ spread: 'front-matter', open: false, categories: resolvedCategories, categoriesReady: backendCategoriesState.status === 'ready' }))
 
@@ -314,14 +318,14 @@ function App() {
   }
 
   if (pathname === '/account/orders' || pathname.startsWith('/account/orders/')) return <>
-    <div inert={accountOpen}><CustomerOrders path={pathname} onAccount={openAccount} onAuthenticate={() => { logout(); openAccount() }} /></div>
+    <div inert={accountOpen}><CustomerOrders path={pathname} onAccount={openAccount} onAuthenticate={() => { logout(); openAccount() }} /><SiteFooter /></div>
     {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
   </>
 
   if (pathname === '/verify-email' || isResetPasswordPath(pathname) || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
     <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} />
       // A completed reset signs this browser out, so the new password is used next.
-      : isResetPasswordPath(pathname) ? <ResetPassword onSignIn={openVerificationSignIn} onRequestNewLink={openPasswordResetRequest} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} />}</div>
+      : isResetPasswordPath(pathname) ? <ResetPassword onSignIn={openVerificationSignIn} onRequestNewLink={openPasswordResetRequest} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} />}<SiteFooter /></div>
     {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
   </>
 
@@ -343,7 +347,7 @@ function App() {
             />
             <BookOwnedCart onGuestClick={openCart} />
             {authState.status === 'signedOut' && guestHint && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
-              {guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
+              {!sandboxCheckout && guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
               <span aria-hidden="true" />
             </button>}
             {userDialogue && <div className="guest-cart-bubble user-dialogue-bubble" role="status" aria-live="polite">
@@ -355,7 +359,10 @@ function App() {
             <button type="button" onClick={openAccount}>Account</button>
             <button type="button" onClick={isSignedIn(authState) ? openCart : undefined}>Cart</button>
           </div>
-          {!catalogueOpen && !opening && !closing && <CustomerInformationFallback />}
+          {!catalogueOpen && !opening && !closing && <>
+            <CustomerInformationNotebook onActivate={() => openCityBookmark(legalHref('contact'))} />
+            <CustomerInformationFallback onActivate={() => openCityBookmark(legalHref('contact'))} />
+          </>}
           <span className="catalogue-spread-status" role="status">
             {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : isCategoryIndexSpread(spread) ? `Catalogue spread ${categorySpreadIndex(spread) + 1} of ${Math.max(1, Math.ceil(Math.ceil(resolvedCategories.length / 3) / 2))}` : spread === 'front-matter' ? 'Welcome and Contents' : 'Opening spread'}
           </span>
@@ -386,7 +393,7 @@ function App() {
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
-        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
+        content={cartItems.length ? { kind: 'filled', items: <CartItems items={cartItems} />, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{!sandboxCheckout && cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
     </>
   )
 }

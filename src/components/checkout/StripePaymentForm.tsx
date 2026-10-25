@@ -1,17 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
-import { loadStripe } from '@stripe/stripe-js'
-
-const publishableKey = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY as string | undefined
-const stripePromise = publishableKey && /^pk_(test|live)_\S+$/.test(publishableKey) ? loadStripe(publishableKey).catch(() => null) : null
+import { stripeForPayment } from '../../features/checkout/stripeLoader'
 
 export function StripePaymentForm({ clientSecret, orderId, onVerify, onRecheck, beforeConfirm, onSubmissionSettled }: { clientSecret: string; orderId: number; onVerify: () => void; onRecheck?: () => void; beforeConfirm?: () => Promise<boolean>; onSubmissionSettled?: () => void }) {
   const [unavailable, setUnavailable] = useState(false)
+  const [stripePromise] = useState(stripeForPayment)
   useEffect(() => {
     let active = true
     void stripePromise?.then(stripe => { if (active && !stripe) setUnavailable(true) })
     return () => { active = false }
-  }, [])
+  }, [stripePromise])
   if (!stripePromise) return <p role="alert">Payments are not configured.{import.meta.env.DEV && ' Set VITE_STRIPE_PUBLISHABLE_KEY to a valid Stripe publishable key, then reload.'}</p>
   if (unavailable) return <p role="alert">Secure payment could not load. Check your connection and reload this order to try again.</p>
   return <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: 'stripe', variables: { colorPrimary: '#65547c', borderRadius: '12px' } } }}><PaymentForm orderId={orderId} clientSecret={clientSecret} onVerify={onVerify} onRecheck={onRecheck} beforeConfirm={beforeConfirm} onSubmissionSettled={onSubmissionSettled} /></Elements>

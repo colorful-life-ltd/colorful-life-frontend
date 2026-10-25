@@ -1,3 +1,4 @@
+import { sandboxCheckout } from '../../features/checkout/sandbox'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { AuthApiError } from '../../features/auth/api'
 import { createAddress, deleteAddress, getAddresses, updateAddress, type Address, type AddressInput } from '../../features/account/addressApi'
@@ -138,7 +139,7 @@ export function SavedAddresses({ token }: { token: string }) {
       <div className="saved-address__actions">
         {!address.isDefaultShipping && <button className="my-account__button" type="button" onClick={() => void makeDefault(address, 'shipping')} disabled={Boolean(pending)}>Make delivery default</button>}
         {!address.isDefaultBilling && <button className="my-account__button" type="button" onClick={() => void makeDefault(address, 'billing')} disabled={Boolean(pending)}>Make billing default</button>}
-        <div className="saved-address__edit-actions"><button className="my-account__button" type="button" onClick={() => beginEdit(address)} disabled={Boolean(pending)}>Edit</button><button className="saved-address__delete" type="button" onClick={() => remove(address)} disabled={Boolean(pending)}>Delete</button></div>
+        <div className="saved-address__edit-actions"><button className="my-account__button" type="button" onClick={() => beginEdit(address)} disabled={Boolean(pending)}>Edit</button>{!sandboxCheckout && <button className="saved-address__delete" type="button" onClick={() => remove(address)} disabled={Boolean(pending)}>Delete</button>}</div>
       </div>
     </article>)}</div>}
     {draft && <form ref={formRef} className="saved-addresses__form" onSubmit={save}>

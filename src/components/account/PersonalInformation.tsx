@@ -1,8 +1,10 @@
+import { sandboxCheckout } from '../../features/checkout/sandbox'
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
 import type { UpdateCurrentUser } from '../../features/auth/api'
 import { draftFromUser, profilePatchFromDraft, type ProfileDraft } from './profileDraft'
 import { SavedAddresses } from './SavedAddresses'
+import { YourData } from './YourData'
 import titleLeft from '../../assets/my-account/account-title-botanical-left.png'
 import titleRight from '../../assets/my-account/account-title-botanical-right.png'
 import sprout from '../../assets/my-account/account-personal-info-sprout.png'
@@ -15,7 +17,7 @@ import floralSprig from '../../assets/my-account/account-floral-sprig.png'
 import './PersonalInformation.css'
 
 export function PersonalInformation({ onBack }: { onBack: () => void }) {
-  const { state, updateProfile } = useAuth()
+  const { state, updateProfile, logout } = useAuth()
   const authenticatedState = state.status === 'authenticated' ? state : null
   const user = authenticatedState?.user ?? null
   const [editing, setEditing] = useState(false)
@@ -69,11 +71,12 @@ export function PersonalInformation({ onBack }: { onBack: () => void }) {
         <div className="account-personal-information__actions"><button className="my-account__button my-account__button--primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button><button className="my-account__button" type="button" onClick={cancel} disabled={saving}>Cancel</button></div>
       </form> : <div className="account-personal-information__details">
         <dl><div><dt>Email <span className="my-account__readonly-note">Read only</span></dt><dd className="personal-information__email">{user.email}</dd></div><div><dt>First name</dt><dd>{user.firstName?.trim() || 'Not provided'}</dd></div><div><dt>Last name</dt><dd>{user.lastName?.trim() || 'Not provided'}</dd></div><div><dt>Phone number</dt><dd>{user.phone?.trim() || 'Not provided'}</dd></div></dl>
-        <div className="account-personal-information__actions"><button className="my-account__button my-account__button--primary" type="button" onClick={beginEdit}>Edit information</button></div>
+        {!sandboxCheckout && <div className="account-personal-information__actions"><button className="my-account__button my-account__button--primary" type="button" onClick={beginEdit}>Edit information</button></div>}
       </div>}
       <img className="personal-information__floral" src={floralSprig} alt="" aria-hidden="true" />
       </section>
       {authenticatedState && <SavedAddresses token={authenticatedState.token} />}
+      {!sandboxCheckout && authenticatedState && <YourData token={authenticatedState.token} onDeleted={() => { logout(); window.location.assign('/') }} />}
       </div>
       <footer className="my-account__footer">
         <img className="my-account__boy-dog" src={boyDog} alt="" aria-hidden="true" />

@@ -66,3 +66,10 @@ export const deliveryEstimate = (option: Pick<ShippingOption, 'minWorkingDays' |
 export const shippingCharge = (option: Pick<ShippingOption, 'chargePence'>) => formatGbp(option.chargePence)
 /** Display-only estimate before reservation; the created order's persisted total is authoritative. */
 export const estimatedTotalPence = (merchandisePence: number, option: Pick<ShippingOption, 'chargePence'>) => merchandisePence + option.chargePence
+
+let cachedOptions: Promise<ShippingOptions> | null = null
+/** Shared, cached catalogue for product pages; a failure is not cached. */
+export function cachedShippingOptions(): Promise<ShippingOptions> {
+  cachedOptions ??= getShippingOptions().catch(error => { cachedOptions = null; throw error })
+  return cachedOptions
+}

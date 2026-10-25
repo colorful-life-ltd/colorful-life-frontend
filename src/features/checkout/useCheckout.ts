@@ -200,7 +200,7 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
     busy.current = true; setPhase('waiting'); setSecret(null); setMessage(null)
     const currentRun = ++run.current
     try {
-      const next = await recoverPayment(token, current.id)
+      const next = await (parsePaymentWindow(current.paymentWindow)?.provider === 'PAYPAL' ? getOrder(token, current.id) : recoverPayment(token, current.id))
       if (!active.current || run.current !== currentRun) return
       if (next.id !== current.id) throw new Error('Unable to read this order.')
       accept(isOlderPaymentSnapshot(latest.current, next) ? latest.current! : next)
@@ -215,6 +215,7 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
   const prepare = async () => {
     const current = latest.current
     const intended = current?.status === 'PENDING' ? paymentAction(current.paymentWindow) : null
+    if (current?.paymentWindow?.provider === 'PAYPAL') return
     if (!current || !intended || actionRejected || verificationLocked.current || busy.current || !active.current) return
     busy.current = true; setPhase('preparing'); setSecret(null); setMessage(null)
     const currentRun = ++run.current

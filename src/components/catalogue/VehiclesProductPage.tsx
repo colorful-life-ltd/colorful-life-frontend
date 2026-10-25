@@ -1,9 +1,10 @@
-import { useState, type MouseEvent } from 'react'
+import { useEffect, useState, type MouseEvent } from 'react'
 import { productAvailabilityLabel, defaultProductOffer, isSellableOffer, sellableOffers, type CatalogueProduct, type ProductListingOffer } from '../../features/catalogue/api'
 import type { ProductSpread } from '../../features/catalogue/productSpreads'
 import type { VehiclesState } from '../../features/catalogue/useVehicles'
 import { effectivePricePence, formatGbp, useCart } from '../../features/cart/CartContext'
 import { productPath } from './catalogueSpread'
+import { cachedShippingOptions } from '../../features/checkout/shipping'
 import './VehiclesProductPage.css'
 
 /** Crawlable product link; a plain click keeps the in-book page turn, modified clicks open the URL. */
@@ -15,6 +16,20 @@ function productLinkClick(productId: number, onViewDetails: (id: number) => void
   }
 }
 
+const ageLabel = (age: string) => /^ages?\b/i.test(age) ? age : `Ages ${age}${/^\d+$/.test(age) ? '+' : ''}`
+
+/** Cheapest delivery charge from the backend catalogue, shown before the item is added. */
+function DeliveryFrom() {
+  const [fromPence, setFromPence] = useState<number | null>(null)
+  useEffect(() => {
+    let active = true
+    cachedShippingOptions().then(options => { if (active) setFromPence(Math.min(...options.methods.map(method => method.chargePence))) }).catch(() => {})
+    return () => { active = false }
+  }, [])
+  return <p className="product-details__delivery">{fromPence === null ? 'UK delivery charges are shown at checkout.' : `UK delivery from ${formatGbp(fromPence)}.`}{' '}
+    <a href="/legal/delivery-returns" target="_blank" rel="noopener">Delivery &amp; Returns</a></p>
+}
+
 function ProductCopy({ product, onViewDetails }: { product: CatalogueProduct; onViewDetails?: (id: number) => void }) {
   const age = product.ageRecommendation?.trim()
   const price = sellableOffers(product).reduce((lowest, offer) => Math.min(lowest, effectivePricePence(offer)), Infinity)
@@ -24,7 +39,7 @@ function ProductCopy({ product, onViewDetails }: { product: CatalogueProduct; on
     <ul className="vehicle-product__facts" aria-label="Product information">
       {product.theme && <li>{product.theme}</li>}
       {product.pieceCount != null && <li>{product.pieceCount} pieces</li>}
-      {age && <li>{/^ages?\b/i.test(age) ? age : `Ages ${age}${/^\d+$/.test(age) ? '+' : ''}`}</li>}
+      {age && <li>{ageLabel(age)}</li>}
     </ul>
     <div className="vehicle-product__footer">
       <p className="vehicle-product__price">{Number.isFinite(price) ? <><span className="vehicle-product__from">From </span><span>{formatGbp(price)}</span></> : <span className="vehicle-product__sold-out">{productAvailabilityLabel(product)}</span>}</p>
@@ -109,6 +124,10 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
       {offer.condition === 'USED_LIKE_NEW' && <p className="product-details__damage-copy">{damageCopy}</p>}</div>}
     <p className="product-details__stock">{offer ? `Stock: ${offer.availableStock}` : productAvailabilityLabel(product)}</p>
     <p className="product-details__description">{product.description ?? 'No description available.'}</p>
+    {product.ageRecommendation?.trim() && <p className="product-details__age">Age guidance: {ageLabel(product.ageRecommendation.trim())}</p>}
+    {product.safetyWarnings?.trim() && <div className="product-details__safety" role="note" aria-label="Safety warnings">
+      <strong>Warning</strong><p>{product.safetyWarnings.trim()}</p></div>}
+    {offer && <DeliveryFrom />}
     {onAddToCart && <button type="button" className="product-details__add" disabled={atLimit} onClick={() => { if (offer && !atLimit) onAddToCart(offer, product.title) }}>
       <span>{offer ? 'Add to cart' : productAvailabilityLabel(product)}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
       {cartQuantity > 0 && <span className="product-details__cart-quantity">In cart: {cartQuantity}{atLimit && ' · Maximum available'}</span>}

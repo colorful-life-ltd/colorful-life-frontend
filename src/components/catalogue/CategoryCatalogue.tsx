@@ -16,7 +16,9 @@ import { useCategoryCatalogue } from '../../features/catalogue/useCategoryCatalo
 import type { CatalogueCategoriesState } from '../../features/catalogue/useCatalogueCategories'
 import './CategoryCatalogue.css'
 import type { CatalogueLeafletSide, CatalogueSpread, DetailsLocation } from './catalogueSpread'
-import { categoryLocation, categorySpreadIndex, isCategoryIndexSpread, isProductDetails, normalizeProductLocation, productDetailsLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
+import { categoryLocation, categorySpreadIndex, isCategoryIndexSpread, isProductDetails, legalLocation, normalizeProductLocation, productDetailsLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
+import { CustomerInformationIndex, LegalDocument } from '../legal/CustomerInformation'
+import { LEGAL_PAGES, type LegalSlug } from '../../features/legal/routes'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
 import { CatalogueProductDetails, VehiclesProductPage } from './VehiclesProductPage'
 import type { CatalogueProduct, ProductListingOffer } from '../../features/catalogue/api'
@@ -89,7 +91,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const { state: directProductState } = useCatalogueProduct(directProductId)
   const directProduct = directProductState.status === 'ready' ? directProductState.product : undefined
   const directCategory = directProduct?.category ? resolvedCategories.find(category => category.backendId === directProduct.category!.id) : undefined
-  const origin = typeof dataSpread !== 'string' ? dataSpread.kind === 'details' ? dataSpread.returnTo ?? (directCategory && categoryLocation(directCategory.id, resolvedCategories)) : dataSpread : undefined
+  const origin = typeof dataSpread !== 'string' && dataSpread.kind !== 'legal' ? dataSpread.kind === 'details' ? dataSpread.returnTo ?? (directCategory && categoryLocation(directCategory.id, resolvedCategories)) : dataSpread : undefined
   const categoryOrigin = origin ? origin.kind === 'category' ? origin : categoryLocation(origin.slug, resolvedCategories) : undefined
   const categoryRecord = resolvedCategories.find(category => category.id === categoryOrigin?.slug)
   const { state: categoryState, retry: retryCategory } = useCategoryCatalogue(categoryRecord?.backendCategory, backendCategoriesState.status === 'ready')
@@ -166,6 +168,12 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   const emptyProductPage = (location: CatalogueSpread, side: 'left' | 'right') =>
     typeof location !== 'string' && location.kind === 'products' && categoryState.status === 'ready' && !productSpreads[location.index]?.[side].length
 
+  /** Pages through the Customer Information chapter in its printed order. */
+  const legalOrder = (slug: LegalSlug) => LEGAL_PAGES.findIndex(page => page.slug === slug)
+  const openLegal = (slug: LegalSlug) => {
+    const from = typeof current !== 'string' && !isSearchDetails(current) && current.kind === 'legal' ? legalOrder(current.page) : -1
+    beginTurn(legalOrder(slug) < from ? 'backward' : 'forward', legalLocation(slug))
+  }
   const openSearch = () => {
     if (locked.current || searchVisible) return
     search.reset()
@@ -174,6 +182,9 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   }
   const pageContent = (location: PresentedSpread, side: 'left' | 'right') => {
     if (typeof location !== 'string') {
+      if (!isSearchDetails(location) && location.kind === 'legal') return side === 'left'
+        ? <CustomerInformationIndex current={location.page} onSelect={openLegal} turning={Boolean(turn)} />
+        : <LegalDocument page={location.page} />
       if (isSearchDetails(location)) return <CatalogueProductDetails side={side} product={detailsProduct(location)} onAddToCart={onAddToCart} />
       if (location.kind === 'details') {
         const product = detailsProduct(location)
@@ -186,7 +197,7 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
         onViewDetails={productId => beginTurn('forward', productDetailsLocation(productId, location))} />
     }
     if (location === 'opening') return side === 'left' ? <OpeningWelcomePage /> : <CatalogueIndexPage categories={resolvedCategories} />
-    if (location === 'front-matter') return side === 'left' ? <FrontMatterWelcomePage /> : <FrontMatterContentsPage onCatalogue={() => beginTurn('forward', 'categories-primary')} onSearch={openSearch} turning={Boolean(turn)} />
+    if (location === 'front-matter') return side === 'left' ? <FrontMatterWelcomePage /> : <FrontMatterContentsPage onCatalogue={() => beginTurn('forward', 'categories-primary')} onSearch={openSearch} onLegal={openLegal} turning={Boolean(turn)} />
     if (isCategoryIndexSpread(location)) {
       const spreadIndex = categorySpreadIndex(location)
       const pageIndex = spreadIndex * 2 + (side === 'right' ? 1 : 0)
@@ -203,10 +214,11 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
   }
   const pageClass = (location: PresentedSpread, side: 'left' | 'right') => {
     const category = typeof location !== 'string' && location.kind === 'category'
-    const product = typeof location !== 'string' && !category
+    const legal = typeof location !== 'string' && location.kind === 'legal'
+    const product = typeof location !== 'string' && !category && !legal
     const next = isSearchDetails(location) ? location : spreadAfterAction(location, 'forward', productSpreads.length, categorySpreadCount, resolvedCategories)
     const navigation = side === 'left' || !sameLocation(location, next)
-    return `spread-page${side === 'right' ? ' spread-page--right' : ''}${category ? ' spread-page--category-opening' : ''}${location === 'front-matter' ? ' spread-page--front-matter' : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
+    return `spread-page${side === 'right' ? ' spread-page--right' : ''}${category ? ' spread-page--category-opening' : ''}${location === 'front-matter' ? ' spread-page--front-matter' : ''}${legal ? ` spread-page--legal spread-page--legal-${side}` : ''}${location === 'opening' && side === 'left' ? ' spread-page--welcome' : ''}${product ? ' spread-page--vehicles' : ''}${product && navigation ? ' spread-page--product-navigation' : ''}`
   }
   const pageNavigation = (location: PresentedSpread, side: 'left' | 'right') => {
     if (isSearchDetails(location)) return side === 'left' ? <div className="spread-page__navigation"><button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', spread)}>← Back to Search Results</button></div> : null
@@ -214,7 +226,8 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
     if (side === 'left') {
       if (location === 'opening') return null
       const backToCategory = typeof location !== 'string' && (location.kind === 'details' || location.kind === 'products' && location.index === 0)
-      const label = backToCategory ? `← Back to ${displayCategoryName}` : categoryOpening ? '← Back to Categories' : location === 'categories-primary' ? '← Back to Contents' : '← Back'
+      const legal = typeof location !== 'string' && location.kind === 'legal'
+      const label = legal ? '← Back to Contents' : backToCategory ? `← Back to ${displayCategoryName}` : categoryOpening ? '← Back to Categories' : location === 'categories-primary' ? '← Back to Contents' : '← Back'
       return <div className="spread-page__navigation">{location === 'front-matter'
         ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
         : <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', spreadAfterAction(location, 'backward', productSpreads.length, categorySpreadCount, resolvedCategories))}>{label}</button>}</div>

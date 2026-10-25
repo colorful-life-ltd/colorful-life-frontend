@@ -1,4 +1,5 @@
 import type { CatalogueCategory } from './categories'
+import { legalHref, legalPage, type LegalSlug } from '../../features/legal/routes'
 
 export type ProductLocation = { kind: 'products'; slug: string; index: number }
 export type CategoryIndexSpread = 'categories-primary' | 'categories-more' | `categories-page-${number}`
@@ -8,8 +9,10 @@ export type DetailsReturn = ProductLocation | CategoryLocation
 export type ProductDetailsLocation = { kind: 'details'; productId: number; returnTo?: DetailsReturn }
 export type ListingDetailsLocation = { kind: 'details'; listingId: number; returnTo: DetailsReturn }
 export type DetailsLocation = ProductDetailsLocation | ListingDetailsLocation
+/** A Customer Information document (privacy, terms, delivery & returns…), read inside the book. */
+export type LegalLocation = { kind: 'legal'; page: LegalSlug }
 export type CatalogueSpread = 'front-matter' | 'opening' | CategoryIndexSpread
-  | ProductLocation | CategoryLocation | DetailsLocation
+  | ProductLocation | CategoryLocation | DetailsLocation | LegalLocation
 
 export type CatalogueLeafletSide = 'front' | 'back'
 export type CatalogueUrlLocation = {
@@ -59,6 +62,9 @@ function parseCategorySpread(raw: string, count?: number): CategoryIndexSpread |
 /** Stable product-level canonical path, independent of offer/listing identity and stock. */
 export const productPath = (productId: number) => `/products/${productId}`
 
+export const legalLocation = (page: LegalSlug): LegalLocation => ({ kind: 'legal', page })
+export const isLegalLocation = (spread: CatalogueSpread): spread is LegalLocation => typeof spread !== 'string' && spread.kind === 'legal'
+
 export const isProductDetails = (spread: CatalogueSpread): spread is ProductDetailsLocation =>
   typeof spread !== 'string' && spread.kind === 'details' && 'productId' in spread
 
@@ -87,6 +93,8 @@ export function catalogueHistoryState(spread: CatalogueSpread) {
 
 /** Reads durable catalogue location state; dynamic category slugs resolve against the current runtime categories when supplied. */
 export function catalogueLocationFromUrl(pathname: string, search: string, categories?: readonly CatalogueCategory[], state?: unknown): CatalogueUrlLocation {
+  const legal = legalPage(pathname)
+  if (legal) return { spread: legalLocation(legal.slug), open: true, leafletSide: null }
   const productId = productIdFromPath(pathname)
   if (productId) return { spread: productDetailsLocation(productId, returnToFromState(state, categories)), open: true, leafletSide: null }
   const params = new URLSearchParams(search)
@@ -124,6 +132,7 @@ export function catalogueLocationHref(spread: CatalogueSpread, options: {
   leafletSide?: CatalogueLeafletSide | null
 } = {}): string {
   if (isProductDetails(spread)) return productPath(spread.productId)
+  if (isLegalLocation(spread)) return legalHref(spread.page)
   if (typeof spread !== 'string') {
     const slug = spread.kind === 'details' ? spread.returnTo.slug : spread.slug
     const params = new URLSearchParams()
@@ -156,6 +165,8 @@ export function normalizeProductLocation(location: ProductLocation, spreadCount:
 
 export function spreadAfterAction(spread: CatalogueSpread, action: 'forward' | 'backward', productSpreadCount = 0, categorySpreadCount = 2, categories: readonly CatalogueCategory[] = []): CatalogueSpread {
   if (typeof spread !== 'string') {
+    // Customer Information is reached from Contents and always returns there.
+    if (spread.kind === 'legal') return action === 'backward' ? 'front-matter' : spread
     if (spread.kind === 'details') return action === 'backward' ? spread.returnTo ?? categorySpreadAt(0) : spread
     if (spread.kind === 'category') return action === 'backward' ? spread.returnTo : productSpreadCount > 0 ? productLocation(spread.slug) : spread
     if (action === 'backward') return spread.index > 0 ? { ...spread, index: spread.index - 1 } : categoryLocation(spread.slug, categories)

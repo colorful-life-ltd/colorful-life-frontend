@@ -5,6 +5,7 @@ import { isCategoryIndexSpread, productPath } from '../../components/catalogue/c
 export { productPath }
 import type { CatalogueProduct } from '../catalogue/api'
 import { isResetPasswordPath } from '../auth/passwordReset'
+import { legalPageBySlug } from '../legal/routes'
 
 export const SITE_NAME = 'Build & Bloom'
 export const DEFAULT_DESCRIPTION = 'Explore the Build & Bloom illustrated catalogue of LEGO® sets. Browse themed collections and find a set by name or set number.'
@@ -51,6 +52,11 @@ export function catalogueRouteHead({ spread, open, categories, categoriesReady, 
   const home: RouteHead = { title: `${SITE_NAME} | LEGO® sets catalogue`, description: DEFAULT_DESCRIPTION, canonicalPath: '/', robots: 'index,follow' }
   if (!open || spread === 'front-matter' || spread === 'opening') return home
   if (isCategoryIndexSpread(spread)) return { ...home, title: `Our Catalogue | ${SITE_NAME}`, description: 'Browse every Build & Bloom collection of LEGO® sets.', canonicalPath: '/' }
+
+  if (spread.kind === 'legal') {
+    const page = legalPageBySlug(spread.page)
+    return { title: `${page.title} | ${SITE_NAME}`, description: page.description, canonicalPath: page.path, robots: 'index,follow' }
+  }
 
   if (spread.kind === 'details') {
     if (product) {

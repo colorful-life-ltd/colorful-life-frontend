@@ -165,3 +165,18 @@
   .my-account__boy-dog { width: 155px; left: -8px; }
   .my-account__books { width: 74px; right: -8px; }
 }
+
+.your-data__delete {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e3d9c8;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.your-data__confirm {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin: 8px 0 12px;
+}

@@ -4,7 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PaymentForm } from './StripePaymentForm'
 const mocks = vi.hoisted(() => ({ confirm: vi.fn(), retrieve: vi.fn(), elements: {} }))
-vi.mock('@stripe/stripe-js', () => ({ loadStripe: vi.fn(() => Promise.resolve(null)) }))
+vi.mock('@stripe/stripe-js/pure', () => ({ loadStripe: vi.fn(() => Promise.resolve(null)) }))
 vi.mock('@stripe/react-stripe-js', () => {
   const stripe = { confirmPayment: mocks.confirm, retrievePaymentIntent: mocks.retrieve }
   return { useStripe: () => stripe, useElements: () => mocks.elements, PaymentElement: () => <div data-payment-element="true" />, Elements: ({ children }: { children: React.ReactNode }) => children }

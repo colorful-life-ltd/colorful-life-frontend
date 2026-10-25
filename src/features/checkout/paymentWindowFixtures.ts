@@ -1,7 +1,7 @@
 // Shared test data only. Production consumers must never infer a window from compatibility fields.
 import type { PaymentWindow } from './paymentWindow'
 export function windowFixture(state: PaymentWindow['state'] = 'INITIAL_PAYMENT', overrides: Partial<PaymentWindow> = {}): PaymentWindow {
-  const base: PaymentWindow = { version: 1, evaluatedAt: '2026-10-15T12:00:00.000Z', mode: 'MANAGED', state,
+  const base: PaymentWindow = { version: 1, provider: 'STRIPE', evaluatedAt: '2026-10-15T12:00:00.000Z', mode: 'MANAGED', state,
     paymentOutcome: 'NOT_STARTED', paymentDeadline: '2026-10-15T12:30:00.000Z', retryDeadline: null,
     resumeEligibility: 'INELIGIBLE', initiationEligibility: 'INELIGIBLE', reason: 'INITIAL_WINDOW_OPEN' }
   const stateFields: Record<PaymentWindow['state'], Partial<PaymentWindow>> = {

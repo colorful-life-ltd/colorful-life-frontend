@@ -1,0 +1,69 @@
+// @vitest-environment jsdom
+import { act } from 'react'
+import { createRoot, type Root } from 'react-dom/client'
+import { renderToStaticMarkup } from 'react-dom/server'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { YourData } from './YourData'
+import { AccountView } from './AccountForms'
+import { CatalogueProductDetails } from '../catalogue/VehiclesProductPage'
+import { offer, product } from '../../features/catalogue/catalogueFixtures'
+
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
+let root: Root | null = null
+afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ''; vi.unstubAllGlobals() })
+async function mount(node: React.ReactNode) {
+  const container = document.createElement('div'); document.body.append(container); root = createRoot(container)
+  await act(async () => root!.render(node)); return container
+}
+const type = async (input: HTMLInputElement, value: string) => act(async () => {
+  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
+})
+
+describe('Your data', () => {
+  it('downloads the export with the password and never without it', async () => {
+    const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ exportVersion: 1 }), { status: 200 }))
+    vi.stubGlobal('fetch', fetchSpy)
+    const createObjectURL = vi.fn(() => 'blob:export'); Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() })
+    const view = await mount(<YourData token="token" onDeleted={vi.fn()} />)
+    const download = [...view.querySelectorAll('button')].find(b => b.textContent === 'Download my data')!
+    expect(download.disabled).toBe(true)
+    await type(view.querySelector('input[type="password"]')!, 'Secret1!pass')
+    await act(async () => download.click())
+    const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toMatch(/\/users\/me\/data-export$/)
+    expect(init.method).toBe('POST'); expect(JSON.parse(String(init.body))).toEqual({ password: 'Secret1!pass' })
+    expect(createObjectURL).toHaveBeenCalledOnce()
+  })
+
+  it('deletes only after explicit confirmation, then signs out', async () => {
+    const fetchSpy = vi.fn(async () => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchSpy)
+    const onDeleted = vi.fn()
+    const view = await mount(<YourData token="token" onDeleted={onDeleted} />)
+    const remove = [...view.querySelectorAll('button')].find(b => b.textContent === 'Delete my account')!
+    await type(view.querySelector('input[type="password"]')!, 'Secret1!pass')
+    expect(remove.disabled).toBe(true)
+    await act(async () => view.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click())
+    await act(async () => remove.click())
+    const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toMatch(/\/users\/me$/); expect(init.method).toBe('DELETE')
+    expect(onDeleted).toHaveBeenCalledOnce()
+  })
+})
+
+describe('pre-purchase disclosures', () => {
+  it('links the terms and privacy policy when creating an account', () => {
+    const markup = renderToStaticMarkup(<AccountView mode="create" onModeChange={vi.fn()} />)
+    expect(markup).toContain('href="/legal/terms"'); expect(markup).toContain('href="/legal/privacy"')
+  })
+
+  it('shows age guidance, manufacturer safety warnings and the delivery link before adding to cart', () => {
+    vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
+    const item = { ...product(5, [offer(51, { legoProductId: 5 })]), ageRecommendation: '6', safetyWarnings: 'WARNING: CHOKING HAZARD – Small parts. Not for children under 3 years.' }
+    const markup = renderToStaticMarkup(<CatalogueProductDetails product={item} selectedOfferId={51} side="right" onAddToCart={vi.fn()} />)
+    expect(markup).toContain('Age guidance: Ages 6+')
+    expect(markup).toContain('CHOKING HAZARD')
+    expect(markup).toContain('href="/legal/delivery-returns"')
+  })
+})

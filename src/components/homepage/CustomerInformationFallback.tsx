@@ -17,3 +17,11 @@ export function CustomerInformationFallback({ onActivate }: CustomerInformationF
     </button>
   )
 }
+
+/**
+ * The "Customer Information" notebook painted on the tabletop. The hotspot tracks the background's
+ * cover scaling, so it stays over the notebook at every desktop size where it is visible.
+ */
+export function CustomerInformationNotebook({ onActivate }: CustomerInformationFallbackProps) {
+  return <button className="customer-information-notebook" type="button" aria-label="Customer Information: delivery, returns, terms and privacy" onClick={onActivate} />
+}

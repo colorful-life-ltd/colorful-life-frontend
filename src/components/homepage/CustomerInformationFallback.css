@@ -42,3 +42,36 @@
     transform: rotate(-1.5deg) translateY(1px);
   }
 }
+
+/* The tabletop art is 1672×941, `cover` and centred: one art pixel is --art-px on screen.
+   The notebook's paper occupies roughly x 0–285, y 560–860 of the art. */
+.customer-information-notebook {
+  --art-px: max(calc(100vw / 1672), calc(100svh / 941));
+  position: absolute;
+  z-index: 3;
+  left: calc(50% - 836 * var(--art-px) + 6 * var(--art-px));
+  top: calc(50% - 470.5 * var(--art-px) + 572 * var(--art-px));
+  width: calc(272 * var(--art-px));
+  height: calc(286 * var(--art-px));
+  padding: 0;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
+  cursor: pointer;
+  transform: rotate(-9deg);
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+}
+
+.customer-information-notebook:hover {
+  background: radial-gradient(closest-side, #fff8e255, transparent);
+}
+
+.customer-information-notebook:focus-visible {
+  outline: 3px solid #527f78;
+  outline-offset: 4px;
+}
+
+/* Where the fallback card replaces the cropped notebook, and on phones, the hotspot is not used. */
+@media (max-width: 760px), (min-width: 761px) and (max-width: 1500px) and (max-aspect-ratio: 3 / 2) {
+  .customer-information-notebook { display: none; }
+}
