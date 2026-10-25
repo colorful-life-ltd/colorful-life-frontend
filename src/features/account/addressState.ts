@@ -1,3 +1,4 @@
+import {customerAddressError} from './customerInput'
 import type { Address } from './addressApi'
 
 /** Applies one authoritative address response while reflecting backend default exclusivity. */
@@ -18,7 +19,7 @@ export const isUkCountry = (country: string) => ['GB', 'UK', 'UNITED KINGDOM', '
 export const countryLabel = (country: string) => isUkCountry(country) ? UK_COUNTRY : country
 export const profileRecipient = (profile: { firstName: string | null; lastName: string | null }) => [profile.firstName?.trim(), profile.lastName?.trim()].filter(Boolean).join(' ')
 export const isUsableUkAddress = (address: Address) => isUkCountry(address.country)
-  && (['recipientName', 'line1', 'city', 'postcode'] as const).every(field => address[field].trim().length > 0)
+  && customerAddressError(address) === null
 export function deliverySelection(addresses: Address[], previous: number | null, deliberate: boolean): number | null {
   const usable = addresses.filter(isUsableUkAddress)
   if (deliberate && usable.some(address => address.id === previous)) return previous

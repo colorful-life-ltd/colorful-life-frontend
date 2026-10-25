@@ -12,7 +12,7 @@ import { availabilityMessage, cartCopy } from '../i18n/cartCopy'
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const listing = cartListing(offer(41, { availableStock: 2, effectivePrice: '10.00' }))
 const line = (overrides: Partial<CartItem> = {}): CartItem => ({ productListingId: 41, listing, quantity: 1, allocatedQuantity: 0, unallocatedQuantity: 1, availability: { status: 'AVAILABLE', reason: null, availableQuantity: 2 }, ...overrides })
-const address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'Bath', postcode: 'BA1', country: 'GB', phone: null, isDefaultBilling: true, isDefaultShipping: true }
+const address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'Bath', postcode: 'BA1 1AA', country: 'GB', phone: null, isDefaultBilling: true, isDefaultShipping: true }
 let root: Root | undefined
 let container: HTMLDivElement
 let context: CartContextValue

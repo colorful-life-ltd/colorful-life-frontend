@@ -1,3 +1,4 @@
+import {customerAddressError,normalizePostcode} from '../account/customerInput'
 import { parsePaymentWindow } from './paymentWindow'
 import type { Address } from '../account/addressApi'
 import { cartCheckoutBlocked, checkoutQuantity, type CartItem } from '../cart/CartContext'
@@ -10,8 +11,11 @@ export function deliverySnapshot(address: Address): DeliveryAddress {
   // Saved addresses support country codes; never truncate arbitrary country names.
   const codes = 'AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW'.split(' ')
   if (!codes.includes(countryCode)) throw new Error('Please edit this saved address to use a valid two-letter country code, such as GB.')
+  if (countryCode !== 'GB') throw new Error('Delivery is supported only in the United Kingdom.')
+  const validation = customerAddressError(address)
+  if (validation) throw new Error(validation)
   for (const field of ['recipientName', 'line1', 'city', 'postcode'] as const) if (!address[field].trim()) throw new Error('Please complete the required fields in your saved delivery address.')
-  return { recipientName: address.recipientName.trim(), line1: address.line1.trim(), city: address.city.trim(), postcode: address.postcode.trim(), countryCode, ...(address.line2?.trim() ? { line2: address.line2.trim() } : {}), ...(address.phone?.trim() ? { phone: address.phone.trim() } : {}) }
+  return { recipientName: address.recipientName.trim(), line1: address.line1.trim(), city: address.city.trim(), postcode: normalizePostcode(address.postcode), countryCode, ...(address.line2?.trim() ? { line2: address.line2.trim() } : {}), ...(address.phone?.trim() ? { phone: address.phone.trim() } : {}) }
 }
 // The customer's explicit method is sent as identity only; there is deliberately no default.
 export const orderInput = (items: CartItem[], address: Address, shippingMethod: ShippingMethodCode | null): OrderInput => { if (!isShippingMethod(shippingMethod)) throw new Error('Choose Standard or Express delivery before creating your order.'); if (cartCheckoutBlocked(items)) throw new Error('Please resolve unavailable items in your cart before checking out.'); return ({ shippingMethod, items: items.map(item => { const quantity = checkoutQuantity(item); if (quantity === null) throw new Error('Please refresh your cart before checking out.'); return { productListingId: item.productListingId, quantity } }).filter(item => item.quantity > 0), deliveryAddress: deliverySnapshot(address) }) }

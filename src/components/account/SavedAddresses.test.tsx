@@ -3,10 +3,10 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { SavedAddresses } from './SavedAddresses'
-import { createAddress, getAddresses, updateAddress, type Address } from '../../features/account/addressApi'
+import { createAddress, deleteAddress, getAddresses, updateAddress, type Address } from '../../features/account/addressApi'
 const mocks = vi.hoisted(() => ({ user: { firstName: ' Jane ' as string | null, lastName: ' Smith ' as string | null } }))
 vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'authenticated', user: mocks.user } }) }))
-vi.mock('../../features/account/addressApi', async original => ({ ...await original<typeof import('../../features/account/addressApi')>(), getAddresses: vi.fn(), createAddress: vi.fn(), updateAddress: vi.fn() }))
+vi.mock('../../features/account/addressApi', async original => ({ ...await original<typeof import('../../features/account/addressApi')>(), getAddresses: vi.fn(), createAddress: vi.fn(), updateAddress: vi.fn(), deleteAddress: vi.fn() }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const address = (id: number, shipping = true, billing = true): Address => ({ id, recipientName: `Recipient ${id}`, line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'GB', phone: null, isDefaultShipping: shipping, isDefaultBilling: billing })
 let root: Root
@@ -75,4 +75,14 @@ describe('saved address V1 form', () => {
     expect([...container.querySelectorAll('.saved-address__defaults')].filter(el => el.textContent?.includes('Default Billing'))).toHaveLength(1)
     expect(getAddresses).toHaveBeenCalledTimes(2)
   })
+})
+
+it('confirms deletion and names the oldest successor without touching order history',async()=>{
+ vi.mocked(getAddresses).mockResolvedValue([address(1),address(2,false,false)]);await mount()
+ const confirmation=vi.spyOn(window,'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
+ try {
+  await click('Delete');expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Recipient 2'));expect(deleteAddress).not.toHaveBeenCalled()
+  vi.mocked(deleteAddress).mockResolvedValue(undefined);vi.mocked(getAddresses).mockResolvedValue([address(2)])
+  await click('Delete');expect(deleteAddress).toHaveBeenCalledWith('jwt',1)
+ } finally {confirmation.mockRestore()}
 })

@@ -24,9 +24,20 @@ it('owner Sandbox browser approval verifies server state through the real checko
   expect(mocks.load).not.toHaveBeenCalled();expect(node.textContent).not.toContain('Payment confirmed')
   await act(async()=>{const button=[...node.querySelectorAll('button')].find(x=>x.textContent?.includes('Continue with PayPal Sandbox'));expect(button).toBeDefined();button!.click()})
   await act(async()=>{expect(await options!.createOrder()).toBe('PP-41')})
-  const confirmed={...order,status:'CONFIRMED',payment:{status:'SUCCEEDED',paidAt:'2026-10-24T12:00:00.000Z'},paymentWindow:windowFixture('PAID',{provider:'PAYPAL'})}
+  const confirmed={...order,status:'CONFIRMED',payment:{status:'SUCCEEDED',paidAt:'2026-10-24T12:00:00.000Z',amount:'1.00',currency:'GBP'},paymentWindow:windowFixture('PAID',{provider:'PAYPAL'})}
   mocks.capture.mockImplementation(async()=>{mocks.read.mockResolvedValue(confirmed);return confirmed})
   await act(async()=>{await options!.onApprove({orderID:'PP-41'})})
-  expect(node.textContent).toContain('Payment confirmed');expect(cart.refreshCart).toHaveBeenCalledTimes(1);expect(mocks.stripe).not.toHaveBeenCalled();expect(mocks.recover).not.toHaveBeenCalled()
+  expect(node.textContent).toContain('Payment confirmed');expect(node.textContent).toContain('Paid £1.00');expect(node.querySelector('a[href="/account/orders/41"]')).not.toBeNull();expect(node.querySelector('#checkout-payment')).toBeNull();expect(cart.refreshCart).toHaveBeenCalledTimes(1);expect(mocks.stripe).not.toHaveBeenCalled();expect(mocks.recover).not.toHaveBeenCalled()
  }finally{await act(async()=>root.unmount());node.remove();history.replaceState({},'','/')}
+})
+
+it('uses the existing Stripe preparation flow for a new Test order in Sandbox',async()=>{
+ vi.clearAllMocks();Object.assign(globalThis,{IS_REACT_ACT_ENVIRONMENT:true});history.replaceState({},'', '/checkout/orders/42')
+ mocks.read.mockResolvedValue({billingRecipientName:'Test',billingLine1:'1 Test Road',billingCity:'London',billingPostcode:'SW1A 1AA',billingCountryCode:'GB',deliveryRecipientName:'Test',deliveryLine1:'1 Test Road',deliveryCity:'London',deliveryPostcode:'SW1A 1AA',deliveryCountryCode:'GB',id:42,status:'PENDING',totalAmount:'1.00',payment:null,orderItems:[],paymentWindow:windowFixture('INITIAL_PAYMENT')});mocks.stripe.mockRejectedValue(new Error('synthetic setup failure'))
+ const node=document.createElement('div');document.body.append(node);const root=createRoot(node)
+ try {
+  await act(async()=>root.render(<Checkout onAccount={()=>{}}/>))
+  await act(async()=>{[...node.querySelectorAll('button')].find(b=>b.textContent==='Continue to secure payment')!.click()})
+  expect(mocks.stripe).toHaveBeenCalledWith('jwt',42);expect(mocks.load).not.toHaveBeenCalled();expect(mocks.capture).not.toHaveBeenCalled()
+ } finally {await act(async()=>root.unmount());node.remove();history.replaceState({},'','/')}
 })

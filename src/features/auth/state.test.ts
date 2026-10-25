@@ -19,3 +19,12 @@ describe('auth state transitions', () => {
     expect(authReducer(state, { type: 'signedOut' })).toEqual({ status: 'signedOut', error: undefined })
   })
 })
+
+it('clears form errors without discarding a verified session or verification requirement', () => {
+  expect(authReducer({status:'signedOut',error:'old error'}, {type:'clearError'})).toEqual({status:'signedOut'})
+  expect(authReducer({status:'error',message:'old error',token:'retained'}, {type:'clearError'})).toEqual({status:'error',message:'',token:'retained'})
+  const verified: AuthState={status:'authenticated',token:'retained',user}
+  expect(authReducer(verified,{type:'clearError'})).toBe(verified)
+  const unverified: AuthState={status:'verificationRequired',token:'retained',message:'Verify email'}
+  expect(authReducer(unverified,{type:'clearError'})).toBe(unverified)
+})

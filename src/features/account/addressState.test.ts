@@ -3,7 +3,7 @@ import { reconcileAddress } from './addressState'
 import type { Address } from './addressApi'
 
 const address = (id: number, shipping = false, billing = false): Address => ({
-  id, recipientName: `Person ${id}`, line1: '1 Main Street', line2: null, city: 'Bath', postcode: 'BA1', country: 'GB', phone: null,
+  id, recipientName: `Person ${id}`, line1: '1 Main Street', line2: null, city: 'Bath', postcode: 'BA1 1AA', country: 'GB', phone: null,
   isDefaultShipping: shipping, isDefaultBilling: billing,
 })
 

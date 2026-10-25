@@ -52,3 +52,13 @@ describe('Sandbox bundle check', () => {
     expect(checkBundle(dir, CLIENT_ID)).toEqual(['index.html is missing'])
   })
 })
+
+it('permits only an exact Stripe Test public key in a Stripe Sandbox artifact',()=>{
+ const key='pk_test_OnlyPublicSynthetic123456'
+ const dir=bundle({'assets/index.js':`const p="${CLIENT_ID}";const k="${key}"`})
+ expect(checkBundle(dir,CLIENT_ID,'stripe-sandbox',key)).toEqual([])
+ expect(checkBundle(dir,CLIENT_ID,'stripe-sandbox','pk_live_OnlyPublicSynthetic123456').length).toBeGreaterThan(0)
+ expect(checkBundle(dir,CLIENT_ID,'paypal-sandbox').length).toBeGreaterThan(0)
+ writeFileSync(join(dir,'assets/secret.js'),'sk_test_SyntheticSecret123456')
+ expect(checkBundle(dir,CLIENT_ID,'stripe-sandbox',key).some(x=>x.includes('Stripe secret'))).toBe(true)
+})

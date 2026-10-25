@@ -117,6 +117,7 @@ function Address({ order, kind }: { order: OrderDetail; kind: 'delivery' | 'bill
 }
 function Detail({ order, checking }: { order: OrderDetail; checking: boolean }) {
   return <>
+    <p>Need to return something? <a href="/legal/delivery-returns">Delivery &amp; Returns</a> · <a href="mailto:support@build-and-bloom.co.uk">Contact support</a></p>
     <p>Placed {displayDate(order.createdAt)}</p><p>Order status: {orderStatusLabel(order.status)}</p>
     <PaymentWindowNotice value={order.paymentWindow} /><OrderProgress order={order} />
     {parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && order.payment?.paidAt && <p>Paid {displayDate(order.payment.paidAt)}</p>}

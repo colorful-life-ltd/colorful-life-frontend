@@ -5,7 +5,7 @@ vi.mock('../../features/checkout/sandbox', () => ({ sandboxCheckout: true, regis
 import { act } from 'react'
 import { createRoot } from 'react-dom/client'
 const auth = vi.hoisted(() => ({ authenticate: vi.fn().mockResolvedValue(undefined) }))
-vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'signedOut' }, authenticate: auth.authenticate, refreshAuth: vi.fn() }) }))
+vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'signedOut' }, authenticate: auth.authenticate, clearError: vi.fn(), refreshAuth: vi.fn() }) }))
 import { AccountForms, AccountView } from './AccountForms'
 it('allows explicit Sandbox signup with confirmation and legal notice, preserving hidden recovery', () => {
   const signup = renderToStaticMarkup(<AccountView mode="create" onModeChange={() => {}} />)

@@ -85,7 +85,7 @@ describe('frontend cart listing identity and quantity', () => {
 
 describe('old and new cart allocation contracts', () => {
   const listing = cartListing(offer(41))
-  const address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'Bath', postcode: 'BA1', country: 'GB', phone: null, isDefaultBilling: true, isDefaultShipping: true }
+  const address = { id: 1, recipientName: 'Customer', line1: '1 Street', line2: null, city: 'Bath', postcode: 'BA1 1AA', country: 'GB', phone: null, isDefaultBilling: true, isDefaultShipping: true }
   it('retains authoritative metadata while showing total quantity and available intent', () => {
     const items = mapCart({ items: [{ productListingId: 41, productListing: listing, quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 }] })
     expect(items[0]).toMatchObject({ quantity: 2, allocatedQuantity: 1, unallocatedQuantity: 1 })

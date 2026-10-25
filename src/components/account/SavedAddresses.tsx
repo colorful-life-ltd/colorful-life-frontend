@@ -1,4 +1,4 @@
-import { sandboxCheckout } from '../../features/checkout/sandbox'
+import { customerAddressError, normalizePostcode, customerLimits } from '../../features/account/customerInput'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { AuthApiError } from '../../features/auth/api'
 import { createAddress, deleteAddress, getAddresses, updateAddress, type Address, type AddressInput } from '../../features/account/addressApi'
@@ -69,6 +69,8 @@ export function SavedAddresses({ token }: { token: string }) {
   const normalize = (value: string) => value.trim()
   const validate = (value: AddressDraft) => {
     if (!isUkCountry(value.country)) return 'Only United Kingdom addresses are supported. Please add a UK address.'
+    const fieldsError = customerAddressError(value)
+    if (fieldsError) return fieldsError
     const required: Array<[keyof AddressDraft, string]> = [['recipientName', 'Recipient name'], ['line1', 'Address line 1'], ['city', 'City'], ['postcode', 'Postcode'], ['country', 'Country']]
     const missing = required.find(([field]) => !normalize(String(value[field])))
     return missing ? `${missing[1]} is required.` : null
@@ -80,7 +82,7 @@ export function SavedAddresses({ token }: { token: string }) {
     const validation = validate(draft)
     if (validation) { setError(validation); return }
     const payload: AddressInput = {
-      recipientName: normalize(draft.recipientName), line1: normalize(draft.line1), city: normalize(draft.city), postcode: normalize(draft.postcode), country: UK_COUNTRY,
+      recipientName: normalize(draft.recipientName), line1: normalize(draft.line1), city: normalize(draft.city), postcode: normalizePostcode(draft.postcode), country: UK_COUNTRY,
       line2: normalize(draft.line2) || null, phone: normalize(draft.phone) || null, ...(editingId === null && addresses.length === 0 ? {} : { isDefaultShipping: draft.isDefaultShipping, isDefaultBilling: draft.isDefaultBilling }),
     }
     const mutationSequence = requestSequence.current
@@ -113,6 +115,9 @@ export function SavedAddresses({ token }: { token: string }) {
 
   const remove = async (address: Address) => {
     if (pending) return
+    const successor = addresses.filter(a => a.id !== address.id).sort((a,b) => a.id-b.id)[0]
+    const nextDefault = address.isDefaultShipping || address.isDefaultBilling ? successor ? ` ${successor.recipientName}, ${successor.line1} will become the new ${[address.isDefaultShipping ? 'delivery' : '', address.isDefaultBilling ? 'billing' : ''].filter(Boolean).join(' and ')} default.` : ' You will have no saved default address.' : ''
+    if (!window.confirm(`Delete ${address.recipientName}, ${address.line1}?${nextDefault} Existing orders will not change.`)) return
     const mutationSequence = requestSequence.current
     setPending(`delete:${address.id}`); setError(null)
     try {
@@ -139,12 +144,12 @@ export function SavedAddresses({ token }: { token: string }) {
       <div className="saved-address__actions">
         {!address.isDefaultShipping && <button className="my-account__button" type="button" onClick={() => void makeDefault(address, 'shipping')} disabled={Boolean(pending)}>Make delivery default</button>}
         {!address.isDefaultBilling && <button className="my-account__button" type="button" onClick={() => void makeDefault(address, 'billing')} disabled={Boolean(pending)}>Make billing default</button>}
-        <div className="saved-address__edit-actions"><button className="my-account__button" type="button" onClick={() => beginEdit(address)} disabled={Boolean(pending)}>Edit</button>{!sandboxCheckout && <button className="saved-address__delete" type="button" onClick={() => remove(address)} disabled={Boolean(pending)}>Delete</button>}</div>
+        <div className="saved-address__edit-actions"><button className="my-account__button" type="button" onClick={() => beginEdit(address)} disabled={Boolean(pending)}>Edit</button>{<button className="saved-address__delete" type="button" onClick={() => remove(address)} disabled={Boolean(pending)}>Delete</button>}</div>
       </div>
     </article>)}</div>}
     {draft && <form ref={formRef} className="saved-addresses__form" onSubmit={save}>
       <h4>{editingId === null ? 'Add address' : 'Edit address'}</h4>
-      {(['recipientName', 'line1', 'line2', 'city', 'postcode', 'phone'] as const).map(field => <label className="my-account__field" key={field}>{({ recipientName: 'Recipient name', line1: 'Address line 1', line2: 'Address line 2 (optional)', city: 'City', postcode: 'Postcode', country: 'Country', phone: 'Phone number (optional)' })[field]}<input value={draft[field]} onChange={event => updateDraft(field, event.target.value)} /></label>)}
+      {(['recipientName', 'line1', 'line2', 'city', 'postcode', 'phone'] as const).map(field => <label className="my-account__field" key={field}>{({ recipientName: 'Recipient name', line1: 'Address line 1', line2: 'Address line 2 (optional)', city: 'City', postcode: 'Postcode', country: 'Country', phone: 'Phone number (optional)' })[field]}<input maxLength={customerLimits[field]} value={draft[field]} onChange={event => updateDraft(field, event.target.value)} /></label>)}
       <label className="my-account__field">Country<input value={countryLabel(draft.country)} readOnly /></label>
       {editingId === null && addresses.length === 0 && <p>Your first address will be used for both delivery and billing.</p>}
       {(addresses.length > 0) && <div className="saved-addresses__choices"><label><input type="checkbox" checked={draft.isDefaultShipping} disabled={editingId !== null && addresses.some(address => address.id === editingId && address.isDefaultShipping)} onChange={event => updateDraft('isDefaultShipping', event.target.checked)} /> Default delivery address</label><label><input type="checkbox" checked={draft.isDefaultBilling} disabled={editingId !== null && addresses.some(address => address.id === editingId && address.isDefaultBilling)} onChange={event => updateDraft('isDefaultBilling', event.target.checked)} /> Default billing address</label></div>}

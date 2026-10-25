@@ -2,3 +2,5 @@
 .stage-cart { transform: translateY(-13%); }
 .stage-cart img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .stage-cart:focus-visible { outline: 3px solid #fff3c9; outline-offset: 5px; }
+
+.cart-add-feedback:not(:empty) { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 100; padding: .75rem 1rem; border-radius: .5rem; background: #f8f3e8; color: #243c2d; box-shadow: 0 2px 12px #0002; }

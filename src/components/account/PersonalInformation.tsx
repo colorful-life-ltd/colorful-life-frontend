@@ -1,3 +1,4 @@
+import {customerLimits,validPhone} from '../../features/account/customerInput'
 import { sandboxCheckout } from '../../features/checkout/sandbox'
 import { useState, type FormEvent } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
@@ -20,6 +21,7 @@ export function PersonalInformation({ onBack }: { onBack: () => void }) {
   const { state, updateProfile, logout } = useAuth()
   const authenticatedState = state.status === 'authenticated' ? state : null
   const user = authenticatedState?.user ?? null
+  const [emailHelp, setEmailHelp] = useState(false)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState<ProfileDraft>(() => user ? draftFromUser(user) : { firstName: '', lastName: '', phone: '' })
   const [saving, setSaving] = useState(false)
@@ -36,6 +38,7 @@ export function PersonalInformation({ onBack }: { onBack: () => void }) {
     const lastName = draft.lastName.trim()
     if (!firstName && user.firstName !== null) { setError('First name cannot be empty.'); return }
     if (!lastName && user.lastName !== null) { setError('Last name cannot be empty.'); return }
+    if (firstName.length > customerLimits.firstName || lastName.length > customerLimits.lastName || draft.phone.length > customerLimits.phone || !validPhone(draft.phone)) { setError('Check name lengths and enter a valid UK phone number.'); return }
     const payload: UpdateCurrentUser = profilePatchFromDraft(draft)
     setSaving(true); setError(null)
     try {
@@ -62,16 +65,17 @@ export function PersonalInformation({ onBack }: { onBack: () => void }) {
         <img src={sprout} alt="" aria-hidden="true" />
         <div><h3 id="personal-information-title">Personal Information</h3><p>Keep your personal details up to date.</p></div>
       </header>
+      {<p id="profile-email-help" role="status" hidden={!emailHelp}>Email cannot be changed here. If you have lost access, please <a href="mailto:support@build-and-bloom.co.uk">contact support</a>.</p>}
       {error && <p className="my-account__error" role="alert">{error}</p>}
       {editing ? <form className="account-personal-information__form" onSubmit={save}>
-        <label className="my-account__field">Email <span className="my-account__readonly-note">Read only</span><input type="email" value={user.email} readOnly aria-readonly="true" /></label>
-        <label className="my-account__field">First name<input value={draft.firstName} onChange={event => update('firstName', event.target.value)} autoComplete="given-name" /></label>
-        <label className="my-account__field">Last name<input value={draft.lastName} onChange={event => update('lastName', event.target.value)} autoComplete="family-name" /></label>
-        <label className="my-account__field">Phone number<input type="tel" value={draft.phone} onChange={event => update('phone', event.target.value)} autoComplete="tel" /></label>
+        <div className="my-account__field"><label htmlFor="profile-email">Email</label><button className="my-account__email-help" type="button" aria-expanded={emailHelp} aria-controls="profile-email-help" aria-label="Why can’t I change my email?" onClick={() => setEmailHelp(value => !value)}>ⓘ</button><input id="profile-email" type="email" value={user.email} readOnly aria-readonly="true" /></div>
+        <label className="my-account__field">First name<input maxLength={customerLimits.firstName} value={draft.firstName} onChange={event => update('firstName', event.target.value)} autoComplete="given-name" /></label>
+        <label className="my-account__field">Last name<input maxLength={customerLimits.lastName} value={draft.lastName} onChange={event => update('lastName', event.target.value)} autoComplete="family-name" /></label>
+        <label className="my-account__field">Phone number<input type="tel" maxLength={customerLimits.phone} value={draft.phone} onChange={event => update('phone', event.target.value)} autoComplete="tel" /></label>
         <div className="account-personal-information__actions"><button className="my-account__button my-account__button--primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</button><button className="my-account__button" type="button" onClick={cancel} disabled={saving}>Cancel</button></div>
       </form> : <div className="account-personal-information__details">
-        <dl><div><dt>Email <span className="my-account__readonly-note">Read only</span></dt><dd className="personal-information__email">{user.email}</dd></div><div><dt>First name</dt><dd>{user.firstName?.trim() || 'Not provided'}</dd></div><div><dt>Last name</dt><dd>{user.lastName?.trim() || 'Not provided'}</dd></div><div><dt>Phone number</dt><dd>{user.phone?.trim() || 'Not provided'}</dd></div></dl>
-        {!sandboxCheckout && <div className="account-personal-information__actions"><button className="my-account__button my-account__button--primary" type="button" onClick={beginEdit}>Edit information</button></div>}
+        <dl><div><dt>Email <button className="my-account__email-help" type="button" aria-expanded={emailHelp} aria-controls="profile-email-help" aria-label="Why can’t I change my email?" onClick={() => setEmailHelp(value => !value)}>ⓘ</button></dt><dd className="personal-information__email">{user.email}</dd></div><div><dt>First name</dt><dd>{user.firstName?.trim() || 'Not provided'}</dd></div><div><dt>Last name</dt><dd>{user.lastName?.trim() || 'Not provided'}</dd></div><div><dt>Phone number</dt><dd>{user.phone?.trim() || 'Not provided'}</dd></div></dl>
+        {<div className="account-personal-information__actions"><button className="my-account__button my-account__button--primary" type="button" onClick={beginEdit}>Edit information</button></div>}
       </div>}
       <img className="personal-information__floral" src={floralSprig} alt="" aria-hidden="true" />
       </section>

@@ -35,7 +35,7 @@ export async function requestJson<T>(path: string, init: RequestInit = {}, token
     const nested = typeof error === 'object' && error !== null ? error as { code?: unknown; message?: unknown } : undefined
     const code = typeof nested?.code === 'string' ? nested.code : undefined
     const serverMessage = typeof error === 'string' ? error : typeof nested?.message === 'string' ? nested.message : undefined
-    const message = code === 'EMAIL_VERIFICATION_REQUIRED' ? 'Email verification required' : response.status === 401 ? 'Invalid credentials' : response.status === 409 && path === '/auth/signup' ? 'Email already in use' : serverMessage || 'Unable to complete that request'
+    const message = code === 'EMAIL_VERIFICATION_REQUIRED' ? 'Email verification required' : response.status === 401 ? "We couldn't sign you in with those details. Check your email and password and try again." : response.status === 409 && path === '/auth/signup' ? 'Email already in use' : serverMessage || 'Unable to complete that request'
     throw new AuthApiError(response.status, message, serverMessage, code)
   }
   return body as T

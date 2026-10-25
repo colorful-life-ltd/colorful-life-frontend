@@ -19,7 +19,7 @@ export interface CartItem {
 export interface CartContextValue {
   refreshCart: () => Promise<void>
   items: CartItem[]
-  addListing: (listing: ProductListingOffer) => Promise<void>
+  addListing: (listing: ProductListingOffer) => Promise<boolean>
   updateQuantity: (productListingId: number, quantity: number) => Promise<boolean>
   removeItem: (productListingId: number) => Promise<boolean>
   pendingItemIds: readonly number[]
@@ -55,7 +55,7 @@ export function formatGbp(pence: number): string {
   return new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(pence / 100)
 }
 
-export const CartContext = createContext<CartContextValue>({ refreshCart: async () => {}, items: [], addListing: async () => {}, updateQuantity: async () => false, removeItem: async () => false, pendingItemIds: [], isLoading: false, error: null })
+export const CartContext = createContext<CartContextValue>({ refreshCart: async () => {}, items: [], addListing: async () => false, updateQuantity: async () => false, removeItem: async () => false, pendingItemIds: [], isLoading: false, error: null })
 
 export function offerQuantityLimit(listing: Pick<ProductListingOffer, 'condition' | 'availableStock'>): number {
   return listing.condition === 'USED_LIKE_NEW' ? Math.min(1, listing.availableStock) : listing.availableStock
