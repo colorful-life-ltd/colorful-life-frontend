@@ -26,10 +26,10 @@ describe('saved address V1 form', () => {
     expect(field('Country').value).toBe('United Kingdom'); expect(field('Country').readOnly).toBe(true)
   })
   it('keeps first recipient editable and uses authoritative first-address defaults', async () => {
-    await mount(); await click('Add address'); await fill('Recipient name', 'Someone Else'); await fill('Address line 1', '1 Street'); await fill('City', 'London'); await fill('Postcode', 'SW1A 1AA')
+    await mount(); await click('Add address'); await fill('Recipient name', 'Someone Else'); await fill('Address line 1', '1 Street'); await fill('City', 'London'); expect(field('Postcode').getAttribute('maxlength')).toBeNull(); await fill('Postcode', '  sw1a   1aa  ')
     vi.mocked(createAddress).mockResolvedValue(address(1)); vi.mocked(getAddresses).mockResolvedValue([address(1)])
     await save()
-    expect(createAddress).toHaveBeenCalledWith('jwt', expect.objectContaining({ recipientName: 'Someone Else', country: 'United Kingdom' }))
+    expect(createAddress).toHaveBeenCalledWith('jwt', expect.objectContaining({ recipientName: 'Someone Else', country: 'United Kingdom', postcode: 'SW1A 1AA' }))
     expect(vi.mocked(createAddress).mock.calls[0][1]).not.toHaveProperty('isDefaultShipping')
     expect(vi.mocked(createAddress).mock.calls[0][1]).not.toHaveProperty('isDefaultBilling')
     expect(getAddresses).toHaveBeenCalledTimes(2)
