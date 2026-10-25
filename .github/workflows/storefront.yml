@@ -40,15 +40,19 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  # Push-to-Sandbox delivery. Inert until the owner sets repository variable SANDBOX_DEPLOY_ENABLED=true.
+  # Push-to-Sandbox delivery. Deploy and rollback stay inert until the owner sets repository variable
+  # SANDBOX_DEPLOY_ENABLED=true; the read-only `status` dispatch is always allowed from main.
   # Only main can assume the deploy role (OIDC subject is pinned in colorful-life-infra), and the role can
   # run only the ColorfulLife-DeployStorefront SSM document. There is no production target here.
   deploy-sandbox:
     needs: verify
     if: >-
-      !cancelled() && vars.SANDBOX_DEPLOY_ENABLED == 'true' && github.ref == 'refs/heads/main' &&
-      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (needs.verify.result == 'success' || (needs.verify.result == 'skipped' && inputs.action != 'deploy'))
+      !cancelled() && github.ref == 'refs/heads/main' && (
+        (github.event_name == 'workflow_dispatch' && inputs.action == 'status') ||
+        (vars.SANDBOX_DEPLOY_ENABLED == 'true' && (
+          (github.event_name == 'push' && needs.verify.result == 'success') ||
+          (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy' && needs.verify.result == 'success') ||
+          (github.event_name == 'workflow_dispatch' && inputs.action == 'rollback' && needs.verify.result == 'skipped'))))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     concurrency:

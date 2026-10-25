@@ -12,7 +12,7 @@ category artwork and opening/closing mechanics remain unchanged.
 
 ## Sandbox deployment
 
-Pushes to `main` deploy the Sandbox Storefront automatically once the owner sets repository variable `SANDBOX_DEPLOY_ENABLED=true` (job `deploy-sandbox` in `.github/workflows/storefront.yml`). The job builds with `VITE_API_BASE_URL=/api`, `VITE_PAYMENT_MODE=paypal-sandbox` and the public `VITE_PAYPAL_SANDBOX_CLIENT_ID` repository variable, rejects bundles containing secrets (`scripts/check-sandbox-bundle.mjs`), and swaps the release atomically on the Sandbox host. Rollback: run the workflow manually with `rollback`. Production is never deployed from here. Setup and operation: `colorful-life-infra` `docs/storefront-auto-deploy.md`.
+Pushes to `main` deploy the Sandbox Storefront automatically once the owner sets repository variable `SANDBOX_DEPLOY_ENABLED=true` (job `deploy-sandbox` in `.github/workflows/storefront.yml`); manual `deploy` and `rollback` need the same switch, while the read-only `status` dispatch always works from `main`. The job builds with `VITE_API_BASE_URL=/api`, `VITE_PAYMENT_MODE=paypal-sandbox` and the public `VITE_PAYPAL_SANDBOX_CLIENT_ID` repository variable, rejects bundles containing secrets (`scripts/check-sandbox-bundle.mjs`), and swaps the release atomically on the Sandbox host. Rollback: run the workflow manually with `rollback`. Production is never deployed from here. Setup and operation: `colorful-life-infra` `docs/storefront-auto-deploy.md`.
 
 ## Development
 
