@@ -95,7 +95,9 @@ jobs:
           role-to-assume: arn:aws:iam::919693204623:role/ColorfulLife-SandboxStorefrontDeploy
           role-session-name: storefront-${{ github.run_id }}
           aws-region: eu-west-2
-          allowed-account-ids: '919693204623'
+      # The pinned credentials action predates allowed-account-ids, so check the account explicitly.
+      - name: Confirm the Colorful Life AWS account
+        run: test "$(aws sts get-caller-identity --query Account --output text)" = 919693204623
       - name: Upload release archive
         if: env.ACTION == 'deploy'
         run: |
