@@ -26,6 +26,9 @@
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
+  /* Firefox culls back faces only on elements with their own transform; without
+     this identity, the cover stays painted, mirrored, once the sheet passes 90deg. */
+  transform: rotateY(0deg);
 }
 
 /* Reuse the approved closed surface, including its artwork fit and spine. */

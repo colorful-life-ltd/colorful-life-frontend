@@ -43,6 +43,8 @@
   position: absolute;
   inset: 0;
   backface-visibility: hidden;
+  /* Firefox culls back faces only on elements with their own transform (see OpeningTransition.css). */
+  transform: rotateY(0deg);
 }
 
 .closing-transition__front > .closed-catalogue {
