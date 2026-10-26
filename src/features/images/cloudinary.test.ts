@@ -5,13 +5,13 @@ const upload = 'https://res.cloudinary.com/demo-cloud/image/upload/v1792485702/c
 
 describe('Cloudinary delivery variants', () => {
   it('inserts one shared auto-format, non-enlarging width transformation before the version', () => {
-    expect(cloudinaryVariantUrl(upload, 'display')).toBe('https://res.cloudinary.com/demo-cloud/image/upload/f_auto,q_auto,c_limit,w_800/v1792485702/colorful-life/catalogue-artwork/14988-8da538cd.png')
+    expect(cloudinaryVariantUrl(upload, 'display')).toBe('https://res.cloudinary.com/demo-cloud/image/upload/f_auto,q_auto,c_limit,w_768/v1792485702/colorful-life/catalogue-artwork/14988-8da538cd.png')
     expect(cloudinaryVariantUrl(upload, 'thumbnail')).toBe('https://res.cloudinary.com/demo-cloud/image/upload/f_auto,q_auto,c_limit,w_160/v1792485702/colorful-life/catalogue-artwork/14988-8da538cd.png')
-    expect(cloudinaryVariantUrl(`  ${upload} `, 'display')).toMatch(/\/f_auto,q_auto,c_limit,w_800\/v1792485702\//)
+    expect(cloudinaryVariantUrl(`  ${upload} `, 'display')).toMatch(/\/f_auto,q_auto,c_limit,w_768\/v1792485702\//)
   })
 
   it('keeps the variant set small: exactly two sizes', () => {
-    expect(Object.values(CLOUDINARY_VARIANTS)).toEqual(['f_auto,q_auto,c_limit,w_800', 'f_auto,q_auto,c_limit,w_160'])
+    expect(Object.values(CLOUDINARY_VARIANTS)).toEqual(['f_auto,q_auto,c_limit,w_768', 'f_auto,q_auto,c_limit,w_160'])
   })
 
   it.each([

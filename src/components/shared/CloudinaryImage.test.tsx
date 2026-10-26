@@ -8,7 +8,7 @@ import { offer, product } from '../../features/catalogue/catalogueFixtures'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const original = 'https://res.cloudinary.com/demo-cloud/image/upload/v1792485702/colorful-life/products/14988-ab1afd82.png'
-const display = original.replace('/upload/', '/upload/f_auto,q_auto,c_limit,w_800/')
+const display = original.replace('/upload/', '/upload/f_auto,q_auto,c_limit,w_768/')
 const thumbnail = original.replace('/upload/', '/upload/f_auto,q_auto,c_limit,w_160/')
 let root: Root | undefined, container: HTMLDivElement
 async function render(element: React.ReactNode) {

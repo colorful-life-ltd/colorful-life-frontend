@@ -18,7 +18,7 @@ export function CategoryOpeningPage({ side, state, onRetry, onLeaflet, onDetails
     <p className="category-opening__eyebrow">A little world of possibility</p><h1>{category.name}</h1>
     {category.subtitle && <p className="category-opening__subtitle">{category.subtitle}</p>}
     {category.description && <p className="category-opening__description">{category.description}</p>}
-    <div className="category-opening__art-space" aria-hidden="true">{category.imageUrl && failedArtwork !== category.imageUrl && <img src={category.imageUrl} alt="" onError={() => setFailedArtwork(category.imageUrl)} />}</div>
+    <div className="category-opening__art-space" aria-hidden="true">{category.imageUrl && failedArtwork !== category.imageUrl && <CloudinaryImage src={category.imageUrl} variant="display" alt="" onError={() => setFailedArtwork(category.imageUrl)} />}</div>
     <div className="category-opening__invitation"><span>A collection to unfold</span><button type="button" onClick={onLeaflet}>Browse the leaflet <span aria-hidden="true">→</span></button></div>
   </section> : <section className="vehicles-page vehicles-page--feature category-opening-feature" aria-label={`${category.name} featured product`}>
     <header className="vehicles-page__heading"><h2>{feature ? 'Featured build' : 'A build to begin with'}</h2>{category.subtitle && <p>{category.subtitle}</p>}</header>
