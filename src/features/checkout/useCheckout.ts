@@ -7,6 +7,8 @@ import { canRecoverPayment, isOlderPaymentSnapshot, parsePaymentWindow, paymentA
 import { AuthApiError, getCurrentUser, isVerificationRequired } from '../auth/api'
 
 export type Phase = 'ready' | 'creating' | 'loading' | 'reserved' | 'preparing' | 'payment' | 'waiting' | 'submitting' | 'verifying' | 'verification-timeout' | 'pending' | 'confirmed' | 'failure' | 'terminal' | 'auth' | 'verification' | 'cart-conflict'
+/** Outcome of re-admitting a declined Stripe attempt before confirming it again. */
+export type RetryAdmission = 'confirm' | 'remount' | 'stop'
 export const verificationDelays = [0, 1000, 2000, 3000, 5000, 8000, 10000]
 
 export function useCheckout(token: string, userId: number, orderId: number | null) {
@@ -292,6 +294,47 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
       if (run.current === currentRun && !permitted) { busy.current = false; submission.current = false }
     }
   }
+  // After a card decline, re-admit the attempt through the initiation endpoint: it enforces the original retry
+  // deadline and returns the existing intent's secret while Stripe still accepts new card details. Confirm only
+  // that same intent; a different intent remounts a fresh form, and any other outcome stops for a status check.
+  const beforeRetry = async (): Promise<RetryAdmission> => {
+    const current = latest.current
+    if (!current || !secret || busy.current || actionRejected || verificationLocked.current || !active.current) return 'stop'
+    busy.current = true; submission.current = true; setPhase('submitting')
+    const currentRun = ++run.current
+    let permitted = false
+    try {
+      const clientSecret = await preparePayment(token, current.id)
+      if (!active.current || run.current !== currentRun) return 'stop'
+      const next = await getOrder(token, current.id)
+      if (!active.current || run.current !== currentRun) return 'stop'
+      if (next.id !== current.id || isOlderPaymentSnapshot(latest.current, next)) {
+        setSecret(null); setActionRejected(true); setPhase('pending'); return 'stop'
+      }
+      const clean = parseOrderPayment(next)
+      if (clean.status !== 'PENDING' || !['resume', 'provider-check'].includes(paymentAction(clean.paymentWindow) ?? '')) {
+        accept(clean); setSecret(null); return 'stop'
+      }
+      latest.current = clean; setOrder(clean)
+      if (clientSecret !== secret) { setSecret(clientSecret); setPhase('payment'); return 'remount' }
+      permitted = true
+      return 'confirm'
+    } catch (reason) {
+      if (active.current && run.current === currentRun) {
+        setSecret(null); setActionRejected(true)
+        if (reason instanceof CheckoutApiError && [401, 403, 404].includes(reason.status)) fail(reason)
+        else {
+          // Never assume the retry is still possible: re-read the backend's window instead.
+          try { const next = await getOrder(token, current.id); if (active.current && run.current === currentRun) accept(next) }
+          catch (readError) { if (active.current && run.current === currentRun) fail(readError) }
+          if (active.current && run.current === currentRun) setMessage('This payment can no longer be retried here. Check the order status before taking another action.')
+        }
+      }
+      return 'stop'
+    } finally {
+      if (run.current === currentRun && !permitted) { busy.current = false; submission.current = false }
+    }
+  }
   const submissionSettled = () => {
     if (!active.current || !submission.current) return
     submission.current = false; busy.current = false; setPhase('payment')
@@ -339,5 +382,5 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
     }
     setMessage(null); setPhase('ready')
   }
-  return { conflict, actionRejected, beforeConfirm, submissionSettled, paymentSubmitted, reviewComplete: () => { setConflict(null); setMessage(null); setPhase('ready') }, order, phase, message, secret, attempt, create, prepare, verify, recheck, restart, reloadOrder, resumeAfterVerification }
+  return { conflict, actionRejected, beforeConfirm, beforeRetry, submissionSettled, paymentSubmitted, reviewComplete: () => { setConflict(null); setMessage(null); setPhase('ready') }, order, phase, message, secret, attempt, create, prepare, verify, recheck, restart, reloadOrder, resumeAfterVerification }
 }

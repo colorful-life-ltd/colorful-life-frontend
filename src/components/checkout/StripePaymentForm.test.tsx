@@ -27,12 +27,28 @@ describe('Stripe payment submission', () => {
     await act(async () => resolve({ paymentIntent: { status: 'succeeded' } }))
     expect(verify).toHaveBeenCalledTimes(1); expect(container.textContent).not.toContain('Pay now')
   })
-  it('requires backend status checking after a decline before another attempt', async () => {
+  it('without backend re-admission, still requires a status check after a decline', async () => {
     mocks.confirm.mockResolvedValue({ error: { type: 'card_error', message: 'Your card was declined.' } })
     const verify = await mount(); await submit()
     expect(container.textContent).toContain('declined'); expect(verify).not.toHaveBeenCalled(); expect(container.querySelector('button')?.disabled).toBe(false)
     expect(container.textContent).not.toContain('Pay now'); await submit(); expect(mocks.confirm).toHaveBeenCalledTimes(1)
     await act(async () => container.querySelector('button')!.click()); expect(verify).toHaveBeenCalledTimes(1)
+  })
+  it.each([
+    ['confirm', 2, true],
+    ['remount', 1, true],
+    ['stop', 1, false],
+  ] as const)('after a decline, a %s re-admission gives %i confirmations', async (admission, confirmations, payNow) => {
+    mocks.confirm.mockResolvedValue({ error: { type: 'card_error', message: 'Your card was declined.' } })
+    const beforeConfirm = vi.fn().mockResolvedValue(true); const beforeRetry = vi.fn().mockResolvedValue(admission)
+    container = document.createElement('div'); document.body.append(container); root = createRoot(container)
+    await act(async () => root.render(<PaymentForm clientSecret="secret" orderId={41} onVerify={vi.fn()} beforeConfirm={beforeConfirm} beforeRetry={beforeRetry} />))
+    await submit()
+    expect(container.textContent).toContain('Your card was declined.'); expect(container.textContent).toContain('Pay now')
+    await submit()
+    expect(beforeConfirm).toHaveBeenCalledOnce(); expect(beforeRetry).toHaveBeenCalledOnce()
+    expect(mocks.confirm).toHaveBeenCalledTimes(confirmations)
+    expect(container.textContent?.includes('Pay now')).toBe(payNow)
   })
   it('routes an ambiguous provider/network outcome to status checking', async () => {
     mocks.confirm.mockRejectedValue(new Error('offline')); const verify = await mount(); await submit()
