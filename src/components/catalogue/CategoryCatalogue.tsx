@@ -1,3 +1,4 @@
+import { CategoryArtworkImage } from './CategoryArtworkImage'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { CSSProperties } from 'react'
@@ -49,7 +50,7 @@ function CategoryEntry({ category, onCategory }: { category: CatalogueCategory; 
   return <li><a className="category-entry" href={category.href}
     onClick={onCategory ? event => { if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onCategory(category.id) } } : undefined}
     style={{ '--category-colour': category.colour ?? '#dfdbc2', '--category-image-scale': category.imageScale ?? 1 } as CSSProperties}>
-    <span className="category-entry__art">{category.image && <img src={category.image} alt="" width={category.imageWidth} height={category.imageHeight} decoding="async" />}</span>
+    <span className="category-entry__art"><CategoryArtworkImage category={category} /></span>
     <span className="category-entry__copy"><span className="category-entry__label">{category.label}</span>
       {category.tagline && <span className="category-entry__tagline">{category.tagline}</span>}</span>
     <span className="category-entry__arrow" aria-hidden="true">↗</span>

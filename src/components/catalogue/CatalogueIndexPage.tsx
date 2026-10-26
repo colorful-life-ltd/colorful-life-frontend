@@ -1,3 +1,4 @@
+import { CategoryArtworkImage } from './CategoryArtworkImage'
 import type { CSSProperties } from 'react'
 import type { CatalogueCategory } from './categories'
 import './OpeningPages.css'
@@ -16,7 +17,7 @@ export function CatalogueIndexPage({ categories }: { categories: readonly Catalo
           {featuredCategories.map((category) => (
             <li key={category.id} style={{ '--preview-colour': category.colour ?? '#dfdbc2' } as CSSProperties}>
               <figure>
-                {category.image && <img src={category.image} alt="" width={category.imageWidth} height={category.imageHeight} decoding="async" />}
+                <CategoryArtworkImage category={category} />
                 <figcaption>{category.label}</figcaption>
               </figure>
             </li>
