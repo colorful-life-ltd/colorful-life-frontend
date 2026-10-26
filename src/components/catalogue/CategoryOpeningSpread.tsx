@@ -1,3 +1,4 @@
+import { CloudinaryImage } from '../shared/CloudinaryImage'
 import { useState } from 'react'
 import type { CatalogueProduct } from '../../features/catalogue/api'
 import { categoryProducts, type CategoryState } from '../../features/catalogue/useCategoryCatalogue'
@@ -30,5 +31,5 @@ export function CategoryOpeningPage({ side, state, onRetry, onLeaflet, onDetails
 export function ProductPrintImage({ product, className }: { product: CatalogueProduct; className: string }) {
   const [failed, setFailed] = useState<string | null>(null)
   const url = product.catalogueArtworkUrl?.trim() || null
-  return <div className={className}>{url && failed !== url && <img src={url} alt={product.title} onError={() => setFailed(url)} />}</div>
+  return <div className={className}>{url && failed !== url && <CloudinaryImage src={url} variant="display" alt={product.title} onError={() => setFailed(url)} />}</div>
 }

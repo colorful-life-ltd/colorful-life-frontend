@@ -1,3 +1,4 @@
+import { CloudinaryImage } from '../shared/CloudinaryImage'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { productAvailabilityLabel, defaultProductOffer, isSellableOffer, sellableOffers, type CatalogueProduct, type ProductListingOffer } from '../../features/catalogue/api'
 import type { ProductSpread } from '../../features/catalogue/productSpreads'
@@ -56,7 +57,7 @@ function CatalogueArtwork({ product, feature, onViewDetails }: { product: Catalo
   const className = `vehicle-product__art vehicle-product__art--${feature ? 'feature' : 'supporting'}`
   if (!url || failedUrl === url) return <span className={className} aria-hidden="true" data-artwork-state="empty" />
   return <a className={`${className} vehicle-product__art-button`} href={productPath(product.id)} aria-label={`View details for ${product.title}`}
-    onClick={productLinkClick(product.id, onViewDetails)}><img src={url} alt={`Illustrated ${product.title}`} onError={() => setFailedUrl(url)} /></a>
+    onClick={productLinkClick(product.id, onViewDetails)}><CloudinaryImage src={url} variant="display" alt={`Illustrated ${product.title}`} onError={() => setFailedUrl(url)} /></a>
 }
 
 /** A single printed card represents the LegoProduct, regardless of offer count. */
@@ -154,10 +155,10 @@ function ProductGallery({ product }: { product: CatalogueProduct }) {
   const selected = uniqueImages[selectedIndex]
   if (!selected) return <p className="product-details__empty">No product photographs available.</p>
   return <div className="product-details__gallery" aria-label="Product image gallery">
-    <div className="product-details__main-image"><img src={selected.url} alt={selected.altText ?? product.title} /></div>
+    <div className="product-details__main-image"><CloudinaryImage src={selected.url} variant="display" alt={selected.altText ?? product.title} /></div>
     <div className="product-details__thumbnails" role="group" aria-label="Choose product image">
       {uniqueImages.map((image, index) => <button key={`${image.url}-${index}`} type="button" className={`product-details__thumbnail${index === selectedIndex ? ' is-selected' : ''}`}
-        aria-label={`Show product image ${index + 1}`} aria-pressed={index === selectedIndex} onClick={() => setSelectedIndex(index)}><img src={image.url} alt="" aria-hidden="true" /></button>)}
+        aria-label={`Show product image ${index + 1}`} aria-pressed={index === selectedIndex} onClick={() => setSelectedIndex(index)}><CloudinaryImage src={image.url} variant="thumbnail" alt="" aria-hidden="true" /></button>)}
     </div>
   </div>
 }

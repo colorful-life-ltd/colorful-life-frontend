@@ -1,3 +1,4 @@
+import { CloudinaryImage } from '../shared/CloudinaryImage'
 import { useState } from 'react'
 import { availableCartSubtotal, cartItemBlocked, checkoutQuantity, formatGbp, lineAmountPence, listingUnitPricePence, cartQuantityLimit, useCart, type CartItem } from '../../features/cart/CartContext'
 import { cartCopy, cartItemMessage } from '../../features/i18n/cartCopy'
@@ -31,7 +32,7 @@ export function CartItems({ items, onConfirmRemove, affectedListingId }: {
       const allocatedOnly = checkoutQuantity(item) === 0
       return <article className={`cart-item${blocked ? ' cart-item--unavailable' : ''}${allocatedOnly ? ' cart-item--allocated' : ''}${affectedListingId === productListingId ? ' cart-item--affected' : ''}`} key={productListingId} data-cart-listing-id={productListingId} aria-describedby={explanation ? messageId : undefined}>
         <div className="cart-item__image">
-          {image ? <img src={image.url} alt={image.altText ?? listing.legoProduct.title} /> : <span aria-hidden="true" />}
+          {image ? <CloudinaryImage src={image.url} variant="thumbnail" alt={image.altText ?? listing.legoProduct.title} /> : <span aria-hidden="true" />}
         </div>
         <div className="cart-item__copy">
           <h2>{listing.legoProduct.title}</h2>
