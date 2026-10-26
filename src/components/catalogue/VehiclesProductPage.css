@@ -1,4 +1,13 @@
-.spread-page--vehicles { min-height: 440px; }
+/* Page-height-aware layout. The BookShell page (its content box) is the size container, so density
+   follows the space the book actually gives this page, not the viewport width:
+   - comfortable: the established desktop layout;
+   - compact (short pages): artwork absorbs the shortage, text keeps its size;
+   - scrollable: when even compact content does not fit, the spread grows and the paper's own
+     overflow scrolls it, navigation included. Rows never shrink below their content, so text,
+     artwork and navigation cannot overlap at any size. */
+.book-shell__content:has(> .spread-page--vehicles, > .spread-page--category-opening) { container: book-page / size; }
+.spread-page--vehicles:has(> .vehicles-page) { display: flex; flex-direction: column; height: auto; min-height: calc(100% + 72px); }
+.spread-page--vehicles > .vehicles-page { flex: 1 0 auto; height: auto; }
 
 .vehicles-page {
   display: flex;
@@ -12,18 +21,23 @@
 .vehicles-page__heading p { margin: 4px 0 0; font-size: clamp(13px, 3.7cqw, 17px); color: #7a6045; }
 /* This page has no bottom navigation; its existing footer space can hold art. */
 .vehicles-page--supporting { height: calc(100% + 32px); padding: 10px 22px 0; }
+.spread-page--vehicles > .vehicles-page--supporting { margin-bottom: -32px; }
 .spread-page--product-navigation .vehicles-page--supporting { height: 100%; }
+.spread-page--product-navigation.spread-page--vehicles > .vehicles-page--supporting { height: auto; margin-bottom: 0; }
 .spread-page--product-navigation .vehicle-product__art--supporting { min-height: 110px; }
 .vehicles-page--supporting .vehicles-page__heading { padding: 0; }
 .vehicles-page--supporting h2 { font-size: clamp(18px, 5.3cqw, 25px); }
-.vehicles-supporting-products { display: grid; flex: 1; grid-template-rows: repeat(2, minmax(0, 1fr)); gap: 12px; min-height: 0; padding-top: 8px; }
-.vehicles-feature-product { display: flex; flex: 1; min-height: 0; }
+.vehicles-supporting-products { display: grid; flex: 1; grid-template-rows: repeat(2, minmax(min-content, 1fr)); gap: 12px; min-height: min-content; padding-top: 8px; }
+.vehicles-feature-product { display: flex; flex: 1; min-height: min-content; }
 .vehicles-supporting-products > .vehicles-page__message { display: flex; flex: 1; align-items: center; margin: 0; min-height: 0; }
 .vehicle-product--supporting { display: flex; flex: 1; flex-direction: column; }
 
 .vehicle-product { min-height: 0; }
 .vehicle-product--feature { display: flex; flex: 1; flex-direction: column; }
 .vehicle-product__art { display: block; width: 100%; object-fit: contain; }
+/* Artwork takes the space its row leaves (flex) and never sizes the row from the image file, so a
+   row's minimum is its text plus the artwork floor. */
+.vehicle-product__art--supporting, .vehicle-product__art--feature { contain: size; }
 .vehicle-product__art-button { padding: 0; border: 0; background: transparent; cursor: pointer; }
 /* Product links keep the former button presentation. */
 a.vehicle-product__art-button { color: inherit; text-decoration: none; }
@@ -92,23 +106,23 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
   .spread-page--product-navigation .vehicles-supporting-products { padding-top: 11px; }
 }
 
+/* Narrow pages keep their tighter horizontal rhythm; height is handled by the page container. */
 @container (max-width: 310px) {
   .vehicles-page { padding-inline: 0; }
   .vehicles-page--supporting { padding-inline: 10px; }
   .vehicle-product__copy { padding-inline: 4px; }
   .vehicle-product__footer { flex-wrap: wrap; }
   .vehicle-product__facts { margin-top: 6px; }
-  .vehicles-page--supporting { height: auto; min-height: 100%; padding-bottom: 12px; }
-  .spread-page--product-navigation .vehicles-page--supporting { height: auto; }
-  .vehicles-supporting-products { grid-template-rows: none; }
-  .vehicle-product--supporting { flex: none; }
-  .vehicle-product__art--supporting { flex: none; height: 140px; }
 }
 
-/* Allow long standard-page content to push its own navigation down inside the
-   existing scrollable paper. BookShell geometry and scrolling stay unchanged. */
-@media (max-width: 1100px) {
-  .spread-page--vehicles:has(> .vehicles-page--supporting) { height: auto; min-height: 440px; }
+/* Compact: a short page lets the artwork shrink (and stop tucking into the row above) before
+   the paper has to scroll. Text sizes are unchanged. */
+@container book-page (max-height: 400px) {
+  .vehicle-product__art--supporting,
+  .spread-page--product-navigation .vehicle-product__art--supporting { min-height: 56px; margin: 0 0 -2px; }
+  .vehicle-product__art--feature { min-height: 96px; }
+  .vehicles-supporting-products,
+  .spread-page--product-navigation .vehicles-supporting-products { gap: 8px; padding-top: 4px; }
 }
 @media (max-width: 760px) {
   .spread-page--vehicles { padding-bottom: 44px; }
@@ -116,7 +130,6 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
 
 /* Desktop text rhythm only: retain artwork sizing and the physical page. */
 @media (min-width: 1101px) {
-  .spread-page--vehicles { min-height: 0; }
   .vehicles-page--supporting { padding-top: 6px; }
   .vehicles-page--supporting .vehicles-page__heading h2 { font-size: clamp(16px, 4.4cqw, 20px); line-height: 1.15; }
   .vehicles-supporting-products,

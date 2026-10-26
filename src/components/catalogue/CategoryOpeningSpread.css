@@ -15,7 +15,9 @@
 .category-opening button:focus-visible { outline: 2px solid #376d69; outline-offset: 4px; }
 /* Give the relocated feature the same printable frame as its former page.
    The editorial left page and BookShell geometry are unchanged. */
-.spread-page--category-opening.spread-page--right { display: block; height: calc(100% + 72px); min-height: 440px; padding-bottom: 32px; }
+.spread-page--category-opening.spread-page--right { display: flex; flex-direction: column; height: auto; min-height: calc(100% + 72px); padding-bottom: 32px; }
+/* The featured page grows (and the paper scrolls) instead of letting its card overlap the navigation. */
+.spread-page--category-opening.spread-page--right > .vehicles-page { flex: 1 0 auto; height: auto; }
 .spread-page--category-opening.spread-page--right > .spread-page__navigation { position: absolute; margin-top: 0; }
 .category-opening__no-feature { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; font-size: 15px; }
 @container (max-width: 310px) { .category-opening { padding-inline: 6px; } .category-opening__description { font-size: 14px; } }
@@ -32,7 +34,6 @@
   .category-opening__invitation > span { margin-bottom: 4px; }
   .category-opening__invitation button { padding-block: 3px; line-height: 1.4; }
   .spread-page--category-opening > .spread-page__navigation { margin-top: 6px; }
-  .spread-page--category-opening.spread-page--right { min-height: 0; }
   @container (max-width: 360px) {
     .category-opening { padding-block: 4px 2px; }
     .category-opening__eyebrow { margin-bottom: 2px; }
