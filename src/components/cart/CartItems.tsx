@@ -26,7 +26,10 @@ export function CartItems({ items, onConfirmRemove, affectedListingId }: {
         checkoutQuantity(item) !== null && Number.isSafeInteger(limit) && limit >= 1 && quantity > limit
       const actionDescription = explanation ? messageId : (allocatedQuantity ?? 0) > 0 ? `cart-allocation-${productListingId}` : undefined
       const image = listing.legoProduct.productImages[0]
-      return <article className={`cart-item${blocked || checkoutQuantity(item) === 0 ? ' cart-item--unavailable' : ''}${affectedListingId === productListingId ? ' cart-item--affected' : ''}`} key={productListingId} data-cart-listing-id={productListingId} aria-describedby={explanation ? messageId : undefined}>
+      // Quantity already reserved for the customer's own pending order is not unavailable stock: it keeps its
+      // colours and explains itself, while checkout still excludes it. Only genuinely blocked lines are greyed.
+      const allocatedOnly = checkoutQuantity(item) === 0
+      return <article className={`cart-item${blocked ? ' cart-item--unavailable' : ''}${allocatedOnly ? ' cart-item--allocated' : ''}${affectedListingId === productListingId ? ' cart-item--affected' : ''}`} key={productListingId} data-cart-listing-id={productListingId} aria-describedby={explanation ? messageId : undefined}>
         <div className="cart-item__image">
           {image ? <img src={image.url} alt={image.altText ?? listing.legoProduct.title} /> : <span aria-hidden="true" />}
         </div>
