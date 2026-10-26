@@ -183,3 +183,11 @@ describe('stock-blocked allocation reduction persistence', () => {
     expect(container.textContent).toContain('Already in a pending order')
   })
 })
+
+it('reports success only for committed adds and stays silent for failed or blocked adds',async()=>{
+ sessionStorage.setItem(AUTH_STORAGE_KEY,'customer-jwt');vi.mocked(getCurrentUser).mockResolvedValue({id:1,email:'test@example.invalid',firstName:null,lastName:null,phone:null});await mount()
+ await act(async()=>{expect(await cart.addListing(offer(42))).toBe(true)})
+ vi.mocked(addCartItem).mockRejectedValueOnce(new Error('synthetic failure'))
+ await act(async()=>{expect(await cart.addListing(offer(43))).toBe(false)})
+ expect(cart.error).toContain('synthetic failure')
+})

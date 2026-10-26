@@ -28,7 +28,7 @@ describe('storefront auth API', () => {
 
   it('maps backend errors without exposing credentials', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Invalid credentials' }), { status: 401 })))
-    await expect(signIn('person@example.com', 'secret')).rejects.toMatchObject({ status: 401, message: 'Invalid credentials' })
+    await expect(signIn('person@example.com', 'secret')).rejects.toMatchObject({ status: 401, message: "We couldn't sign you in with those details. Check your email and password and try again." })
   })
 
   it('patches only editable profile fields and sends the bearer token', async () => {

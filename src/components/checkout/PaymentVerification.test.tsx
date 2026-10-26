@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
-import { act, StrictMode } from 'react'
+import { act, StrictMode, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Checkout } from './Checkout'
+import {useCheckout} from '../../features/checkout/useCheckout'
+import {useConfirmedCartRefresh} from '../../features/cart/useConfirmedCartRefresh'
 import { CartContext, type CartContextValue } from '../../features/cart/CartContext'
 import { windowFixture } from '../../features/checkout/paymentWindowFixtures'
 import type { Order } from '../../features/checkout/api'
@@ -36,7 +38,7 @@ async function submit() { await act(async () => { container.querySelector('form'
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
 beforeEach(() => {
   vi.resetAllMocks(); vi.useFakeTimers(); history.replaceState(null, '', '/checkout/orders/41'); sessionStorage.clear(); localStorage.clear()
-  mocks.read.mockResolvedValue(pending); mocks.prepare.mockResolvedValue('transient-secret'); mocks.retrieve.mockResolvedValue({ paymentIntent: { status: 'requires_payment_method' } }); mocks.confirm.mockResolvedValue({ paymentIntent: { status: 'succeeded' } })
+  mocks.read.mockResolvedValue(pending); mocks.recover.mockResolvedValue(pending); mocks.prepare.mockResolvedValue('transient-secret'); mocks.retrieve.mockResolvedValue({ paymentIntent: { status: 'requires_payment_method' } }); mocks.confirm.mockResolvedValue({ paymentIntent: { status: 'succeeded' } })
   cart = { items: [], isLoading: false, error: null, pendingItemIds: [], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
 })
 afterEach(async () => { if (root) await act(async () => root.unmount()); vi.useRealTimers(); document.body.innerHTML = '' })
@@ -76,9 +78,9 @@ describe('post-payment read-only verification', () => {
     expect(button('Resume existing Stripe checkout')).toBeUndefined(); expect(mocks.read).toHaveBeenCalledTimes(11)
     await act(async () => vi.advanceTimersByTimeAsync(90000))
     expect(mocks.read).toHaveBeenCalledTimes(11)
-    await click('Refresh payment information')
+    await click('Check payment status')
     expect(button('Resume existing Stripe checkout')).toBeUndefined(); expect(mocks.prepare).toHaveBeenCalledOnce()
-    expect(mocks.recover).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled()
+    expect(mocks.recover).toHaveBeenCalledExactlyOnceWith('jwt',41); expect(mocks.create).not.toHaveBeenCalled()
   })
   it('keeps payment received while fulfilment is pending, then refreshes cart once after CONFIRMED', async () => {
     mocks.read.mockResolvedValue(paid)
@@ -89,7 +91,7 @@ describe('post-payment read-only verification', () => {
     mocks.read.mockResolvedValue(confirmed)
     await act(async () => vi.advanceTimersByTimeAsync(2000))
     expect(container.textContent).toContain('Payment confirmed'); expect(cart.refreshCart).toHaveBeenCalledOnce()
-    await click('Refresh payment information'); expect(cart.refreshCart).toHaveBeenCalledOnce()
+    expect(button('Check payment status')).toBeUndefined(); expect(cart.refreshCart).toHaveBeenCalledOnce()
     expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled()
   })
   it('reports recorded payment and pending order confirmation at timeout, retaining PAID over later stale responses', async () => {
@@ -120,8 +122,8 @@ describe('Stripe submission lifecycle', () => {
     await mount(); await click('Resume existing Stripe checkout')
     const form = container.querySelector('form')!; await submit()
     const reads = mocks.read.mock.calls.length
-    expect(button('Refresh payment information')?.disabled).toBe(true); expect(button('Recheck order status')?.disabled).toBe(true)
-    await click('Refresh payment information'); await click('Recheck order status')
+    expect(button('Check payment status')?.disabled).toBe(true)
+    await click('Check payment status'); await click('Check payment status')
     // Dispatch a second submission even though the visible button is disabled.
     await submit()
     expect(mocks.read).toHaveBeenCalledTimes(reads); expect(mocks.recover).not.toHaveBeenCalled(); expect(mocks.confirm).toHaveBeenCalledOnce()
@@ -131,17 +133,14 @@ describe('Stripe submission lifecycle', () => {
   })
 })
 
-it('still verifies PAID finalization after a competing read-only refresh completes', async () => {
+it('hides payment controls after PAID while continuing authoritative order finalization', async () => {
   mocks.read.mockResolvedValue(paid); await mount()
-  const refreshing = deferred<Order>()
-  mocks.read.mockImplementationOnce(() => refreshing.promise)
-  await act(async () => { button('Refresh payment information')!.click() })
-  await act(async () => vi.advanceTimersByTimeAsync(4000))
-  expect(mocks.read).toHaveBeenCalledTimes(2)
-  await act(async () => refreshing.resolve(paid))
+  expect(button('Check payment status')).toBeUndefined()
+  expect(container.querySelector('form')).toBeNull()
   mocks.read.mockResolvedValue(confirmed)
-  await act(async () => vi.advanceTimersByTimeAsync(3000))
-  expect(container.textContent).toContain('Thank you for your order'); expect(cart.refreshCart).toHaveBeenCalledOnce()
+  await act(async () => vi.advanceTimersByTimeAsync(4000))
+  expect(container.textContent).toContain('Thank you for your order')
+  expect(cart.refreshCart).toHaveBeenCalledOnce()
   expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled()
 })
 
@@ -159,11 +158,11 @@ describe('authoritative retry after bounded verification', () => {
     await mount(true)
     if (entry === 'unresolved polling') await act(async () => vi.advanceTimersByTimeAsync(3000))
     expect(history.state).toEqual(unrelated)
-    mocks.read.mockResolvedValue({ ...pending, paymentWindow: windowFixture(state) })
+    mocks.read.mockResolvedValue({ ...pending, paymentWindow: windowFixture(state) }); mocks.recover.mockResolvedValue({ ...pending, paymentWindow: windowFixture(state) })
     await act(async () => vi.advanceTimersByTimeAsync(29000))
     expect(container.textContent).toContain('does not mean payment failed')
     expect(button(label)).toBeUndefined()
-    await click('Refresh payment information')
+    await click('Check payment status')
     expect(button(label)?.disabled).toBe(false)
     expect(container.textContent).not.toContain('Do not pay again')
     expect(history.state).toEqual(unrelated)
@@ -171,20 +170,57 @@ describe('authoritative retry after bounded verification', () => {
     const reads = mocks.read.mock.calls.length
     await act(async () => vi.advanceTimersByTimeAsync(35000))
     expect(mocks.read).toHaveBeenCalledTimes(reads); expect(button(label)?.disabled).toBe(false)
-    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled()
+    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).toHaveBeenCalledTimes(state === 'RETRY_REQUIRES_PROVIDER_CHECK' ? 1 : 0); expect(mocks.create).not.toHaveBeenCalled()
   })
   it('keeps Refresh usable after network uncertainty, unlocking only a successful retry snapshot', async () => {
     history.replaceState({ router: 'preserved' }, '', '/checkout/orders/41?payment_intent=pi_failed&redirect_status=failed')
     mocks.read.mockResolvedValueOnce(pending).mockRejectedValue(new Error('offline'))
     await mount(true)
     expect(container.textContent).toContain('outcome is not yet known')
-    expect(button('Refresh payment information')?.disabled).toBe(false)
-    await click('Refresh payment information')
+    expect(button('Check payment status')?.disabled).toBe(false)
+    mocks.recover.mockRejectedValueOnce(new Error('offline'))
+    await click('Check payment status')
     expect(button('Resume existing Stripe checkout')).toBeUndefined()
-    mocks.read.mockResolvedValue({ ...pending, paymentWindow: windowFixture('RETRY_AVAILABLE') })
-    await click('Refresh payment information')
+    mocks.recover.mockResolvedValue({ ...pending, paymentWindow: windowFixture('RETRY_AVAILABLE') })
+    await click('Check payment status')
     expect(button('Start verified-unpaid replacement payment')?.disabled).toBe(false)
     expect(history.state).toEqual({ router: 'preserved' })
-    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).not.toHaveBeenCalled(); expect(mocks.create).not.toHaveBeenCalled()
+    expect(mocks.prepare).not.toHaveBeenCalled(); expect(mocks.recover).toHaveBeenCalledTimes(2); expect(mocks.create).not.toHaveBeenCalled()
   })
+})
+
+describe('delayed Stripe webhook recovery through one status action',()=>{
+ it.each(['CHECKOUT_RESUMABLE','PROCESSING','OUTCOME_UNRESOLVED','RETRY_REQUIRES_PROVIDER_CHECK'] as const)('recovers %s after page reload without another initiation or browser capture',async state=>{
+  mocks.read.mockResolvedValue({...pending,paymentWindow:windowFixture(state)});mocks.recover.mockResolvedValue(confirmed)
+  await mount(true)
+  expect([...container.querySelectorAll('button')].filter(b=>b.textContent==='Check payment status')).toHaveLength(1)
+  expect(mocks.recover).not.toHaveBeenCalled()
+  await click('Check payment status')
+  expect(mocks.recover).toHaveBeenCalledExactlyOnceWith('jwt',41)
+  expect(container.textContent).toContain('Thank you for your order');expect(cart.refreshCart).toHaveBeenCalledOnce()
+  expect(button('Check payment status')).toBeUndefined()
+  expect(mocks.create).not.toHaveBeenCalled();expect(mocks.prepare).not.toHaveBeenCalled();expect(mocks.confirm).not.toHaveBeenCalled()
+  await act(async()=>root.unmount());mocks.read.mockResolvedValue(confirmed);await mount(true)
+  expect(container.textContent).toContain('Thank you for your order');expect(mocks.recover).toHaveBeenCalledTimes(1)
+ })
+})
+
+it.each([['PAID',paid],['stale PENDING',pending]] as const)('PAID verification resumes after a competing %s read without a customer button',async (_label,response)=>{
+ let driver:ReturnType<typeof useCheckout>|undefined
+ function Harness(){const checkout=useCheckout('jwt',1,41);useConfirmedCartRefresh(checkout.order);useEffect(()=>{driver=checkout},[checkout]);return <p>{checkout.phase}</p>}
+ mocks.read.mockResolvedValue(paid)
+ container=document.createElement('div');document.body.append(container);root=createRoot(container)
+ await act(async()=>root.render(<CartContext.Provider value={cart}><Harness/></CartContext.Provider>))
+ const competing=deferred<Order>();mocks.read.mockImplementationOnce(()=>competing.promise)
+ let refresh:Promise<void>|undefined
+ await act(async()=>{refresh=driver!.reloadOrder()})
+ await act(async()=>vi.advanceTimersByTimeAsync(4000))
+ expect(mocks.read).toHaveBeenCalledTimes(2);expect(cart.refreshCart).not.toHaveBeenCalled()
+ await act(async()=>{competing.resolve(response);await refresh})
+ expect(driver!.order?.paymentWindow?.state).toBe('PAID')
+ mocks.read.mockResolvedValue(confirmed)
+ await act(async()=>vi.advanceTimersByTimeAsync(4000))
+ expect(driver!.phase).toBe('confirmed');expect(cart.refreshCart).toHaveBeenCalledOnce()
+ expect(mocks.create).not.toHaveBeenCalled();expect(mocks.prepare).not.toHaveBeenCalled();expect(mocks.recover).not.toHaveBeenCalled();expect(mocks.confirm).not.toHaveBeenCalled()
+ expect(container.querySelector('button')).toBeNull()
 })

@@ -82,7 +82,8 @@ jobs:
         if: env.ACTION == 'deploy'
         env:
           VITE_API_BASE_URL: /api
-          VITE_PAYMENT_MODE: paypal-sandbox
+          VITE_PAYMENT_MODE: ${{ vars.SANDBOX_PAYMENT_MODE || 'paypal-sandbox' }}
+          VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.SANDBOX_PAYMENT_MODE == 'stripe-sandbox' && vars.VITE_STRIPE_TEST_PUBLISHABLE_KEY || '' }}
           VITE_SANDBOX_REGISTRATION_ENABLED: 'true'
           VITE_PAYPAL_SANDBOX_CLIENT_ID: ${{ vars.VITE_PAYPAL_SANDBOX_CLIENT_ID }}
         run: |

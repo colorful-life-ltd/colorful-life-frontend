@@ -10,7 +10,7 @@ export type Order = {
   id: number; status: string; totalAmount: string; reservationExpiresAt: string | null
   paymentWindow?: PaymentWindow | null
   financials?: OrderFinancials | null
-  payment: { status: string; paidAt: string | null } | null
+  payment: { status: string; paidAt: string | null; amount?: string; currency?: string } | null
   billingRecipientName: string; billingLine1: string; billingLine2: string | null; billingCity: string; billingPostcode: string; billingCountryCode: string
   deliveryRecipientName: string; deliveryLine1: string; deliveryLine2: string | null; deliveryCity: string; deliveryPostcode: string; deliveryCountryCode: string
   orderItems: { id: number; quantity: number; unitPrice: string; lineTotal: string; conditionSnapshot: string; productListing: { id: number; legoProduct: { title: string; setNumber: string } } }[]

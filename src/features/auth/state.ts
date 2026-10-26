@@ -9,6 +9,7 @@ export type AuthState =
   | { status: 'error'; message: string; token?: string }
 
 export type AuthAction =
+  | { type: 'clearError' }
   | { type: 'resolve' }
   | { type: 'authenticate'; mode: 'signin' | 'signup' }
   | { type: 'authenticated'; token: string; user: CurrentUser }
@@ -18,6 +19,7 @@ export type AuthAction =
 
 export function authReducer(_state: AuthState, action: AuthAction): AuthState {
   switch (action.type) {
+    case 'clearError': return _state.status === 'signedOut' ? { status: 'signedOut' } : _state.status === 'error' && !_state.token ? { status: 'signedOut' } : _state.status === 'error' ? {..._state,message:''} : _state
     case 'resolve': return { status: 'resolving' }
     case 'authenticate': return { status: 'authenticating', mode: action.mode }
     case 'authenticated': return { status: 'authenticated', token: action.token, user: action.user }

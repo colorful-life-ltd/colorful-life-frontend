@@ -39,7 +39,7 @@ describe('personal information editing', () => {
     const markup = renderToStaticMarkup(<PersonalInformation onBack={() => {}} />)
     expect(markup).toContain('aria-labelledby="personal-information-title"')
     expect(markup).toContain('aria-labelledby="saved-addresses-title"')
-    expect(markup).toContain('Read only')
+    expect(markup).toContain('Why can’t I change my email?')
     expect(markup).toContain('Edit information')
     expect(markup).toContain('Back to Account')
     expect(markup).toContain('Loading addresses…')

@@ -203,7 +203,10 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
       const next = await (parsePaymentWindow(current.paymentWindow)?.provider === 'PAYPAL' ? getOrder(token, current.id) : recoverPayment(token, current.id))
       if (!active.current || run.current !== currentRun) return
       if (next.id !== current.id) throw new Error('Unable to read this order.')
-      accept(isOlderPaymentSnapshot(latest.current, next) ? latest.current! : next)
+      const older = isOlderPaymentSnapshot(latest.current, next)
+      // Only fresh backend-authorised retry capabilities unlock a prior verification timeout.
+      if (!older && next.status === 'PENDING' && ['replacement', 'provider-check'].includes(paymentAction(next.paymentWindow) ?? '')) verificationLocked.current = false
+      accept(older ? latest.current! : next)
     } catch (reason) {
       if (active.current && run.current === currentRun) {
         fail(reason)

@@ -232,7 +232,7 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
   const previousMode = useRef(mode)
-  const { state, authenticate, refreshAuth } = useAuth()
+  const { state, authenticate, refreshAuth, clearError } = useAuth()
   const [restoring, setRestoring] = useState(false)
   const restoringLock = useRef(false)
   const [formError, setFormError] = useState<string>()
@@ -269,7 +269,7 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
         restoringLock.current = true; setRestoring(true)
         void refreshAuth().finally(() => { restoringLock.current = false; setRestoring(false) })
       }}>{restoring ? 'Reconnecting…' : 'Retry connection'}</button>}
-      <AccountView mode={mode} onModeChange={setMode} draft={drafts[mode]}
+      <AccountView mode={mode} onModeChange={mode => { setFormError(undefined); clearError(); setMode(mode) }} draft={drafts[mode]}
         onSubmit={submit} error={formError || serverError} submitting={submitting}
         onForgotPassword={() => { setFormError(undefined); setMode('forgot') }}
         onFieldChange={(name, value) => { setFormError(undefined); setDrafts((current) => ({ ...current, [mode]: { ...current[mode], [name]: value } })) }} />

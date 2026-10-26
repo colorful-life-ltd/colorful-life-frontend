@@ -7,7 +7,7 @@ import { ResetPassword } from './ResetPassword'
 import { captureResetToken, forgetResetToken, MAX_PASSWORD_BYTES, PASSWORD_TOO_LONG_MESSAGE, passwordByteLength, passwordPolicyError } from '../../features/auth/passwordReset'
 
 const auth = vi.hoisted(() => ({ authenticate: vi.fn() }))
-vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'signedOut' }, authenticate: auth.authenticate, refreshAuth: vi.fn(), logout: vi.fn() }) }))
+vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'signedOut' }, authenticate: auth.authenticate, clearError: vi.fn(), refreshAuth: vi.fn(), logout: vi.fn() }) }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 // Every candidate satisfies the complexity rules, so only the byte limit decides.

@@ -9,6 +9,7 @@ type AuthContextValue = {
   state: AuthState
   authenticate: (mode: 'signin' | 'signup', credentials: Credentials) => Promise<void>
   updateProfile: (profile: UpdateCurrentUser) => Promise<CurrentUser>
+  clearError: () => void
   logout: () => void
   refreshAuth: () => Promise<boolean>
 }
@@ -120,7 +121,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
     return updated
   }, [state])
 
-  const value = useMemo(() => ({ state, authenticate, updateProfile, logout, refreshAuth }), [state, authenticate, updateProfile, logout, refreshAuth])
+  const clearError = useCallback(() => dispatch({ type: 'clearError' }), [])
+  const value = useMemo(() => ({ state, authenticate, updateProfile, logout, refreshAuth, clearError }), [state, authenticate, updateProfile, logout, refreshAuth, clearError])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
@@ -128,7 +130,7 @@ export function useAuth() {
   const value = useContext(AuthContext)
   if (value) return value
   // Keeps the presentational form renderable in isolated/static component tests.
-  return { state: { status: 'signedOut' } as AuthState, authenticate: async () => undefined, updateProfile: async () => { throw new Error('Authentication unavailable') }, logout: () => undefined, refreshAuth: async () => false }
+  return { state: { status: 'signedOut' } as AuthState, authenticate: async () => undefined, updateProfile: async () => { throw new Error('Authentication unavailable') }, clearError: () => undefined, logout: () => undefined, refreshAuth: async () => false }
 }
 
 export type { CurrentUser }

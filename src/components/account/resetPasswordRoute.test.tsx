@@ -7,7 +7,7 @@ import { CartContext, type CartContextValue } from '../../features/cart/CartCont
 import { captureResetToken, forgetResetToken } from '../../features/auth/passwordReset'
 
 const auth = vi.hoisted(() => ({ state: { status: 'signedOut' } as Record<string, unknown>, logout: vi.fn() }))
-vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: auth.state, logout: auth.logout, authenticate: vi.fn(), refreshAuth: vi.fn() }) }))
+vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: auth.state, logout: auth.logout, authenticate: vi.fn(), clearError: vi.fn(), refreshAuth: vi.fn() }) }))
 vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
 vi.mock('../checkout/StripePaymentForm', () => ({ StripePaymentForm: () => null }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })

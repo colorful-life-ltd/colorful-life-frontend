@@ -28,7 +28,7 @@ describe('checkout address, identity and recovery rules', () => {
   it('maps saved delivery explicitly, omitting nulls and default flags', () => { expect(deliverySnapshot(address)).toEqual({ recipientName: 'Customer', line1: '1 Street', city: 'London', postcode: 'SW1A 1AA', countryCode: 'GB' }) })
   it.each(['', 'Unknown country', 'ZZ', 'G', 'GBR'])('blocks invalid country %s', country => { expect(() => deliverySnapshot({ ...address, country })).toThrow('country code') })
   it('blocks missing address fields and preserves distinct listing quantities', () => {
-    expect(() => deliverySnapshot({ ...address, city: '' })).toThrow('required fields')
+    expect(() => deliverySnapshot({ ...address, city: '' })).toThrow('city is required.')
     const listing = cartListing(offer(16901, { legoProductId: 500 }))
     expect(orderInput([{ productListingId: 16901, listing, quantity: 1 }, { productListingId: 16902, listing: { ...listing, id: 16902 }, quantity: 3 }], address, 'STANDARD').items).toEqual([{ productListingId: 16901, quantity: 1 }, { productListingId: 16902, quantity: 3 }])
   })

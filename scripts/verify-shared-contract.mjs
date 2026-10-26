@@ -12,3 +12,13 @@ else {
 }
 assert.equal(local,canonical,'Client contract fixture drifted from its Backend-owned version')
 console.log('Client contract matches its immutable Backend source')
+
+if(process.env.BACKEND_CUSTOMER_INPUT_FILE) {
+ const rules=await readFile(new URL('../src/features/account/customerInput.ts',import.meta.url),'utf8')
+ assert.equal(rules,await readFile(process.env.BACKEND_CUSTOMER_INPUT_FILE,'utf8'),'Customer validation rules differ from Backend')
+ console.log('Customer input validation matches Backend byte-for-byte')
+}
+if(process.env.BACKEND_PAYMENT_WINDOW_FILE) {
+ assert.equal(await readFile(new URL('../contracts/payment-window-v1.json',import.meta.url),'utf8'),await readFile(process.env.BACKEND_PAYMENT_WINDOW_FILE,'utf8'),'Payment-window fixtures differ from Backend')
+ console.log('Payment-window contract matches Backend byte-for-byte')
+}

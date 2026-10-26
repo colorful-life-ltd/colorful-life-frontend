@@ -101,10 +101,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [authState])
 
   const addListing = useCallback((listing: import('../catalogue/api').ProductListingOffer) => {
-    if (!isSignedIn(authState)) return Promise.resolve()
+    if (!isSignedIn(authState)) return Promise.resolve(false)
     const existing = items.find(item => item.productListingId === listing.id)
     const currentQuantity = existing?.quantity ?? 0
-    if (pendingIds.current.has(listing.id) || currentQuantity + 1 > cartQuantityLimit({ listing, allocatedQuantity: existing?.allocatedQuantity })) return Promise.resolve()
+    if (pendingIds.current.has(listing.id) || currentQuantity + 1 > cartQuantityLimit({ listing, allocatedQuantity: existing?.allocatedQuantity })) return Promise.resolve(false)
     markPending(listing.id)
     const operation = writes.current.then(async () => {
       // Let the authentication effect establish the current hydration promise
@@ -116,15 +116,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       // that normal transition must not discard this valid write. The token
       // ref still prevents a request from committing after sign-out/account
       // replacement.
-      if (activeToken.current !== authState.token) return
+      if (activeToken.current !== authState.token) return false
       const cart = await addCartItem(authState.token, listing.id, 1)
-      if (activeToken.current !== authState.token) return
+      if (activeToken.current !== authState.token) return false
       setItems(mapCart(cart))
       setError(null)
+      return true
     }).catch((reason: unknown) => {
       if (activeToken.current === authState.token) setError(reason instanceof Error ? reason.message : 'Unable to update your cart')
+      return false
     }).finally(() => clearPending(listing.id))
-    writes.current = operation.catch(() => undefined)
+    writes.current = operation.then(() => undefined, () => undefined)
     return operation
   }, [authState, items])
 
