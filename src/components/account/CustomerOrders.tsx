@@ -5,7 +5,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError, isVerificationRequired } from '../../features/auth/api'
 import { listOrders, readOrder, type OrderSummary, type OrderDetail } from '../../features/orders/api'
-import { canCheckPayment, canResumeCheckout, displayDate, orderDetailId, orderStatusLabel } from '../../features/orders/presentation'
+import { canCheckPayment, canResumeCheckout, deliverySummary, displayDate, displayDay, orderDetailId, orderStatusLabel, paymentStatusLabel } from '../../features/orders/presentation'
+import { OrderItemThumbnail } from './OrderItemThumbnail'
 import { isOlderPaymentSnapshot, parsePaymentWindow, paymentActionLabel, paymentMessage } from '../../features/checkout/paymentWindow'
 import { PaymentWindowNotice } from '../checkout/PaymentWindowNotice'
 import { OrderFinancialSummary } from '../checkout/OrderFinancialSummary'
@@ -15,6 +16,7 @@ import { formatGbp, priceToPence } from '../../features/cart/CartContext'
 import { VerificationNotice } from './VerificationNotice'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
 import '../checkout/Checkout.css'
+import './CustomerOrders.css'
 
 type Props = { path: string; onAccount: () => void; onAuthenticate: () => void }
 export function CustomerOrders({ path, onAccount, onAuthenticate }: Props) {
@@ -94,17 +96,39 @@ function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: numb
   if (state.phase === 'unavailable') return <p role="alert">We cannot display this order information for your account.</p>
   if (state.phase === 'error') return <><p role="alert">Unable to load your orders. Please try again.</p><button onClick={reload}>Retry</button></>
   return <>
-    {state.detail ? <><Detail order={state.detail} checking={checking} />{canCheckPayment(state.detail) && <button disabled={checking} onClick={() => void checkPayment()}>{checking ? 'Checking payment status…' : 'Check payment status'}</button>}{feedback && <p role="status">{feedback}</p>}</> : state.orders.length ? <ul className="checkout__items">{state.orders.map(order => <li key={order.id}>
-      <h2>Order #{order.id}</h2><p>Placed {displayDate(order.createdAt)}</p>
-      <p>Order status: {orderStatusLabel(order.status)}</p>
-      <p>{paymentMessage(order.paymentWindow)}</p><OrderProgress order={order} />
-      <p>{order.orderItems.reduce((sum, item) => sum + item.quantity, 0)} {order.orderItems.reduce((sum, item) => sum + item.quantity, 0) === 1 ? 'item' : 'items'} · {order.orderItems.map(item => item.productListing.legoProduct.title).join(', ')}</p>
-      <p>Delivery: {order.financials?.shipping ? `${order.financials.shipping.method} · ${formatGbp(order.financials.shipping.chargePence)}` : 'details unavailable'}</p>
-      <p className="checkout__total">Order total <strong>{formatGbp(priceToPence(order.financials?.totalAmount ?? order.totalAmount))}</strong></p>
-      <button onClick={() => navigateCheckout(`/account/orders/${order.id}`)}>View order #{order.id}</button>
-    </li>)}</ul> : <p>You haven’t placed any orders yet.</p>}
+    {state.detail ? <><Detail order={state.detail} checking={checking} />{canCheckPayment(state.detail) && <button disabled={checking} onClick={() => void checkPayment()}>{checking ? 'Checking payment status…' : 'Check payment status'}</button>}{feedback && <p role="status">{feedback}</p>}</> : state.orders.length ? <ol className="order-history" aria-label="Your orders, newest first">{state.orders.map(order => <OrderCard key={order.id} order={order} />)}</ol> : <p className="order-history__empty">You haven’t placed any orders yet.</p>}
     <button className="checkout__secondary" disabled={checking} onClick={reload}>Refresh {id === null ? 'orders' : 'order'}</button>
   </>
+}
+
+const VISIBLE_ITEMS = 3
+function OrderCard({ order }: { order: OrderSummary }) {
+  const units = order.orderItems.reduce((sum, item) => sum + item.quantity, 0)
+  const hidden = order.orderItems.length - VISIBLE_ITEMS
+  const title = `order-${order.id}-title`
+  const milestone = order.status === 'DISPATCHED' && order.dispatchedAt ? ` · Dispatched ${displayDay(order.dispatchedAt)}` : order.status === 'COMPLETED' && order.completedAt ? ` · Completed ${displayDay(order.completedAt)}` : ''
+  return <li className="order-card"><article aria-labelledby={title}>
+    <header className="order-card__meta">
+      <dl>
+        <div><dt>Order placed</dt><dd>{displayDay(order.createdAt)}</dd></div>
+        <div><dt>Total</dt><dd>{formatGbp(priceToPence(order.financials?.totalAmount ?? order.totalAmount))}</dd></div>
+        <div><dt>{units} {units === 1 ? 'item' : 'items'}</dt><dd><h2 id={title}>Order #{order.id}</h2></dd></div>
+      </dl>
+      <button className="order-card__details" aria-describedby={title} onClick={() => navigateCheckout(`/account/orders/${order.id}`)}>View order details</button>
+    </header>
+    <div className="order-card__body">
+      <p className="order-card__status"><strong>{orderStatusLabel(order.status)}</strong>{milestone}</p>
+      <ul className="order-card__items">{order.orderItems.slice(0, VISIBLE_ITEMS).map(item => <li key={item.id}>
+        <OrderItemThumbnail productId={item.productListing.legoProduct.id} />
+        <span className="order-card__item-text"><span className="order-card__item-name">{item.productListing.legoProduct.title}</span><span className="order-card__item-meta">Set {item.productListing.legoProduct.setNumber} · Qty {item.quantity}</span></span>
+      </li>)}</ul>
+      {hidden > 0 && <p className="order-card__more">+{hidden} more {hidden === 1 ? 'product' : 'products'} in this order</p>}
+      <dl className="order-card__facts">
+        <div><dt>Payment</dt><dd>{paymentStatusLabel(order.paymentWindow)}</dd></div>
+        <div><dt>Delivery</dt><dd>{deliverySummary(order)}</dd></div>
+      </dl>
+    </div>
+  </article></li>
 }
 
 function Address({ order, kind }: { order: OrderDetail; kind: 'delivery' | 'billing' }) {
@@ -117,7 +141,6 @@ function Address({ order, kind }: { order: OrderDetail; kind: 'delivery' | 'bill
 }
 function Detail({ order, checking }: { order: OrderDetail; checking: boolean }) {
   return <>
-    <p>Need to return something? <a href="/legal/delivery-returns">Delivery &amp; Returns</a> · <a href="mailto:support@build-and-bloom.co.uk">Contact support</a></p>
     <p>Placed {displayDate(order.createdAt)}</p><p>Order status: {orderStatusLabel(order.status)}</p>
     <PaymentWindowNotice value={order.paymentWindow} /><OrderProgress order={order} />
     {parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && order.payment?.paidAt && <p>Paid {displayDate(order.payment.paidAt)}</p>}
@@ -130,6 +153,7 @@ function Detail({ order, checking }: { order: OrderDetail; checking: boolean }) 
       <section aria-labelledby="order-billing"><h2 id="order-billing">Billing address</h2><Address order={order} kind="billing" /></section></div>
     {order.status === 'DISPATCHED' && <p>{order.dispatchedAt && <>Dispatched {displayDate(order.dispatchedAt)}. </>}{order.shippingCarrier}{order.trackingNumber && <> · Tracking {order.trackingNumber}</>}</p>}
     {order.status === 'COMPLETED' && order.completedAt && <p>Completed {displayDate(order.completedAt)}.</p>}
+    <p>Need to return something? <a href="/legal/delivery-returns">Delivery &amp; Returns</a> · <a href="mailto:support@build-and-bloom.co.uk">Contact support</a></p>
     {canResumeCheckout(order) && <button disabled={checking} onClick={() => navigateCheckout(`/checkout/orders/${order.id}`)}>{paymentActionLabel(order.paymentWindow)}</button>}
   </>
 }
