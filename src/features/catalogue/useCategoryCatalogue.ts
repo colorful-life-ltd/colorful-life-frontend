@@ -43,10 +43,10 @@ export function useCategoryCatalogue(category: BackendCategory | undefined, cate
       if (controller.signal.aborted) return
       const fresh: ReadyState = { status: 'ready', category, products: products.filter(item => item.category?.id === category.id) }
       const cached = productCache.get(category.id)
-      // An unchanged refresh keeps the cached objects, so the visible cards are not re-rendered at all.
+      // An unchanged refresh keeps the cached objects; if they are already shown, React skips the render entirely.
       const state = cached && sameData(cached, fresh) ? cached : fresh
       remember(category.id, state)
-      setResult({ id: category.id, state })
+      setResult(previous => previous?.id === category.id && previous.state === state ? previous : { id: category.id, state })
     }).catch(() => {
       if (controller.signal.aborted) return
       // A failed background refresh keeps the cards already shown; only a first load reports an error.

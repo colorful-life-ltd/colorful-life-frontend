@@ -57,6 +57,14 @@ describe('session category product cache', () => {
     expect(mocks.getProducts).toHaveBeenCalledTimes(3) // and it is refreshed in the background
   })
 
+  it('does not render again when a refresh of the category already shown is unchanged', async () => {
+    await show(marvel); await settle(latest(6), [item(1, marvel)])
+    await show(undefined); await show(marvel) // e.g. back to the index and into the same category
+    const renders = states.length, shown = current()
+    await settle(latest(6), [item(1, marvel)])
+    expect(states.length).toBe(renders); expect(current()).toBe(shown)
+  })
+
   it('applies a background refresh: stock, price, status and category membership come from the fresh list', async () => {
     await show(marvel); await settle(latest(6), [item(1, marvel), item(2, marvel), item(5, marvel)])
     await show(city); await settle(latest(4), [])
