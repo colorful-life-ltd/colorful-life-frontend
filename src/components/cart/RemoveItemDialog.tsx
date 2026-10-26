@@ -1,3 +1,4 @@
+import { CloudinaryImage } from '../shared/CloudinaryImage'
 import { useEffect, useId, useRef } from 'react'
 import sprig from '../../assets/account/account-hub-card-sprig.png'
 import { formatGbp, listingUnitPricePence, type CartItem } from '../../features/cart/CartContext'
@@ -51,7 +52,7 @@ export function RemoveItemDialog({ item, onCancel, onConfirm, isConfirming = fal
     <h2 id={titleId}>{copy.removeTitle}</h2>
     <div className="remove-item-dialog__divider"><BotanicalDivider /></div>
     <div className="remove-item-dialog__product">
-      {image && <img className="remove-item-dialog__image" src={image.url} alt={image.altText ?? item.listing.legoProduct.title} />}
+      {image && <CloudinaryImage className="remove-item-dialog__image" src={image.url} variant="display" alt={image.altText ?? item.listing.legoProduct.title} />}
       <div className="remove-item-dialog__product-copy">
         <h3>{item.listing.legoProduct.title}</h3>
         <p>{formatGbp(listingUnitPricePence(item))}</p>

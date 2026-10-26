@@ -1,3 +1,4 @@
+import { CloudinaryImage } from '../shared/CloudinaryImage'
 import { useEffect, useRef, useState } from 'react'
 import { orderThumbnail, type OrderThumbnail } from '../../features/orders/productThumbnails'
 
@@ -21,6 +22,6 @@ export function OrderItemThumbnail({ productId }: { productId?: number }) {
   }, [productId])
   // Decorative: the product name is always shown beside it.
   return <span ref={frame} className="order-card__thumb" aria-hidden="true">
-    {image && !failed && <img src={image.url} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />}
+    {image && !failed && <CloudinaryImage src={image.url} variant="thumbnail" alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />}
   </span>
 }
