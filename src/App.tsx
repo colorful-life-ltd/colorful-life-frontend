@@ -36,6 +36,7 @@ import { useRouteHead } from './features/seo/documentHead'
 import { catalogueRouteHead, isPrivatePath, privateRouteHead } from './features/seo/routeHead'
 import { isLegalPath, legalHref } from './features/legal/routes'
 import { SiteFooter } from './components/legal/LegalLayout'
+import { CART_ADD_MESSAGE, CartAddFeedbackContext } from './features/cart/cartAddFeedback'
 import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
@@ -155,8 +156,10 @@ function App() {
   }
   const [cartAdded, setCartAdded] = useState(0)
   const [cartNotice, setCartNotice] = useState(false)
+  const [cartAddedListing, setCartAddedListing] = useState<number | null>(null)
   useEffect(() => { if (!cartAdded) return; const timer = window.setTimeout(() => setCartNotice(false), 3000); return () => window.clearTimeout(timer) }, [cartAdded])
-  const announceAdd = async (offer: ProductListingOffer) => { if (await addListing(offer)) { setCartNotice(true); setCartAdded(value => value + 1) } }
+  const announceAdd = async (offer: ProductListingOffer) => { if (await addListing(offer)) { setCartAddedListing(offer.id); setCartNotice(true); setCartAdded(value => value + 1) } }
+  const cartAddFeedback = useMemo(() => ({ count: cartAdded, visible: cartNotice, listingId: cartAddedListing }), [cartAdded, cartNotice, cartAddedListing])
   const confirmConditionOffer = (offer: ProductListingOffer) => {
     if (!isSignedIn(authState)) { showGuestHint('cart'); return }
     void announceAdd(offer)
@@ -348,7 +351,7 @@ function App() {
               onOpenAccount={openAccount}
               onGuestHint={() => { if (authState.status === 'signedOut') showGuestHint('user') }}
             />
-            <BookOwnedCart onGuestClick={openCart} successCount={cartAdded} /><span className="cart-add-feedback" role="status" aria-live="polite" aria-atomic="true">{cartNotice && <span key={cartAdded}>Added to your cart.</span>}</span>
+            <BookOwnedCart onGuestClick={openCart} successCount={cartAdded} /><span className="cart-add-feedback" role="status" aria-live="polite" aria-atomic="true">{cartNotice && <span key={cartAdded}>{CART_ADD_MESSAGE}</span>}</span>
             {authState.status === 'signedOut' && guestHint && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
               {!sandboxCheckout && guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
               <span aria-hidden="true" />
@@ -370,7 +373,7 @@ function App() {
             {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : isCategoryIndexSpread(spread) ? `Catalogue spread ${categorySpreadIndex(spread) + 1} of ${Math.max(1, Math.ceil(Math.ceil(resolvedCategories.length / 3) / 2))}` : spread === 'front-matter' ? 'Welcome and Contents' : 'Opening spread'}
           </span>
             <div className="catalogue-stage__open-underlay" style={{ visibility: catalogueOpen ? 'visible' : 'hidden' }} aria-hidden={!catalogueOpen} inert={!catalogueOpen || opening}>
-              {catalogueOpen ? <CategoryCatalogue
+              {catalogueOpen ? <CartAddFeedbackContext.Provider value={cartAddFeedback}><CategoryCatalogue
                 spread={spread}
                 backendCategoriesState={backendCategoriesState}
                 onRetryCategories={retryBackendCategories}
@@ -380,7 +383,7 @@ function App() {
                 onLeafletSideChange={changeLeafletSide}
                 onClose={closeCatalogue}
                 onAddToCart={addToCart}
-              /> : <BookShell />}
+              /></CartAddFeedbackContext.Provider> : <BookShell />}
             </div>
           {!catalogueOpen && <ClosedCatalogue onOpen={openCatalogue} onBookmark={openCityBookmark} />}
           {opening && closedRect && <OpeningTransition closedRect={closedRect} onAnimationEnd={finishOpening} />}

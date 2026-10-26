@@ -71,6 +71,12 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
 .product-details__add:disabled:hover { border-bottom-color: transparent; }
 .product-details__cart-quantity { font: 13px/1.3 'Segoe UI', system-ui, sans-serif; color: #6b5947; }
 .product-details__add:focus-visible { outline: 2px solid #326993; outline-offset: 4px; border-radius: 3px; }
+/* Quiet confirmation in the book's own type; the line is always reserved so nothing moves. */
+.product-details__added { min-height: 1.5em; margin: 4px 0 0; font-style: italic; font-size: 15px; line-height: 1.5; color: #4d644f; }
+.product-details__added > span { display: inline-flex; align-items: center; gap: 6px; animation: product-details-added 3s ease-in-out both; }
+.product-details__added svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+@keyframes product-details-added { 0% { opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .product-details__added > span { animation: none; } }
 .spread-page--vehicles:has(> .product-details) { height: auto; min-height: calc(100% + 72px); }
 .vehicles-page__message { margin: 30px 10px; font-size: 14px; }
 .vehicles-page__message button { color: inherit; font: inherit; background: transparent; border: 0; text-decoration: underline; cursor: pointer; }

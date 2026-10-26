@@ -55,15 +55,19 @@ describe('My Orders entry and list', () => {
   it('loads authoritative summaries in backend order without inventing payment state', async () => {
     fetcher.mockResolvedValue(response([ { ...summary, id: 42, status: 'CONFIRMED' }, summary ]))
     await mount()
-    expect(container.textContent).toContain('Order status: Confirmed'); expect(container.textContent).toContain('£20.50'); expect(container.textContent).toContain('2 items · Flowers')
-    expect([...container.querySelectorAll('h2')].map(h => h.textContent)).toEqual(['Order #42', 'Order #41'])
-    expect(container.textContent).not.toContain('Payment status'); expect(container.textContent).not.toContain('pending payment')
+    const cards = [...container.querySelectorAll('.order-card')]
+    expect(cards.map(card => card.querySelector('h2')?.textContent)).toEqual(['Order #42', 'Order #41'])
+    expect(cards[0].querySelector('.order-card__status')?.textContent).toBe('Confirmed'); expect(cards[1].querySelector('.order-card__status')?.textContent).toBe('Pending')
+    expect(cards[0].textContent).toContain('Total£20.50'); expect(cards[0].textContent).toContain('FlowersSet 123 · Qty 2')
+    // Payment labels come only from each order's own window (fixture: confirmed → NOT_PAYABLE, pending → INITIAL_PAYMENT).
+    expect(cards[0].textContent).toContain('PaymentNot payable · Stripe'); expect(cards[1].textContent).toContain('PaymentAwaiting payment · Stripe')
+    expect(container.textContent).not.toContain('pending payment')
   })
   it.each([0, 1, 2])('uses correct item-count grammar for %i requested units', async quantity => {
     fetcher.mockResolvedValue(response([{ ...summary, orderItems: [{ ...item, quantity }] }]))
     await mount()
-    expect(container.textContent).toContain(`${quantity} ${quantity === 1 ? 'item' : 'items'} · Flowers`)
-    expect(container.textContent).not.toContain('1 items')
+    expect(container.querySelector('.order-card__meta')?.textContent).toContain(`${quantity} ${quantity === 1 ? 'item' : 'items'}Order #41`)
+    expect(container.textContent).toContain(`Qty ${quantity}`); expect(container.textContent).not.toContain('1 items')
   })
   it('shows loading and empty history', async () => {
     let finish!: (value: Response) => void
@@ -78,7 +82,7 @@ describe('My Orders entry and list', () => {
     await click('Retry'); expect(container.textContent).toContain('Order #41'); expect(fetcher).toHaveBeenCalledTimes(2)
   })
   it('opens selected order detail and rereads on refresh/re-entry', async () => {
-    await mount(); await click('View order #41')
+    await mount(); await click('View order details')
     expect(location.pathname).toBe('/account/orders/41'); expect(container.textContent).toContain('Delivery Customer')
     fetcher.mockImplementation((url: string) => response(url === '/api/orders' ? [summary] : { ...detail, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-02T12:00:00Z' } }))
     await click('Refresh order'); expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41')).toHaveLength(2)
@@ -309,8 +313,9 @@ describe('persisted order financials in customer views', () => {
   }
   it('lists and details the persisted delivery method, charge and total', async () => {
     serve(express, '28.49'); await mount()
-    expect(container.textContent).toContain('Delivery: Express Delivery · £7.99'); expect(container.textContent).toContain('Order total £28.49')
-    await click('View order #41')
+    // The list shows the persisted method and total; the charge breakdown stays on Order Detail.
+    expect(container.textContent).toContain('DeliveryExpress Delivery'); expect(container.textContent).toContain('Total£28.49')
+    await click('View order details')
     const breakdown = container.querySelector('dl[aria-label="Order price breakdown"]')!
     expect(breakdown.textContent).toContain('Merchandise subtotal£20.50'); expect(breakdown.textContent).toContain('Express Delivery · £7.99')
     expect(breakdown.textContent).toContain('Estimated 1–3 working days after dispatch'); expect(breakdown.textContent).toContain('Order total£28.49')
@@ -318,8 +323,9 @@ describe('persisted order financials in customer views', () => {
   })
   it('shows historical orders without fabricated delivery data or free shipping', async () => {
     serve(historical, '20.50'); await mount()
-    expect(container.textContent).toContain('Delivery: details unavailable')
-    await click('View order #41')
+    expect(container.textContent).toContain('DeliveryDelivery details unavailable')
+    expect(container.textContent).not.toMatch(/£0\.00|Standard Delivery|Express Delivery|Free/)
+    await click('View order details')
     expect(container.textContent).toContain('Delivery details unavailable'); expect(container.textContent).toContain('does not mean delivery was free')
     expect(container.textContent).not.toMatch(/£0\.00|Standard Delivery|Express Delivery|Free/)
     expect(container.textContent).toContain('Order total£20.50')

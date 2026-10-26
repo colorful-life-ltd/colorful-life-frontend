@@ -1,8 +1,9 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { productAvailabilityLabel, defaultProductOffer, isSellableOffer, sellableOffers, type CatalogueProduct, type ProductListingOffer } from '../../features/catalogue/api'
 import type { ProductSpread } from '../../features/catalogue/productSpreads'
 import type { VehiclesState } from '../../features/catalogue/useVehicles'
 import { effectivePricePence, formatGbp, useCart } from '../../features/cart/CartContext'
+import { CART_ADD_MESSAGE, useCartAddFeedback } from '../../features/cart/cartAddFeedback'
 import { productPath } from './catalogueSpread'
 import { cachedShippingOptions } from '../../features/checkout/shipping'
 import './VehiclesProductPage.css'
@@ -109,6 +110,15 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
   const cartQuantity = offer ? items.find(item => item.productListingId === offer.id)?.quantity ?? 0 : 0
   const stockLimit = offer && isSellableOffer(offer) ? (offer.condition === 'USED_LIKE_NEW' ? Math.min(1, offer.availableStock) : offer.availableStock) : 0
   const atLimit = stockLimit === 0 || cartQuantity >= stockLimit
+  const added = useCartAddFeedback()
+  const justAdded = added.visible && added.listingId !== null && product.offers.some(item => item.id === added.listingId)
+  const addedLine = useRef<HTMLParagraphElement>(null)
+  // The book page scrolls internally and Add to cart often sits at its lower edge: reveal the line beneath it.
+  useEffect(() => {
+    if (!justAdded) return
+    const reduce = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    addedLine.current?.scrollIntoView?.({ block: 'nearest', behavior: reduce ? 'auto' : 'smooth' })
+  }, [justAdded, added.count])
   return <article className="product-details" data-detail-product-id={product.id} data-detail-listing-id={offer?.id} aria-label={product.title}>
     <h2>Product details</h2>
     <p className="product-details__number">LEGO {product.setNumber}</p><h3 className="product-details__title">{product.title}</h3>
@@ -132,6 +142,9 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
       <span>{offer ? 'Add to cart' : productAvailabilityLabel(product)}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
       {cartQuantity > 0 && <span className="product-details__cart-quantity">In cart: {cartQuantity}{atLimit && ' · Maximum available'}</span>}
     </button>}
+    {/* Space is always reserved so the details never shift; the app-level polite live region announces it. */}
+    {onAddToCart && <p ref={addedLine} className="product-details__added" aria-hidden="true">{justAdded && <span key={added.count}>
+      <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.2 4.2L19 7" /></svg>{CART_ADD_MESSAGE}</span>}</p>}
   </article>
 }
 
