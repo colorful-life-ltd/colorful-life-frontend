@@ -77,7 +77,7 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
 .product-details__thumbnail.is-selected { border-color: #4d644f; box-shadow: 0 0 0 1px #4d644f; }
 .product-details__thumbnail:focus-visible { outline: 2px solid #326993; outline-offset: 2px; }
 .product-details__empty { min-height: 250px; display: grid; place-items: center; margin: 0; }
-.product-details__description { white-space: pre-line; font: 14px/1.6 'Segoe UI', system-ui, sans-serif; }
+.product-details__description { white-space: pre-line; font: 14px/1.6 'Segoe UI', system-ui, sans-serif; margin: 0 0 14px; }
 .product-details__add { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; padding: 7px 2px; border: 0; border-bottom: 1px solid transparent; background: transparent; color: #3e6962; font: 600 16px/1.4 'Segoe Print', 'Comic Sans MS', cursive; cursor: pointer; }
 .product-details__add svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.7; }
 .product-details__add:hover { border-bottom-color: currentColor; }
@@ -86,8 +86,8 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
 .product-details__cart-quantity { font: 13px/1.3 'Segoe UI', system-ui, sans-serif; color: #6b5947; }
 .product-details__add:focus-visible { outline: 2px solid #326993; outline-offset: 4px; border-radius: 3px; }
 /* Quiet confirmation in the book's own type; the line is always reserved so nothing moves. */
-.product-details__added { min-height: 1.5em; margin: 4px 0 0; font-style: italic; font-size: 15px; line-height: 1.5; color: #4d644f; }
-.product-details__added > span { display: inline-flex; align-items: center; gap: 6px; animation: product-details-added 3s ease-in-out both; }
+.product-details__added { min-height: 1em; margin: 0; font-style: italic; font-size: 15px; line-height: 1; color: #4d644f; }
+.product-details__added > span { display: inline-flex; vertical-align: top; align-items: center; gap: 6px; animation: product-details-added 3s ease-in-out both; }
 .product-details__added svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 @keyframes product-details-added { 0% { opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .product-details__added > span { animation: none; } }
@@ -176,12 +176,6 @@ article.product-details::after { content: ''; position: sticky; bottom: calc(-1 
 .product-details__damage-copy { margin: 5px 0; color: #6b5947; font: 12px/1.5 Georgia, serif; }
 .product-details__selected-offer { margin: 10px 0; font: 15px/1.4 Georgia, serif; }
 .product-details__stock { color: #6b5947; font: 12px/1.4 'Segoe UI', system-ui, sans-serif; }
-
-.product-details__age,
-.product-details__delivery {
-  margin: 6px 0;
-  font-size: 0.9em;
-}
 
 .product-details__safety {
   margin: 8px 0;

@@ -6,7 +6,6 @@ import type { VehiclesState } from '../../features/catalogue/useVehicles'
 import { effectivePricePence, formatGbp, useCart } from '../../features/cart/CartContext'
 import { CART_ADD_MESSAGE, useCartAddFeedback } from '../../features/cart/cartAddFeedback'
 import { productPath } from './catalogueSpread'
-import { cachedShippingOptions } from '../../features/checkout/shipping'
 import './VehiclesProductPage.css'
 
 /** Crawlable product link; a plain click keeps the in-book page turn, modified clicks open the URL. */
@@ -19,18 +18,6 @@ function productLinkClick(productId: number, onViewDetails: (id: number) => void
 }
 
 const ageLabel = (age: string) => /^ages?\b/i.test(age) ? age : `Ages ${age}${/^\d+$/.test(age) ? '+' : ''}`
-
-/** Cheapest delivery charge from the backend catalogue, shown before the item is added. */
-function DeliveryFrom() {
-  const [fromPence, setFromPence] = useState<number | null>(null)
-  useEffect(() => {
-    let active = true
-    cachedShippingOptions().then(options => { if (active) setFromPence(Math.min(...options.methods.map(method => method.chargePence))) }).catch(() => {})
-    return () => { active = false }
-  }, [])
-  return <p className="product-details__delivery">{fromPence === null ? 'UK delivery charges are shown at checkout.' : `UK delivery from ${formatGbp(fromPence)}.`}{' '}
-    <a href="/legal/delivery-returns" target="_blank" rel="noopener">Delivery &amp; Returns</a></p>
-}
 
 function ProductCopy({ product, onViewDetails }: { product: CatalogueProduct; onViewDetails?: (id: number) => void }) {
   const age = product.ageRecommendation?.trim()
@@ -106,6 +93,7 @@ const damageCopy = 'Never built or played with. Contents and internal packaging 
 function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product: CatalogueProduct; initialOffer?: ProductListingOffer; onAddToCart?: (offer: ProductListingOffer, productTitle: string) => void }) {
   const [selectedOfferId, setSelectedOfferId] = useState(initialOffer?.id)
   const options = sellableOffers(product)
+  const age = product.ageRecommendation?.trim()
   const offer = options.find(item => item.id === selectedOfferId) ?? initialOffer
   const { items } = useCart()
   const cartQuantity = offer ? items.find(item => item.productListingId === offer.id)?.quantity ?? 0 : 0
@@ -125,15 +113,15 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
     <p className="product-details__number">LEGO {product.setNumber}</p><h3 className="product-details__title">{product.title}</h3>
     {product.isRetired && <p className="product-details__retired">Retired Set</p>}
     {offer && <p className="product-details__price">{formatGbp(effectivePricePence(offer))}</p>}
-    {!offer ? null : options.length > 1 ? <fieldset className="product-details__offers"><legend>Choose an offer</legend>
+    {!offer ? null : options.length > 1 ? <fieldset className="product-details__offers"><legend>Choose an offer{age && ` · ${ageLabel(age)}`}</legend>
       {options.map(option => <label className="product-details__offer" key={option.id}>
         <input type="radio" name={`offer-${product.id}`} value={option.id} checked={offer.id === option.id} onChange={() => setSelectedOfferId(option.id)} />
         <span><strong>{option.condition === 'NEW' ? 'New' : 'New – Outer Box Damage'}</strong><span className="product-details__offer-price">{formatGbp(effectivePricePence(option))}</span>
           {option.condition === 'USED_LIKE_NEW' && <span className="product-details__damage-copy">{damageCopy}</span>}</span>
       </label>)}
-    </fieldset> : <div className="product-details__selected-offer"><strong>{offer.condition === 'NEW' ? 'New' : 'New – Outer Box Damage'}</strong>
+    </fieldset> : <div className="product-details__selected-offer"><strong>{offer.condition === 'NEW' ? 'New' : 'New – Outer Box Damage'}</strong>{age && ` · ${ageLabel(age)}`}
       {offer.condition === 'USED_LIKE_NEW' && <p className="product-details__damage-copy">{damageCopy}</p>}</div>}
-    <p className="product-details__stock">{offer ? `Stock: ${offer.availableStock}` : productAvailabilityLabel(product)}</p>
+    <p className="product-details__stock">{offer ? `Stock: ${offer.availableStock}` : <>{productAvailabilityLabel(product)}{age && ` · ${ageLabel(age)}`}</>}</p>
     {/* The purchase action follows price, offer and stock, and pins to the foot of the page until it scrolls into place. */}
     {onAddToCart && <div className="product-details__purchase"><button type="button" className="product-details__add" disabled={atLimit} onClick={() => { if (offer && !atLimit) onAddToCart(offer, product.title) }}>
       <span>{offer ? 'Add to cart' : productAvailabilityLabel(product)}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
@@ -143,10 +131,8 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
     {onAddToCart && <p ref={addedLine} className="product-details__added" aria-hidden="true">{justAdded && <span key={added.count}>
       <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.2 4.2L19 7" /></svg>{CART_ADD_MESSAGE}</span>}</p>}
     <p className="product-details__description">{product.description ?? 'No description available.'}</p>
-    {product.ageRecommendation?.trim() && <p className="product-details__age">Age guidance: {ageLabel(product.ageRecommendation.trim())}</p>}
     {product.safetyWarnings?.trim() && <div className="product-details__safety" role="note" aria-label="Safety warnings">
       <strong>Warning</strong><p>{product.safetyWarnings.trim()}</p></div>}
-    {offer && <DeliveryFrom />}
   </article>
 }
 

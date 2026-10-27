@@ -58,12 +58,12 @@ describe('pre-purchase disclosures', () => {
     expect(markup).toContain('href="/legal/terms"'); expect(markup).toContain('href="/legal/privacy"')
   })
 
-  it('shows age guidance, manufacturer safety warnings and the delivery link before adding to cart', () => {
+  it('shows age guidance and manufacturer safety warnings before adding to cart', () => {
     vi.stubGlobal('fetch', vi.fn(() => new Promise(() => {})))
     const item = { ...product(5, [offer(51, { legoProductId: 5 })]), ageRecommendation: '6', safetyWarnings: 'WARNING: CHOKING HAZARD – Small parts. Not for children under 3 years.' }
     const markup = renderToStaticMarkup(<CatalogueProductDetails product={item} selectedOfferId={51} side="right" onAddToCart={vi.fn()} />)
-    expect(markup).toContain('Age guidance: Ages 6+')
+    expect(markup).toContain('Ages 6+')
     expect(markup).toContain('CHOKING HAZARD')
-    expect(markup).toContain('href="/legal/delivery-returns"')
+    expect(markup).not.toContain('href="/legal/delivery-returns"')
   })
 })
