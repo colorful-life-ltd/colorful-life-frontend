@@ -71,6 +71,8 @@
   place-items: center;
   height: 100svh;
   overflow: hidden;
+  /* Lets the tabletop User size itself to the space left under the book. */
+  container: catalogue-stage / size;
   background-color: #e8bc89;
   background-image: url('./assets/backgrounds/desktop-tabletop-background.png');
   background-size: cover;
@@ -90,16 +92,34 @@
   }
 }
 
+/* The sandbox banner sits above the stage; share the viewport with it rather than
+   pushing the stage (and the User at its foot) 38px below the screen. */
+@media (min-width: 761px) {
+  #root:has(> .sandbox-banner + .catalogue-stage) { display: flex; flex-direction: column; height: 100svh; }
+  #root:has(> .sandbox-banner + .catalogue-stage) > .catalogue-stage { flex: 1 1 auto; min-height: 0; height: auto; }
+}
+
 .temporary-home-controls { position: absolute; top: 12px; right: 12px; z-index: 4; display: flex; gap: 8px; }
 .temporary-home-controls button { padding: 6px 10px; cursor: pointer; }
 .mobile-quick-controls { position: absolute; top: 10px; right: 10px; z-index: 6; display: none; gap: 6px; }
 .mobile-quick-controls button { padding: 6px 10px; border: 1px solid #527f78; border-radius: 999px; background: #fff9e9e8; color: #493c31; cursor: pointer; }
 @media (max-width: 760px) { .mobile-quick-controls { display: flex; } }
 .user-cart-group { position: absolute; z-index: 5; left: 28%; bottom: 0; width: clamp(360px, 40%, 520px); display: flex; align-items: flex-end; justify-content: space-between; gap: 12%; pointer-events: none; }
+/* The centred book is --book-width minus BookShell's 48px inset, at 9:5; the stage's bottom padding lifts it.
+   The User keeps 42% of the group's width while its artwork (270 x 208 at the foot of a 270 x 378 box) fits
+   under the book with at most a 14px tuck. */
+.user-cart-group {
+  --space-below-book: calc((100cqh + var(--stage-padding-bottom, 0px) - (var(--book-width) - 48px) * 5 / 9) / 2);
+  --user-width: min(clamp(360px, 40cqw, 520px) * 0.42, (var(--space-below-book) + 14px) * 270 / 208);
+  --user-height: calc(var(--user-width) * 378 / 270);
+}
 .user-cart-group > button { pointer-events: auto; }
 .guest-cart-bubble { position: absolute; left: -23%; bottom: 30%; z-index: 7; width: clamp(180px, 28%, 230px); padding: 12px 14px; border: 1px solid #c6a87a; border-radius: 18px; background: #fff9e9; color: #493c31; box-shadow: 0 5px 12px #47445d35; font: 600 clamp(12px, 1.2vw, 15px)/1.25 'Segoe Print', 'Comic Sans MS', cursive; text-align: left; cursor: pointer; }
 .guest-cart-bubble > span { position: absolute; right: 12%; bottom: -8px; width: 16px; height: 16px; background: #fff9e9; border-right: 1px solid #c6a87a; border-bottom: 1px solid #c6a87a; transform: rotate(45deg); }
 .guest-cart-bubble:focus-visible { outline: 3px solid #fff3c9; outline-offset: 4px; }
+/* Where the book leaves little room, slide the bubble down so it stays clear of the cover's 19px lower edge. */
+.guest-cart-bubble { translate: 0 clamp(0px, calc(var(--user-height) * 0.3 + 100% + 20px - var(--space-below-book)), calc(var(--user-height) * 0.3)); }
+@container catalogue-stage (max-height: 360px) { .guest-cart-bubble { translate: none; } }
 .user-dialogue-bubble { cursor: default; }
 @media (min-width: 1200px) { .user-cart-group { left: 38%; } }
 @media (max-width: 760px) { .user-cart-group { display: none; } }
@@ -161,7 +181,8 @@
 @media (min-width: 1200px) {
   .catalogue-stage {
     /* Keep the desktop book slightly below the tabletop sign without changing its size. */
-    padding-bottom: 24px;
+    --stage-padding-bottom: 24px;
+    padding-bottom: var(--stage-padding-bottom);
     --book-width: min(
       75vw,
       calc(62svh * 9 / 5),
