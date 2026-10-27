@@ -1,4 +1,7 @@
-.stage-user { position: relative; z-index: 5; flex: 0 0 42%; width: 42%; aspect-ratio: 270 / 378; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.stage-user { position: relative; z-index: 5; flex: 0 0 auto; width: 42%; aspect-ratio: 270 / 378; padding: 0; border: 0; background: transparent; cursor: pointer; }
+/* On short stages the boy peeks out from under the book (see --user-width) and is dropped only when there is no room. */
+.stage-user { width: var(--user-width); }
+@container catalogue-stage (max-height: 360px) { .stage-user { display: none; } }
 .stage-user img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
 /* The box is taller than the artwork (it anchors the speech bubble), so a box outline drew an empty rectangle
    above the boy, e.g. when focus returns here after signing in. Trace the illustration instead. */
