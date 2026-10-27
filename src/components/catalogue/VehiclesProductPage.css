@@ -92,6 +92,14 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
 @keyframes product-details-added { 0% { opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .product-details__added > span { animation: none; } }
 .spread-page--vehicles:has(> .product-details) { height: auto; min-height: calc(100% + 72px); }
+/* The page scrolls inside the paper. Until the purchase action scrolls into place it rests in the page's bottom
+   margin (BookShell's 56px padding) over a soft paper fade; below it, a fade in that margin shows the details continue. */
+.product-details__purchase { position: sticky; bottom: -56px; z-index: 1; margin: 0 -10px; padding: 0 10px; }
+/* Feathered on every side, so the paper backdrop has no edge against the page's own shading when it is not pinned. */
+.product-details__purchase::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--book-paper, #fff9e9); pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 18px, #000 calc(100% - 6px), transparent), linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent); mask-composite: intersect; }
+.book-shell__content:has(.product-details__purchase) { scroll-padding-bottom: 56px; }
+article.product-details::after { content: ''; position: sticky; bottom: -56px; display: block; height: 56px; background: linear-gradient(to bottom, transparent, var(--book-paper, #fff9e9)); pointer-events: none; }
 .vehicles-page__message { margin: 30px 10px; font-size: 14px; }
 .vehicles-page__message button { color: inherit; font: inherit; background: transparent; border: 0; text-decoration: underline; cursor: pointer; }
 .vehicle-product--supporting .vehicle-product__number { font-size: 10px; margin-bottom: 2px; }

@@ -208,6 +208,17 @@ describe('product-level Catalogue cards and Product Details offers', () => {
     await act(async () => mounted.root.unmount())
   })
 
+  it('places the purchase action straight after price, offer and stock, before the description', () => {
+    for (const item of [newOnly, twoOffers]) {
+      const markup = renderToStaticMarkup(<CatalogueProductDetails product={item} side="right" onAddToCart={vi.fn()} />)
+      const at = (text: string) => markup.indexOf(text)
+      expect(at('product-details__price')).toBeLessThan(at('product-details__stock'))
+      expect(at('product-details__stock')).toBeLessThan(at('product-details__purchase'))
+      expect(at('product-details__purchase')).toBeLessThan(at('product-details__add'))
+      expect(at('product-details__add')).toBeLessThan(at('product-details__added'))
+      expect(at('product-details__added')).toBeLessThan(at('product-details__description'))
+    }
+  })
   it('shows stock for the selected offer and cart quantity by listing ID', () => {
     const selected = cartListing(twoOffers.offers[1], twoOffers)
     const markup = renderToStaticMarkup(<CartContext.Provider value={{
