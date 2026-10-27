@@ -20,7 +20,7 @@ it('rests the purchase action in the page bottom margin until it scrolls into pl
 })
 it('keeps the resting button\'s focus ring (4px offset + 2px) inside the page without moving the layout', () => {
   expect(css).toMatch(/\.product-details__add:focus-visible \{ outline: 2px solid #326993; outline-offset: 4px;/)
-  expect(css).toMatch(/\.product-details__purchase \{[^}]*margin: 0 -10px -8px; padding: 0 10px 8px; \}/)
+  expect(css).toMatch(/\.product-details__purchase \{[^}]*margin: 0 -10px; padding: 0 10px 8px; \}/)
   expect(css).toMatch(/\.product-details__add \{ scroll-margin-bottom: 8px; \}/)
 })
 it('keeps focused and revealed details clear of that margin', () => {
