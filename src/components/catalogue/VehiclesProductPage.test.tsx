@@ -72,6 +72,25 @@ describe('product-level Catalogue cards and Product Details offers', () => {
     expect(markup).toContain('123 pieces')
   })
 
+  it('shows product age once alongside offer information without the delivery line', () => {
+    for (const item of [newOnly, damagedOnly, twoOffers]) {
+      const mounted = mount(<CatalogueProductDetails product={item} side="right" onAddToCart={vi.fn()} />)
+      const text = mounted.container.textContent!
+      expect(text.match(/Ages 9\+/g)).toHaveLength(1)
+      expect(mounted.container.querySelector(item.offers.length > 1 ? 'legend' : '.product-details__selected-offer')?.textContent).toContain('Ages 9+')
+      expect(text).not.toContain('UK delivery')
+      expect(mounted.container.querySelector('a[href="/legal/delivery-returns"]')).toBeNull()
+      act(() => mounted.root.unmount())
+    }
+  })
+
+  it('preserves age guidance for unavailable products and omits missing guidance', () => {
+    const unavailable = product(6, [], { ageRecommendation: '12+' })
+    const missing = { ...newOnly, ageRecommendation: null }
+    expect(renderToStaticMarkup(<CatalogueProductDetails product={unavailable} side="right" />)).toContain('Ages 12+')
+    expect(renderToStaticMarkup(<CatalogueProductDetails product={missing} side="right" />)).not.toContain('Ages')
+  })
+
   it('keeps normal NEW details and its Add to Cart action direct with effectivePrice', () => {
     const add = vi.fn()
     const mounted = mount(<CatalogueProductDetails product={newOnly} selectedOfferId={11} side="right" onAddToCart={add} />)
