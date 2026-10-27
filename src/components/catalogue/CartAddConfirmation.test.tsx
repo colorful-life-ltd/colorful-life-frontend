@@ -51,7 +51,8 @@ describe('"Added to your basket!" confirmation', () => {
     await add()
     expect(addCartItem).toHaveBeenCalledExactlyOnceWith('customer-jwt', 42, 1)
     expect(message().textContent).toBe('Added to your basket!')
-    expect(message().previousElementSibling?.classList.contains('product-details__add')).toBe(true)
+    // Directly under the (sticky) purchase action that holds Add to cart.
+    expect(message().previousElementSibling?.matches('.product-details__purchase:has(> .product-details__add)')).toBe(true)
     expect(message().querySelector('svg')).not.toBeNull()
     // Visible copy is hidden from assistive technology; the always-mounted polite region announces it once.
     expect(message().getAttribute('aria-hidden')).toBe('true')

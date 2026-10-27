@@ -92,6 +92,25 @@ a.vehicle-product__details { display: inline-block; text-decoration: none; }
 @keyframes product-details-added { 0% { opacity: 0; } 12% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .product-details__added > span { animation: none; } }
 .spread-page--vehicles:has(> .product-details) { height: auto; min-height: calc(100% + 72px); }
+/* The page scrolls inside the paper. Until the purchase action scrolls into place it rests in the page's bottom
+   margin (--page-padding-block) over a soft paper fade; below it, a fade in that margin shows the details continue.
+   The extra 8px below the button keeps its focus ring (4px offset + 2px) inside the page while it rests there; the
+   matching negative margin leaves the natural layout unchanged. */
+.product-details__purchase { position: sticky; bottom: calc(-1 * var(--page-padding-block, 56px)); z-index: 1; margin: 0 -10px -8px; padding: 0 10px 8px; }
+/* Focus scrolling (in every scroller, including the stacked phone pages) also leaves room for that ring. */
+.product-details__add { scroll-margin-bottom: 8px; }
+/* Feathered on every side, so the paper backdrop has no edge against the page's own shading when it is not pinned. */
+.product-details__purchase::before { content: ''; position: absolute; inset: 0; z-index: -1; background: var(--book-paper, #fff9e9); pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent, #000 18px, #000 calc(100% - 6px), transparent), linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent); mask-composite: intersect; }
+.book-shell__content:has(.product-details__purchase) { scroll-padding-bottom: var(--page-padding-block, 56px); }
+/* The purchase action brings its own 18px top margin; the stock line's margin used to collapse into the description's,
+   so dropping it keeps the details exactly as tall as before (and unchanged where no purchase action follows). */
+.product-details__stock { margin-bottom: 0; }
+/* The fade lives inside the page's bottom padding (negative margin), so it never adds scrollable height of its own.
+   It reaches 26px past the text column (10px article padding + 16px feather), so its feathered sides fall outside the
+   text and draw no edge against the page's shading. */
+article.product-details::after { content: ''; position: sticky; bottom: calc(-1 * var(--page-padding-block, 56px)); display: block; height: var(--page-padding-block, 56px); margin: 0 -26px calc(-1 * var(--page-padding-block, 56px)); background: linear-gradient(to bottom, transparent, var(--book-paper, #fff9e9)); pointer-events: none;
+  mask-image: linear-gradient(to right, transparent, #000 16px, #000 calc(100% - 16px), transparent); }
 .vehicles-page__message { margin: 30px 10px; font-size: 14px; }
 .vehicles-page__message button { color: inherit; font: inherit; background: transparent; border: 0; text-decoration: underline; cursor: pointer; }
 .vehicle-product--supporting .vehicle-product__number { font-size: 10px; margin-bottom: 2px; }

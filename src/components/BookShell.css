@@ -3,6 +3,8 @@
   --book-cover: #7fada6;
   --page-surface-inset-x: 22px;
   --page-surface-inset-y: 20px;
+  /* Top and bottom padding of each scrolling page; content that rests in the page margins reads it. */
+  --page-padding-block: 56px;
   position: relative;
   isolation: isolate;
   width: var(--book-width, 1120px);
@@ -84,7 +86,7 @@
   position: relative;
   height: 100%;
   min-height: 0;
-  padding: 56px 60px;
+  padding: var(--page-padding-block) 60px;
   overflow: auto;
   overflow-x: hidden;
   overflow-wrap: anywhere;
@@ -124,7 +126,7 @@
   }
 
   .catalogue-stage .book-shell__page { height: auto; }
-  .catalogue-stage .book-shell__content { height: 500px; padding: 56px 60px; }
+  .catalogue-stage .book-shell__content { height: 500px; padding: var(--page-padding-block) 60px; }
   .catalogue-stage .book-shell__spine { display: none; }
 }
 
