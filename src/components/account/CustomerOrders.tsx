@@ -26,6 +26,7 @@ export function CustomerOrders({ path, onAccount, onAuthenticate }: Props) {
   return <main className="checkout customer-orders" tabIndex={-1}><div className="checkout__paper">
     <p className="checkout__eyebrow">Build &amp; Bloom · Your account</p>
     <h1>{list ? 'My Orders' : id ? `Order #${id}` : 'Order unavailable'}</h1>
+    {list && <button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button>}
     {state.status === 'authenticated' ? list || id ? <VerifiedOrders key={`${state.token}:${path}`} token={state.token} id={id} onAuthenticate={onAuthenticate} /> : <p role="alert">This order cannot be opened. Please return to My Orders.</p>
       : state.status === 'verificationRequired' ? <VerificationNotice token={state.token} message="Please verify your email to view your orders." />
       : state.status === 'resolving' ? <p role="status">Restoring your account…</p> : <><p>Please sign in to view your orders.</p><button onClick={onAccount}>Sign in</button></>}
