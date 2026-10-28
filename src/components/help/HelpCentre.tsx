@@ -22,7 +22,7 @@ export function HelpCentre() {
         <h3 id={category.id} tabIndex={-1}><span id={`${category.id}-heading`}>{category.title}</span></h3>
         {category.questions.map(question => <details className="help-question" id={question.id} key={question.id}>
           <summary>{question.question}</summary>
-          <div className="help-answer"><p>{question.answer}</p><a className="help-question-link" href={`/help#${question.id}`} aria-label={`Direct link: ${question.question}`}>Link to this question</a></div>
+          <div className="help-answer"><p>{question.answer}</p><a className="help-question-link" href={`/help#${question.id}`}>Link to this question</a></div>
         </details>)}
       </section>)}
     </div>

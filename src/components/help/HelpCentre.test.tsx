@@ -23,9 +23,9 @@ beforeEach(() => {
 })
 afterEach(async () => { await act(async () => root?.unmount()); root = undefined; document.body.innerHTML = ''; vi.unstubAllGlobals() })
 async function mount(element = <HelpCentre />) { root = createRoot(container); await act(async () => root!.render(element)) }
-it('renders all 23 useful questions, categories and native keyboard controls', async () => {
+it('renders all 24 useful questions, categories and native keyboard controls', async () => {
   await mount()
-  expect(container.querySelectorAll('details')).toHaveLength(23)
+  expect(container.querySelectorAll('details')).toHaveLength(24)
   const ids = FAQ_CATEGORIES.flatMap(c => [c.id, ...c.questions.map(q => q.id)])
   expect(new Set(ids).size).toBe(ids.length)
   for (const category of FAQ_CATEGORIES) {
@@ -54,7 +54,7 @@ it('reuses support configuration and preserves the approved policy boundaries', 
   const view = document.createElement('div'); view.innerHTML = renderToStaticMarkup(<HelpCentre />)
   const copy = view.textContent!
   for (const link of view.querySelectorAll('a[href^="mailto:"]')) expect(link.getAttribute('href')).toBe(`mailto:${COMPANY.supportEmail}`)
-  for (const phrase of ['2–3 working days', 'dispatch time, not a guaranteed delivery date', 'No. It acknowledges receipt', 'dispatch confirmation email', 'direct return cost', 'no automatic refusal or deduction', 'further 14 days', '3 working days', '18 or older']) expect(copy).toContain(phrase)
+  for (const phrase of ['2–3 working days', 'dispatch time, not a guaranteed delivery date', 'No. It acknowledges receipt', 'dispatch confirmation email', 'cost of sending the goods back', 'do not automatically refuse opened or assembled sets', 'further 14 days', '3 working days', '18 or older']) expect(copy).toContain(phrase)
   for (const claim of ['Retired Set', 'Download my data', 'refund within 3', 'Apple Pay', 'Google Pay', 'open 24', 'guaranteed next-day']) expect(copy).not.toContain(claim)
 })
 it('uses the existing book route and sets correct crawlable metadata', async () => {
@@ -73,4 +73,26 @@ it.each(['.mobile-quick-controls button:first-child', '.customer-information-not
   await act(async () => container.querySelector<HTMLButtonElement>(selector)!.click())
   expect(location.pathname).toBe('/help')
   expect(container.querySelector('.help-centre')).not.toBeNull()
+})
+
+it('keeps category fragment navigation keyboard-focusable', async () => {
+  await mount()
+  const link = container.querySelector<HTMLAnchorElement>('.help-categories a[href="#delivery"]')!
+  link.focus(); expect(document.activeElement).toBe(link)
+  await act(async () => { history.replaceState({}, '', '/help#delivery'); window.dispatchEvent(new HashChangeEvent('hashchange')) })
+  expect(document.activeElement).toBe(container.querySelector('#delivery'))
+  expect(container.querySelector('#delivery')?.getAttribute('tabindex')).toBe('-1')
+})
+it('uses clear verified payment, postage and tracking answers without a permalink label mismatch', async () => {
+  await mount()
+  const answer = (id: string) => container.querySelector(`#${id} .help-answer p`)!.textContent
+  expect(answer('payment-options')).toBe('You can pay by card, processed securely by Stripe. The options available for your order are shown at checkout.')
+  expect(answer('payment-options')).not.toMatch(/Sandbox|PayPal|wallet/i)
+  expect(answer('payment-uncertain')).toBe("If you're not sure your payment went through, check the order in My Orders before trying to pay again.")
+  expect(answer('return-postage')).toBe('For a change-of-mind cancellation, you pay the cost of sending the goods back. If an item is faulty or not as described, see Delivery & Returns.')
+  expect(answer('track-order')).toBe('We email you when your order is dispatched, with tracking details where the carrier provides them. You can also see your order in My Orders.')
+  for (const link of container.querySelectorAll('.help-question-link')) {
+    expect(link.textContent).toBe('Link to this question')
+    expect(link.hasAttribute('aria-label')).toBe(false)
+  }
 })

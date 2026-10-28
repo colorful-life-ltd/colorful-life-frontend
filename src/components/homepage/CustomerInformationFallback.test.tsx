@@ -7,7 +7,7 @@ describe('CustomerInformationFallback', () => {
     const markup = renderToStaticMarkup(<CustomerInformationFallback />)
 
     expect(markup).toContain('type="button"')
-    expect(markup).toContain('aria-label="Customer Information"')
+    expect(markup).toContain('aria-label="Customer Information: Help &amp; FAQs"')
     expect(markup).toContain('Customer Information →')
     expect(markup).toContain('customer-information-fallback')
   })
