@@ -7,6 +7,7 @@ import { YourData } from './YourData'
 import { AccountView } from './AccountForms'
 import { CatalogueProductDetails } from '../catalogue/VehiclesProductPage'
 import { offer, product } from '../../features/catalogue/catalogueFixtures'
+import { COMPANY } from '../../features/legal/company'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | null = null
@@ -21,19 +22,15 @@ const type = async (input: HTMLInputElement, value: string) => act(async () => {
 })
 
 describe('Your data', () => {
-  it('downloads the export with the password and never without it', async () => {
+  it('offers email access requests without an unsupported download action or request', async () => {
     const fetchSpy = vi.fn(async () => new Response(JSON.stringify({ exportVersion: 1 }), { status: 200 }))
     vi.stubGlobal('fetch', fetchSpy)
-    const createObjectURL = vi.fn(() => 'blob:export'); Object.assign(URL, { createObjectURL, revokeObjectURL: vi.fn() })
     const view = await mount(<YourData token="token" onDeleted={vi.fn()} />)
-    const download = [...view.querySelectorAll('button')].find(b => b.textContent === 'Download my data')!
-    expect(download.disabled).toBe(true)
+    expect([...view.querySelectorAll('button')].map(button => button.textContent)).toEqual(['Delete my account'])
+    expect(view.querySelector(`a[href="mailto:${COMPANY.supportEmail}"]`)?.textContent).toBe(COMPANY.supportEmail)
     await type(view.querySelector('input[type="password"]')!, 'Secret1!pass')
-    await act(async () => download.click())
-    const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit]
-    expect(url).toMatch(/\/users\/me\/data-export$/)
-    expect(init.method).toBe('POST'); expect(JSON.parse(String(init.body))).toEqual({ password: 'Secret1!pass' })
-    expect(createObjectURL).toHaveBeenCalledOnce()
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(view.textContent).not.toContain('Your email address and name are removed from them')
   })
 
   it('deletes only after explicit confirmation, then signs out', async () => {
