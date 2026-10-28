@@ -126,10 +126,10 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
     {onAddToCart && <div className="product-details__purchase"><button type="button" className="product-details__add" disabled={atLimit} onClick={() => { if (offer && !atLimit) onAddToCart(offer, product.title) }}>
       <span>{offer ? 'Add to cart' : productAvailabilityLabel(product)}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
       {cartQuantity > 0 && <span className="product-details__cart-quantity">In cart: {cartQuantity}{atLimit && ' · Maximum available'}</span>}
-    </button></div>}
-    {/* Space is always reserved so the details never shift; the app-level polite live region announces it. */}
-    {onAddToCart && <p ref={addedLine} className="product-details__added" aria-hidden="true">{justAdded && <span key={added.count}>
-      <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.2 4.2L19 7" /></svg>{CART_ADD_MESSAGE}</span>}</p>}
+    </button>
+    {/* Always reserve the confirmation line so the description stays in place. */}
+    <p ref={addedLine} className="product-details__added" aria-hidden="true">{justAdded && <span key={added.count}>
+      <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.2 4.2L19 7" /></svg>{CART_ADD_MESSAGE}</span>}</p></div>}
     <p className="product-details__description">{product.description ?? 'No description available.'}</p>
     {product.safetyWarnings?.trim() && <div className="product-details__safety" role="note" aria-label="Safety warnings">
       <strong>Warning</strong><p>{product.safetyWarnings.trim()}</p></div>}

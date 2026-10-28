@@ -7,7 +7,7 @@ import { AuthProvider } from '../../features/auth/AuthProvider'
 import { AUTH_STORAGE_KEY, getCurrentUser } from '../../features/auth/api'
 import { CartProvider } from '../../features/cart/CartProvider'
 import { addCartItem, getCart } from '../../features/cart/api'
-import { offer, product } from '../../features/catalogue/catalogueFixtures'
+import { cartListing, offer, product } from '../../features/catalogue/catalogueFixtures'
 import type { ProductListingOffer } from '../../features/catalogue/api'
 import { CatalogueProductDetails } from './VehiclesProductPage'
 
@@ -17,7 +17,7 @@ vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogue
 vi.mock('../../features/checkout/shipping', async original => ({ ...await original<typeof import('../../features/checkout/shipping')>(), cachedShippingOptions: () => new Promise(() => {}) }))
 // Two real product pages side by side: only the product that was added may show the confirmation.
 vi.mock('./CategoryCatalogue', () => ({ CategoryCatalogue: ({ onAddToCart }: { onAddToCart: (listing: ProductListingOffer, title: string) => void }) => <>
-  <div data-page="added"><CatalogueProductDetails side="right" product={product(42, [offer(42)])} onAddToCart={onAddToCart} /></div>
+  <div data-page="added"><CatalogueProductDetails side="right" product={product(42, [offer(42, { currentStock: 2, availableStock: 2 })])} onAddToCart={onAddToCart} /></div>
   <div data-page="other"><CatalogueProductDetails side="right" product={product(43, [offer(43)])} onAddToCart={onAddToCart} /></div>
 </> }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -52,7 +52,8 @@ describe('"Added to your basket!" confirmation', () => {
     expect(addCartItem).toHaveBeenCalledExactlyOnceWith('customer-jwt', 42, 1)
     expect(message().textContent).toBe('Added to your basket!')
     // Directly under the (sticky) purchase action that holds Add to cart.
-    expect(message().previousElementSibling?.matches('.product-details__purchase:has(> .product-details__add)')).toBe(true)
+    expect(message().parentElement?.matches('.product-details__purchase:has(> .product-details__add)')).toBe(true)
+    expect(message().previousElementSibling?.matches('.product-details__add')).toBe(true)
     expect(message().querySelector('svg')).not.toBeNull()
     // Visible copy is hidden from assistive technology; the always-mounted polite region announces it once.
     expect(message().getAttribute('aria-hidden')).toBe('true')
@@ -60,11 +61,27 @@ describe('"Added to your basket!" confirmation', () => {
     expect(announcement().textContent).toBe('Added to your basket!')
   })
 
-  it('reserves its line before, during and after the message, so the details never shift', async () => {
+  it('reserves the line before, during and after success', async () => {
     const before = message(); await add()
     expect(message()).toBe(before)
     await advance(3000)
     expect(message()).toBe(before); expect(message().textContent).toBe('')
+  })
+
+  it('keeps the success line in the purchase area when the added item reaches its stock limit', async () => {
+    const listing = offer(42, { currentStock: 2, availableStock: 2 })
+    vi.mocked(addCartItem).mockResolvedValueOnce({ items: [{ productListingId: 42, quantity: 2, productListing: cartListing(listing) }] })
+    await add()
+    const button = page('added').querySelector<HTMLButtonElement>('.product-details__add')!
+    expect(button.disabled).toBe(true)
+    expect(button.textContent).toContain('In cart: 2 · Maximum available')
+    expect(message().textContent).toBe('Added to your basket!')
+    expect(message().parentElement?.matches('.product-details__purchase')).toBe(true)
+    expect(message().previousElementSibling).toBe(button)
+    await advance(3000)
+    expect(message().textContent).toBe('')
+    expect(message().parentElement?.matches('.product-details__purchase')).toBe(true)
+    expect(message().previousElementSibling).toBe(button)
   })
 
   it('stays for about three seconds, then disappears', async () => {
