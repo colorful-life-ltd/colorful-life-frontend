@@ -49,3 +49,7 @@ Two real checks remain in OWNER_DECISIONS: retentionPeriods (operational alignme
 - Full ESLint, TypeScript, shared-contract check and production build passed.
 - Focused regression coverage rejects invented ICO details, fixed automatic-deletion claims and a false claim of completed transfer verification; includes PayPal and postcode/image flows.
 - legal:check exits 1 for exactly retentionPeriods and transferSafeguards. Workflow gates are unchanged and remain mandatory; CI is expected to block publication for those checks.
+
+## Phase 1 follow-up — proposal, not gate resolution
+
+See [retention procedure](retention-operations.md) and [provider evidence register](privacy-provider-register.md). New retention periods remain PROPOSED pending owner adoption. Backend bounded expired-auth housekeeping and account-deletion basket/session minimisation are prepared on a separate draft branch; nothing is deployed. Both retentionPeriods and transferSafeguards remain unchanged. No Privacy Policy claim of automatic deletion or completed transfer review has been introduced.
