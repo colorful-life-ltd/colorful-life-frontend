@@ -52,6 +52,18 @@ describe('My Orders entry and list', () => {
     expect(location.pathname).toBe('/account/orders'); expect(container.querySelector('.account-modal')).toBeNull()
     expect(container.textContent).toContain('My Orders'); expect(fetcher).toHaveBeenCalledTimes(1)
   })
+  it.each([0, 1])('returns to the storefront using navigation button %i', async index => {
+    await mount()
+    const buttons = [...container.querySelectorAll<HTMLButtonElement>('button')].filter(button => button.textContent === 'Back to storefront')
+    expect(buttons).toHaveLength(2)
+    expect(container.querySelector('h1')?.nextElementSibling).toBe(buttons[0])
+    expect(buttons.every(button => button.classList.contains('checkout__secondary'))).toBe(true)
+    expect(buttons[0].compareDocumentPosition(container.querySelector('.order-history')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(container.querySelector('.checkout__paper')?.lastElementChild).toBe(buttons[1])
+    await act(async () => buttons[index].click())
+    expect(location.pathname).toBe('/')
+    expect(container.querySelector('.customer-orders')).toBeNull()
+  })
   it('loads authoritative summaries in backend order without inventing payment state', async () => {
     fetcher.mockResolvedValue(response([ { ...summary, id: 42, status: 'CONFIRMED' }, summary ]))
     await mount()
