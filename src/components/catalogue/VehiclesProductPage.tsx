@@ -101,8 +101,6 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
   const atLimit = stockLimit === 0 || cartQuantity >= stockLimit
   const added = useCartAddFeedback()
   const justAdded = added.visible && added.listingId !== null && product.offers.some(item => item.id === added.listingId)
-  const [hasShownConfirmation, setHasShownConfirmation] = useState(false)
-  if (justAdded && !hasShownConfirmation) setHasShownConfirmation(true)
   const addedLine = useRef<HTMLParagraphElement>(null)
   // The book page scrolls internally and Add to cart often sits at its lower edge: reveal the line beneath it.
   useEffect(() => {
@@ -129,8 +127,8 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
       <span>{offer ? 'Add to cart' : productAvailabilityLabel(product)}</span><svg aria-hidden="true" viewBox="0 0 24 24" focusable="false"><path d="M4 5h2l1.5 10h10L20 8H7M10 19.5h.01M17 19.5h.01" /></svg>
       {cartQuantity > 0 && <span className="product-details__cart-quantity">In cart: {cartQuantity}{atLimit && ' · Maximum available'}</span>}
     </button>
-    {/* Keep the line after its first success so the description does not jump when it fades. */}
-    <p ref={addedLine} className="product-details__added" data-reserved={justAdded || hasShownConfirmation} aria-hidden="true">{justAdded && <span key={added.count}>
+    {/* Always reserve the confirmation line so the description stays in place. */}
+    <p ref={addedLine} className="product-details__added" aria-hidden="true">{justAdded && <span key={added.count}>
       <svg viewBox="0 0 24 24" focusable="false"><path d="M5 12.5l4.2 4.2L19 7" /></svg>{CART_ADD_MESSAGE}</span>}</p></div>}
     <p className="product-details__description">{product.description ?? 'No description available.'}</p>
     {product.safetyWarnings?.trim() && <div className="product-details__safety" role="note" aria-label="Safety warnings">

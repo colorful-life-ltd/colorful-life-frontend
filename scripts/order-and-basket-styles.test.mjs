@@ -24,8 +24,7 @@ describe('"Added to your basket!" confirmation styling', () => {
   const details = read('catalogue/VehiclesProductPage.css')
   const cart = read('catalogue/BookOwnedCart.css')
   it('reserves its line and uses the muted forest green', () => {
-    expect(details).toMatch(/\.product-details__added \{[^}]*color: #4d644f/)
-    expect(details).toMatch(/\.product-details__added\[data-reserved="true"\] \{ min-height: 1em; \}/)
+    expect(details).toMatch(/\.product-details__added \{[^}]*min-height: 1em[^}]*color: #4d644f/)
   })
   it('fades in and out over three seconds, and holds still under reduced motion', () => {
     expect(details).toMatch(/\.product-details__added > span \{[^}]*animation: product-details-added 3s/)

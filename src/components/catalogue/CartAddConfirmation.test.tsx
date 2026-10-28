@@ -61,11 +61,11 @@ describe('"Added to your basket!" confirmation', () => {
     expect(announcement().textContent).toBe('Added to your basket!')
   })
 
-  it('reserves the line on success and keeps it after the message fades', async () => {
-    const before = message(); expect(before.getAttribute('data-reserved')).toBe('false'); await add()
-    expect(message()).toBe(before); expect(message().getAttribute('data-reserved')).toBe('true')
+  it('reserves the line before, during and after success', async () => {
+    const before = message(); await add()
+    expect(message()).toBe(before)
     await advance(3000)
-    expect(message()).toBe(before); expect(message().textContent).toBe(''); expect(message().getAttribute('data-reserved')).toBe('true')
+    expect(message()).toBe(before); expect(message().textContent).toBe('')
   })
 
   it('keeps the success line in the purchase area when the added item reaches its stock limit', async () => {
@@ -76,10 +76,12 @@ describe('"Added to your basket!" confirmation', () => {
     expect(button.disabled).toBe(true)
     expect(button.textContent).toContain('In cart: 2 · Maximum available')
     expect(message().textContent).toBe('Added to your basket!')
-    expect(message().parentElement?.contains(button)).toBe(true)
+    expect(message().parentElement?.matches('.product-details__purchase')).toBe(true)
+    expect(message().previousElementSibling).toBe(button)
     await advance(3000)
     expect(message().textContent).toBe('')
-    expect(message().parentElement?.contains(button)).toBe(true)
+    expect(message().parentElement?.matches('.product-details__purchase')).toBe(true)
+    expect(message().previousElementSibling).toBe(button)
   })
 
   it('stays for about three seconds, then disappears', async () => {
@@ -101,7 +103,6 @@ describe('"Added to your basket!" confirmation', () => {
     vi.mocked(addCartItem).mockRejectedValueOnce(new Error('synthetic failure'))
     await add()
     expect(message().textContent).toBe(''); expect(announcement().textContent).toBe('')
-    expect(message().getAttribute('data-reserved')).toBe('false')
   })
 
   it('appears only on the product that was added', async () => {
