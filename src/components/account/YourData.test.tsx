@@ -33,6 +33,37 @@ describe('Your data', () => {
     expect(view.textContent).not.toContain('Your email address and name are removed from them')
   })
 
+  it('guards implicit form submission until both password and confirmation are provided', async () => {
+    const fetchSpy = vi.fn(async () => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', fetchSpy)
+    const onDeleted = vi.fn()
+    const view = await mount(<YourData token="token" onDeleted={onDeleted} />)
+    const form = view.querySelector('form')!
+    expect(form.getAttribute('aria-label')).toBe('Delete your account')
+    expect(view.querySelector('button')?.type).toBe('submit')
+    const submit = async () => act(async () => {
+      const event = new Event('submit', { bubbles: true, cancelable: true })
+      form.dispatchEvent(event)
+      expect(event.defaultPrevented).toBe(true)
+    })
+    await submit()
+    await act(async () => view.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click())
+    await submit() // confirmation without a password is also insufficient
+    await act(async () => view.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click())
+    await type(view.querySelector('input[type="password"]')!, 'Secret1!pass')
+    await submit() // password without confirmation must never delete
+    expect(fetchSpy).not.toHaveBeenCalled()
+    await act(async () => view.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click())
+    await submit() // implicit Enter submission uses this same guarded handler
+    await submit() // an additional submission while busy must not duplicate it
+    expect(fetchSpy).toHaveBeenCalledOnce()
+    const [url, init] = fetchSpy.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toMatch(/\/users\/me$/)
+    expect(init.method).toBe('DELETE')
+    expect(JSON.parse(String(init.body))).toEqual({ password: 'Secret1!pass' })
+    expect(onDeleted).toHaveBeenCalledOnce()
+  })
+
   it('deletes only after explicit confirmation, then signs out', async () => {
     const fetchSpy = vi.fn(async () => new Response(null, { status: 204 }))
     vi.stubGlobal('fetch', fetchSpy)
