@@ -6,7 +6,7 @@ import { ContactBlock, LegalLayout, OwnerDecisionPlaceholder } from './LegalLayo
  * Update this page whenever a new provider, data field or purpose is introduced.
  */
 export function PrivacyPolicy() {
-  return <LegalLayout title="Privacy Policy" updated="24 October 2026">
+  return <LegalLayout title="Privacy Policy" updated="28 October 2026">
     <p>This policy explains how {COMPANY.legalName}, trading as {COMPANY.brand} ("we", "us"), uses your personal data when you visit our shop, create an account or buy from us, and the rights you have under UK data protection law.</p>
 
     <h3>Who we are</h3>
@@ -74,7 +74,7 @@ export function PrivacyPolicy() {
     <p>We will reply within one month. We may need to confirm your identity first.</p>
 
     <h3>Children</h3>
-    <p>Many of our products are toys intended for children, but our shop is for adults buying for themselves or others. We do not knowingly create accounts for, or collect personal data from, children. Minimum age to create an account and buy: <OwnerDecisionPlaceholder id="purchaserAge" /></p>
+    <p>Many of our products are toys intended for children, but our shop is for adults buying for themselves or others. We do not knowingly create accounts for, or collect personal data from, children. Customers placing orders must be 18 or older. Parents or guardians may buy for children. Product age recommendations are separate from the purchaser-age requirement.</p>
 
     <h3>Security</h3>
     <p>Connections to our shop are encrypted, passwords are hashed, staff access to customer data requires two-step verification, and our database is encrypted and accessible only from our own servers.</p>

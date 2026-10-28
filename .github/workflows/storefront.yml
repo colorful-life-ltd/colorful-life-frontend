@@ -34,6 +34,7 @@ jobs:
       - run: npm run lint
       - run: npm run test:run
       - run: npm run build
+      - run: npm run legal:check
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: colorful-life-storefront
@@ -88,6 +89,7 @@ jobs:
           VITE_PAYPAL_SANDBOX_CLIENT_ID: ${{ vars.VITE_PAYPAL_SANDBOX_CLIENT_ID }}
         run: |
           npm ci
+          npm run legal:check
           npm run build
           node scripts/check-sandbox-bundle.mjs dist
           tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -C dist -cf - . | gzip -n > storefront.tar.gz

@@ -122,7 +122,7 @@ describe('legal pages', () => {
     const order = await render(<PreContractSummary stage="order" />)
     expect(order.textContent).toContain('You are buying from Colorful Life Ltd')
     expect(order.querySelector('a[href="/legal/terms"]')).not.toBeNull()
-    expect(order.textContent).toContain('cancel within 14 days')
+    expect(order.textContent).toContain('cancellation notice within 14 days')
     await act(async () => root!.unmount()); root = null
     const payment = await render(<PreContractSummary stage="payment" />)
     expect(payment.textContent).toContain('Selecting Pay now places your order with an obligation to pay')
