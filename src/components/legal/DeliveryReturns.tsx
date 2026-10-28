@@ -13,7 +13,7 @@ export function DeliveryOptionsTable() {
   }, [])
   if (state.error) return <p role="alert">Delivery options could not be loaded. They are always shown at checkout before you place an order.</p>
   if (!state.options) return <p role="status">Loading delivery options…</p>
-  return <table className="legal-table">
+  return <table className="legal-table delivery-options-table">
     <thead><tr><th scope="col">Method</th><th scope="col">Charge</th><th scope="col">Estimated delivery</th></tr></thead>
     <tbody>{state.options.methods.map(option => <tr key={option.code}><td>{option.method}</td><td>{shippingCharge(option)}</td><td>{deliveryEstimate(option)}</td></tr>)}</tbody>
   </table>

@@ -88,6 +88,7 @@ describe('legal pages', () => {
     stubShipping()
     const view = await render(<LegalSpread pathname="/legal/delivery-returns" />)
     await act(async () => { await Promise.resolve() })
+    expect(view.querySelector('table')?.classList.contains('delivery-options-table')).toBe(true)
     const table = view.querySelector('table')?.textContent ?? ''
     expect(table).toContain('Standard Delivery'); expect(table).toContain('£3.99'); expect(table).toContain('Estimated 3–5 working days after dispatch')
     expect(view.textContent).toContain('within 14 days of the day you, or someone you name (other than the carrier), receive the goods')
