@@ -21,13 +21,11 @@ export function FrontMatterWelcomePage() {
 
 /** Customer Information pages open as spreads of this book (see features/legal/routes.ts). */
 const informationSections: ReadonlyArray<readonly [string, string, LegalSlug]> = [
+  ['Help & FAQs', 'A little help when you need it', 'help'],
   ['Delivery & Returns', 'Everything about getting your order home', 'delivery-returns'],
   ['Contact Us', 'Come and say hello', 'contact'],
   ['Customer Information', 'Terms, privacy, cookies and cancelling an order', 'terms'],
 ]
-const futureSections = [
-  ['Help & FAQs', 'A little help when you need it'],
-] as const
 
 export function FrontMatterContentsPage({ onCatalogue, onSearch, onLegal, turning = false }: { onCatalogue: () => void; onSearch: () => void; onLegal?: (slug: LegalSlug) => void; turning?: boolean }) {
   return <nav className="front-matter front-matter--contents" aria-labelledby="front-matter-contents-title">
@@ -56,13 +54,6 @@ export function FrontMatterContentsPage({ onCatalogue, onSearch, onLegal, turnin
           <span className="front-matter__entry-description">{description}</span>
         </a>
       </li>)}
-      {futureSections.map(([title, description]) => <li key={title}>
-        <button className="front-matter__entry" type="button" disabled aria-describedby="front-matter-future-note">
-          <span className="front-matter__entry-title">{title}</span>
-          <span className="front-matter__entry-description">{description}</span>
-        </button>
-      </li>)}
     </ol>
-    <span id="front-matter-future-note" className="catalogue-spread-status">This section is not available yet.</span>
   </nav>
 }

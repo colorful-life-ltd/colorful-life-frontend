@@ -1,3 +1,4 @@
+import { revealHelpHash } from './features/help/navigation'
 import { sandboxCheckout } from './features/checkout/sandbox'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import openingSpreadReference from './assets/reference/opening-spread-master.png'
@@ -306,6 +307,7 @@ function App() {
     })
     // Move focus into the new spread without moving the viewport or the book.
     stage?.focus({ preventScroll: true })
+    revealHelpHash(stage?.querySelector('.help-centre'))
   }, [spread])
 
   // The open book owns catalogue metadata; private routes are never indexable.
@@ -362,12 +364,13 @@ function App() {
             </div>}
           </div>
           <div className="mobile-quick-controls" aria-label="Quick navigation">
+            <button type="button" onClick={() => openCityBookmark(legalHref('help'))}>Help</button>
             <button type="button" onClick={openAccount}>Account</button>
             <button type="button" onClick={isSignedIn(authState) ? openCart : undefined}>Cart</button>
           </div>
           {!catalogueOpen && !opening && !closing && <>
-            <CustomerInformationNotebook onActivate={() => openCityBookmark(legalHref('contact'))} />
-            <CustomerInformationFallback onActivate={() => openCityBookmark(legalHref('contact'))} />
+            <CustomerInformationNotebook onActivate={() => openCityBookmark(legalHref('help'))} />
+            <CustomerInformationFallback onActivate={() => openCityBookmark(legalHref('help'))} />
           </>}
           <span className="catalogue-spread-status" role="status">
             {typeof spread !== 'string' ? (spread.kind === 'details' ? 'Product details' : '') : isCategoryIndexSpread(spread) ? `Catalogue spread ${categorySpreadIndex(spread) + 1} of ${Math.max(1, Math.ceil(Math.ceil(resolvedCategories.length / 3) / 2))}` : spread === 'front-matter' ? 'Welcome and Contents' : 'Opening spread'}
