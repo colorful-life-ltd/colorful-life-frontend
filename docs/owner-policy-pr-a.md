@@ -1,5 +1,7 @@
 # Owner policy completion — PR A (28 October 2026)
 
+**Privacy follow-up:** see [privacy-data-flow-review.md](privacy-data-flow-review.md), which supersedes the original three-item privacy inventory below. ICO application status is now accurately disclosed; the pending formal reference is not by itself a gate. Retention implementation and account-specific transfer verification remain blocked. The original validation counts below describe the earlier commit.
+
 ## Scope and dependencies
 
 Frontend policy wording only. Based on main e9ca61d. PR #88 separately owns the physical return-address formatting and the separation of cancellation correspondence from goods returns. Merge #88 first and check the combined legal pages; this branch does not duplicate its constant or form changes. Registered-office identity and customer records are unchanged.

@@ -1,14 +1,13 @@
 /**
- * Commercial and legal choices the owner has not made yet. Pages render each one as a clearly
+ * Unresolved legal decisions or operational verification checks. Pages render each one as a clearly
  * marked placeholder instead of inventing terms. `npm run legal:check` fails while any remain,
  * so the pages cannot silently go live with open decisions.
  *
- * To resolve one: write the approved wording into the page and delete its entry here.
+ * To resolve one: verify the underlying facts/implementation, write accurate approved wording and delete its entry here.
  */
 export const OWNER_DECISIONS = {
-  retentionPeriods: 'Approve the retention periods listed in the Privacy Policy, then enable the retention sweep (RETENTION_ENABLED).',
-  icoRegistration: 'The ICO data protection fee registration reference for Colorful Life Ltd.',
-  transferSafeguards: 'The transfer safeguard each overseas provider relies on (UK–US data bridge, IDTA or UK Addendum), confirmed from its data processing terms.',
+  retentionPeriods: 'Verify and implement the approved six-year records policy and necessary-only retention schedule, including email snapshots, logs and backups; automatic deletion has not been verified.',
+  transferSafeguards: 'Complete account-specific provider/entity and transfer-safeguard checks, applicable contracts and any required transfer assessments, including Cloudinary, payment services and email handling.',
 } as const
 
 export type OwnerDecision = keyof typeof OWNER_DECISIONS
