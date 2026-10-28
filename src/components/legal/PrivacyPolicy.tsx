@@ -12,7 +12,6 @@ export function PrivacyPolicy() {
     <h3>Who we are</h3>
     <p>{COMPANY.legalName} is the controller of your personal data. You can contact us about privacy at:</p>
     <ContactBlock />
-    <p>Colorful Life Ltd has completed its ICO registration application and Direct Debit setup. The formal registration reference is pending. An application number is not a registration reference.</p>
 
     <h3>The personal data we collect</h3>
     <ul>
@@ -42,7 +41,7 @@ export function PrivacyPolicy() {
 
     <h3>Who we share it with</h3>
     <ul>
-      <li><strong>Stripe and PayPal</strong> process payments and help prevent fraud. They receive transaction identifiers and amounts, and collect payment and technical information directly when you use their payment services. They also act as controllers for some processing under their own privacy notices: <a href="https://stripe.com/privacy">Stripe</a> and <a href="https://www.paypal.com/uk/legalhub/paypal/privacy-full">PayPal</a>. PayPal is currently used for Sandbox testing in our marked test environment.</li>
+      <li><strong>Stripe and PayPal:</strong> Stripe processes card payments and helps prevent fraud. PayPal may also process your information if it is offered at checkout and you choose it. These providers receive transaction identifiers and amounts, and collect payment and technical information directly when you use their payment services. They also act as controllers for some processing under their own privacy notices: <a href="https://stripe.com/privacy">Stripe</a> and <a href="https://www.paypal.com/uk/legalhub/paypal/privacy-full">PayPal</a>.</li>
       <li><strong>Amazon Web Services (AWS)</strong> provides our London application hosting and database infrastructure and sends transactional emails through Amazon SES. Those emails may contain account-verification links, order information, delivery addresses and invoices. London hosting does not mean that every provider activity or email recipient is confined to the UK.</li>
       <li><strong>Cloudinary</strong> hosts product photographs. When you view a product, your browser downloads images from Cloudinary's servers, which receive your IP address and browser details as part of that request. We upload product media rather than customer account or order records; the browser request itself still conveys personal information such as your IP address.</li>
       <li><strong>Ideal Postcodes</strong>, when the address-lookup service is configured and you request a lookup, receives the postcode through our server to return address suggestions. It is not sent your saved recipient name or full saved address by this lookup.</li>
@@ -61,7 +60,7 @@ export function PrivacyPolicy() {
     <p>These are descriptions of published provider terms, not a claim that our transfer review is complete. You may contact us for further information about the safeguards applicable to your information. <OwnerDecisionPlaceholder id="transferSafeguards" /></p>
 
     <h3>How long we keep it</h3>
-    <p>Our policy is generally to retain necessary transaction, payment, refund and accounting records for six years, subject to applicable legal requirements. The relevant starting point and any longer or shorter period depend on the record and legal obligation, including accounting requirements and the need to establish, exercise or defend legal claims.</p>
+    <p>Our policy is generally to retain necessary transaction, payment, refund and accounting records for six years, subject to applicable legal requirements. Necessary order-confirmation snapshots are included as transaction records. We review redundant copies and fields for possible minimisation. The relevant starting point and any longer or shorter period depend on the record and legal obligation, including accounting requirements and the need to establish, exercise or defend legal claims.</p>
     <p>Other personal information is kept only as long as necessary for the purpose for which it was collected, then deleted or anonymised where feasible and lawful. This includes account details, saved addresses, baskets, correspondence, email copies and security records. We assess the purpose, legal requirements and unresolved transactions or disputes before removing records.</p>
     <p>We do not promise automatic deletion after a fixed period. The operational retention schedule, including treatment of email snapshots, logs and backups, is still being checked. Removing data from the application does not necessarily remove it immediately from backups or records held independently by payment providers. <OwnerDecisionPlaceholder id="retentionPeriods" /></p>
 

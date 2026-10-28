@@ -53,3 +53,7 @@ Two real checks remain in OWNER_DECISIONS: retentionPeriods (operational alignme
 ## Phase 1 follow-up — proposal, not gate resolution
 
 See [retention procedure](retention-operations.md) and [provider evidence register](privacy-provider-register.md). New retention periods remain PROPOSED pending owner adoption. Backend bounded expired-auth housekeeping and account-deletion basket/session minimisation are prepared on a separate draft branch; nothing is deployed. Both retentionPeriods and transferSafeguards remain unchanged. No Privacy Policy claim of automatic deletion or completed transfer review has been introduced.
+
+### Independent-review corrections
+
+The public Privacy Policy no longer describes internal ICO application/Direct Debit steps or Sandbox payment operations. PayPal processing is conditional on it being offered and chosen, not a claim of verified production activation. Necessary order-confirmation snapshots follow transaction-record retention. The simplified procedure is monthly private Admin maintenance, a short quarterly review and annual accountant review; the proposed 24-month inactivity threshold was removed because no reliable activity measure exists. Both legal gates remain open. Full frontend tests: 1,166 passed; lint, typecheck, contracts and production build passed. The unsupported data-download action is being handled in a separate frontend draft PR, with no export endpoint implementation.
