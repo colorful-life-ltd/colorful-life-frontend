@@ -30,3 +30,8 @@ it('identifies payment, image and optional lookup flows and keeps transfer revie
   expect(element.querySelector('a[href="https://www.paypal.com/uk/legalhub/paypal/privacy-full"]')).not.toBeNull()
   expect(pendingOwnerDecisions().sort()).toEqual(['retentionPeriods', 'transferSafeguards'])
 })
+
+it('uses the source-verified security summary without implying completed retention or transfer checks', () => {
+  expect(policy().textContent).toContain('We use HTTPS, password hashing and restricted access to protect your information.')
+  expect(pendingOwnerDecisions().sort()).toEqual(['retentionPeriods', 'transferSafeguards'])
+})

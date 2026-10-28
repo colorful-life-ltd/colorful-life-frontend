@@ -78,7 +78,7 @@ export function PrivacyPolicy() {
     <p>Many of our products are toys intended for children, but our shop is for adults buying for themselves or others. We do not knowingly create accounts for, or collect personal data from, children. Customers placing orders must be 18 or older. Parents or guardians may buy for children. Product age recommendations are separate from the purchaser-age requirement.</p>
 
     <h3>Security</h3>
-    <p>We use HTTPS, password hashing and access controls to protect personal information. Infrastructure configuration, access permissions, retention and recovery procedures require ongoing review.</p>
+    <p>We use HTTPS, password hashing and restricted access to protect your information.</p>
 
     <h3>Cookies and browser storage</h3>
     <p>See our <a href="/legal/cookies">Cookie Notice</a>.</p>
