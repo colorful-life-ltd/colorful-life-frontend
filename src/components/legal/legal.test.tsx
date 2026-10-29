@@ -88,6 +88,7 @@ describe('legal pages', () => {
     stubShipping()
     const view = await render(<LegalSpread pathname="/legal/delivery-returns" />)
     await act(async () => { await Promise.resolve() })
+    expect(view.querySelector('table')?.classList.contains('delivery-options-table')).toBe(true)
     const table = view.querySelector('table')?.textContent ?? ''
     expect(table).toContain('Standard Delivery'); expect(table).toContain('£3.99'); expect(table).toContain('Estimated 3–5 working days after dispatch')
     expect(view.textContent).toContain('within 14 days of the day you, or someone you name (other than the carrier), receive the goods')
@@ -132,7 +133,7 @@ describe('legal pages', () => {
     const order = await render(<PreContractSummary stage="order" />)
     expect(order.textContent).toContain('You are buying from Colorful Life Ltd')
     expect(order.querySelector('a[href="/legal/terms"]')).not.toBeNull()
-    expect(order.textContent).toContain('cancel within 14 days')
+    expect(order.textContent).toContain('cancellation notice within 14 days')
     await act(async () => root!.unmount()); root = null
     const payment = await render(<PreContractSummary stage="payment" />)
     expect(payment.textContent).toContain('Selecting Pay now places your order with an obligation to pay')

@@ -63,6 +63,12 @@
 .legal-table th,
 .legal-table td { padding: 6px 8px; border-bottom: 1px solid #bba78055; text-align: left; vertical-align: top; }
 .legal-table th { color: #436c5c; font-weight: 500; border-bottom-color: #bba780aa; }
+/* Give the narrow book column room for readable method and delivery text. */
+.delivery-options-table th,
+.delivery-options-table td { padding-inline: 4px; }
+/* Keep the delivery charge label and prices together; other columns may wrap. */
+.delivery-options-table th:nth-child(2),
+.delivery-options-table td:nth-child(2) { white-space: nowrap; }
 
 .legal-address { margin: 4px 0 12px; font-style: normal; }
 
