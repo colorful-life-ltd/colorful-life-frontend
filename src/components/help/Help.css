@@ -1,0 +1,11 @@
+/* Content-only Help styling; the Customer Information paper remains the scroller. */
+.help-centre { overflow-wrap: anywhere; }
+.help-categories { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-bottom: 14px; }
+.help-categories a { padding-block: 4px; }
+.help-question { border-bottom: 1px solid #bba78055; scroll-margin-block: 12px; }
+.help-question summary { padding: 12px 4px; cursor: pointer; color: #436c5c; font-weight: 600; }
+.help-question summary::marker { color: #a5865d; }
+.help-answer { padding: 0 4px 12px; }
+.help-question-link { font-size: .88em; }
+.help-question summary:focus-visible,
+.help-centre a:focus-visible { outline: 2px solid #527f78; outline-offset: 2px; border-radius: 3px; }

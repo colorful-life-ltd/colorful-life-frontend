@@ -102,7 +102,7 @@
 .temporary-home-controls { position: absolute; top: 12px; right: 12px; z-index: 4; display: flex; gap: 8px; }
 .temporary-home-controls button { padding: 6px 10px; cursor: pointer; }
 .mobile-quick-controls { position: absolute; top: 10px; right: 10px; z-index: 6; display: none; gap: 6px; }
-.mobile-quick-controls button { padding: 6px 10px; border: 1px solid #527f78; border-radius: 999px; background: #fff9e9e8; color: #493c31; cursor: pointer; }
+.mobile-quick-controls button { min-width: 44px; min-height: 44px; padding: 6px 10px; border: 1px solid #527f78; border-radius: 999px; background: #fff9e9e8; color: #493c31; cursor: pointer; }
 @media (max-width: 760px) { .mobile-quick-controls { display: flex; } }
 .user-cart-group { position: absolute; z-index: 5; left: 28%; bottom: 0; width: clamp(360px, 40%, 520px); display: flex; align-items: flex-end; justify-content: space-between; gap: 12%; pointer-events: none; }
 /* The centred book is --book-width minus BookShell's 48px inset, at 9:5, centred in the stage's content box

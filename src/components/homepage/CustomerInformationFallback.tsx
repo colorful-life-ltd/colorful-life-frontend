@@ -10,7 +10,7 @@ export function CustomerInformationFallback({ onActivate }: CustomerInformationF
     <button
       className="customer-information-fallback"
       type="button"
-      aria-label="Customer Information"
+      aria-label="Customer Information: Help & FAQs"
       onClick={onActivate}
     >
       Customer Information →
@@ -23,5 +23,5 @@ export function CustomerInformationFallback({ onActivate }: CustomerInformationF
  * cover scaling, so it stays over the notebook at every desktop size where it is visible.
  */
 export function CustomerInformationNotebook({ onActivate }: CustomerInformationFallbackProps) {
-  return <button className="customer-information-notebook" type="button" aria-label="Customer Information: delivery, returns, terms and privacy" onClick={onActivate} />
+  return <button className="customer-information-notebook" type="button" aria-label="Customer Information: Help & FAQs" onClick={onActivate} />
 }

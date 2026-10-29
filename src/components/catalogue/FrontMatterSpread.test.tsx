@@ -23,15 +23,14 @@ describe('Catalogue front matter', () => {
   it('offers Catalogue, Find a Set and the Customer Information chapter, with no stray legal line', () => {
     const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} onSearch={() => {}} />)
     const buttons = [...markup.matchAll(/<button([^>]*)>([\s\S]*?)<\/button>/g)]
-    expect(buttons).toHaveLength(3)
+    expect(buttons).toHaveLength(2)
     expect(buttons[0][1]).not.toContain('disabled')
     expect(buttons[0][2]).toContain('Our Catalogue')
     expect(buttons[0][2]).toContain('Explore the Build &amp; Bloom collections')
     expect(buttons[1][1]).not.toContain('disabled')
     expect(buttons[1][2]).toContain('Find a Set')
     expect(buttons[1][2]).toContain('Search by name or set number')
-    expect(buttons[2][1]).toContain('disabled')
-    expect(buttons[2][2]).toContain('Help &amp; FAQs')
+    expect(markup).toMatch(/href="\/help">[\s\S]*?Help &amp; FAQs/)
     expect(markup).toMatch(/href="\/legal\/delivery-returns">[\s\S]*?Delivery &amp; Returns/)
     expect(markup).toMatch(/href="\/legal\/contact">[\s\S]*?Contact Us/)
     expect(markup).toMatch(/href="\/legal\/terms">[\s\S]*?Customer Information/)
@@ -39,23 +38,23 @@ describe('Catalogue front matter', () => {
     expect(markup).not.toMatch(/category-entry/)
   })
 
-  it('turns to the Customer Information page on a plain click', () => {
+  it.each(['contact', 'help'] as const)('turns to the %s information page on a plain click', slug => {
     const onLegal = vi.fn()
     const container = document.createElement('div'); document.body.append(container)
     const root = createRoot(container)
     act(() => root.render(<FrontMatterContentsPage onCatalogue={() => {}} onSearch={() => {}} onLegal={onLegal} />))
-    const contact = container.querySelector<HTMLAnchorElement>('a[href="/legal/contact"]')!
+    const contact = container.querySelector<HTMLAnchorElement>(`a[href="${slug === 'help' ? '/help' : '/legal/contact'}"]`)!
     const click = new MouseEvent('click', { bubbles: true, cancelable: true, button: 0 })
     act(() => { contact.dispatchEvent(click) })
     expect(click.defaultPrevented).toBe(true)
-    expect(onLegal).toHaveBeenCalledWith('contact')
+    expect(onLegal).toHaveBeenCalledWith(slug)
     act(() => root.unmount()); container.remove()
   })
 
   it('disables the contents action while a page is turning', () => {
     const markup = renderToStaticMarkup(<FrontMatterContentsPage onCatalogue={() => {}} onSearch={() => {}} turning />)
-    expect(markup.match(/ disabled=""/g)).toHaveLength(3)
-    expect(markup.match(/aria-disabled="true"/g)).toHaveLength(3)
+    expect(markup.match(/ disabled=""/g)).toHaveLength(2)
+    expect(markup.match(/aria-disabled="true"/g)).toHaveLength(4)
   })
 
   it('mounts welcome and contents in the existing physical book without category duplication', () => {

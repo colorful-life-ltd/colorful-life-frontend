@@ -1,3 +1,4 @@
+import { HelpCentre } from '../help/HelpCentre'
 import type { MouseEvent } from 'react'
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import { COMPANY, registeredOfficeLine } from '../../features/legal/company'
@@ -44,7 +45,7 @@ export function CustomerInformationIndex({ current, onSelect, turning = false }:
 }
 
 const documents: Record<LegalSlug, () => React.JSX.Element> = {
-  contact: ContactUs, 'delivery-returns': DeliveryReturns, 'cancellation-form': CancellationForm,
+  help: HelpCentre, contact: ContactUs, 'delivery-returns': DeliveryReturns, 'cancellation-form': CancellationForm,
   terms: TermsAndConditions, privacy: PrivacyPolicy, cookies: CookieNotice,
 }
 

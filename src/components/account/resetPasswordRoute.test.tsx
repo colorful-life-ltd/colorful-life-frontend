@@ -91,7 +91,7 @@ describe('/reset-password route', () => {
 
   it('leaves the normal account modal on sign-in', async () => {
     await openLink('/')
-    await act(async () => document.querySelector<HTMLButtonElement>('.mobile-quick-controls button')!.click())
+    await act(async () => [...document.querySelectorAll<HTMLButtonElement>('.mobile-quick-controls button')].find(button => button.textContent === 'Account')!.click())
     expect(document.body.textContent).toContain('Welcome back!')
     expect(document.body.textContent).toContain('Forgot password?')
   })

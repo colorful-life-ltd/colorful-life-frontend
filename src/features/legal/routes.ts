@@ -1,8 +1,9 @@
 /**
  * The storybook's Customer Information chapter. Each document is a spread of the open book at
- * /legal/<slug>. Paths are also used by backend emails (src/domain/email/consumerRights.ts).
+ * /legal/<slug>, with Help at /help. Paths are also used by backend emails (src/domain/email/consumerRights.ts).
  */
 export const LEGAL_PAGES = [
+  { slug: 'help', path: '/help', title: 'Help & FAQs', summary: 'Answers about shopping, orders and returns', description: 'Help with choosing LEGO sets, delivery, payments, cancellations, returns and your Build & Bloom account.' },
   { slug: 'contact', path: '/legal/contact', title: 'Contact Us', summary: 'Who we are and how to reach us', description: 'Contact Build & Bloom, a trading name of Colorful Life Ltd: email, registered office and company details.' },
   { slug: 'delivery-returns', path: '/legal/delivery-returns', title: 'Delivery & Returns', summary: 'Delivery, your 14-day right to cancel and returns', description: 'Delivery options and charges, your 14-day right to cancel, returns and faulty goods.' },
   { slug: 'cancellation-form', path: '/legal/cancellation-form', title: 'Cancellation Form', summary: 'A form you can use to cancel an order', description: 'Model cancellation form for cancelling a Build & Bloom order within 14 days.' },
