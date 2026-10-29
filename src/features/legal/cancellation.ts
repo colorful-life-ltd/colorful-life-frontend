@@ -1,4 +1,4 @@
-import { COMPANY, returnsAddressLine } from './company'
+import { COMPANY, registeredOfficeLine } from './company'
 
 export type CancellationFields = { order: string; goods: string; orderedOn: string; receivedOn: string; name: string; address: string; date: string }
 export const emptyCancellation: CancellationFields = { order: '', goods: '', orderedOn: '', receivedOn: '', name: '', address: '', date: '' }
@@ -6,7 +6,7 @@ export const emptyCancellation: CancellationFields = { order: '', goods: '', ord
 /** Customer-side only: the text is assembled in the browser and nothing is sent to our servers. */
 export function cancellationEmailBody(f: CancellationFields) {
   return [
-    `To: ${COMPANY.legalName} (trading as ${COMPANY.brand}), ${returnsAddressLine}, ${COMPANY.supportEmail}`, '',
+    `To: ${COMPANY.legalName} (trading as ${COMPANY.brand}), ${registeredOfficeLine}, ${COMPANY.supportEmail}`, '',
     'I hereby give notice that I cancel my contract of sale of the following goods:',
     `${f.goods || '[goods]'}${f.order ? ` (order number ${f.order})` : ''}`, '',
     `Ordered on: ${f.orderedOn || '[date]'}`, `Received on: ${f.receivedOn || '[date]'}`,

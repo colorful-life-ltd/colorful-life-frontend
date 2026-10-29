@@ -11,8 +11,8 @@ export const COMPANY = {
   registrationNumber: '08097729',
   registeredIn: 'England and Wales',
   registeredOffice: ['3 Hawthorne Drive', 'Bolton-Upon-Dearne', 'Rotherham', 'England', 'S63 8NS'],
-  /** Owner-confirmed: returns go to the registered office. */
-  returnsAddress: ['3 Hawthorne Drive', 'Bolton-Upon-Dearne', 'Rotherham', 'England', 'S63 8NS'],
+  /** Owner-confirmed postal address for physical returns. */
+  returnsAddress: ['3 Hawthorne Drive', 'Bolton upon Dearne', 'S63 8NS', 'United Kingdom'],
   supportEmail: 'support@build-and-bloom.co.uk',
   /** Not VAT registered: matches the backend invoice statement (NON_VAT_STATEMENT). */
   vatRegistered: false,
