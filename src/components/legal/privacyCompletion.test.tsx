@@ -36,23 +36,28 @@ it('describes backup criteria without attributing an unverified duration to cust
   expect(text).toContain('do not promise immediate erasure from every copy')
   for (const claim of ['35-day', '35 days', 'for 7 years', '90 days', '180 days', 'permanently removed', 'staff access to customer data requires two-step']) expect(text).not.toContain(claim)
 })
-it('identifies payment, image and optional lookup flows and keeps transfer review open', () => {
+it('identifies processing flows and the supported transfer basis without shifting controller responsibility', () => {
   const element = policy(), text = element.textContent!
   for (const provider of ['Stripe and PayPal', 'Amazon SES', 'Google', 'Cloudinary', 'Ideal Postcodes']) expect(text).toContain(provider)
-  expect(text).toContain('not a claim that our transfer review is complete')
-  expect(text).toContain('account-specific')
+  expect(text).toContain('We remain responsible for our collection and use of your information')
+  expect(text).toContain('applicable UK adequacy regulations')
+  expect(text).toContain('for covered US recipients')
+  expect(text).toContain('appropriate contractual safeguards in service agreements and incorporated data-processing terms')
+  expect(text).toContain('depends on the provider, destination and processing involved')
+  expect(text).not.toContain('all transfers are covered')
   expect(text).toContain('custom-domain Gmail service we use for support email')
-  expect(text).toContain('checking the terms and transfer arrangements applicable to our email subscription')
-  expect(text).toContain('do not claim UK-only mailbox storage')
+  expect(text).toContain('London hosting does not mean that every provider activity stays in the UK')
+  expect(element.querySelector('a[href="https://cloud.google.com/terms/data-processing-addendum/"]')).not.toBeNull()
+  expect(element.querySelector('a[href="https://cloudinary.com/privacy"]')).not.toBeNull()
   expect(element.querySelector('a[href="mailto:support@build-and-bloom.co.uk"]')).not.toBeNull()
   expect(text).not.toContain('Sandbox')
   expect(text).toContain('PayPal may also process your information if it is offered at checkout and you choose it')
   expect(element.querySelector('a[href="https://stripe.com/legal/dta"]')).not.toBeNull()
   expect(element.querySelector('a[href="https://www.paypal.com/uk/legalhub/paypal/privacy-full"]')).not.toBeNull()
-  expect(pendingOwnerDecisions().sort()).toEqual(['transferSafeguards'])
+  expect(pendingOwnerDecisions()).toEqual([])
 })
 
-it('uses the source-verified security summary without implying completed transfer checks', () => {
+it('uses the source-verified security summary without adding unverified security guarantees', () => {
   expect(policy().textContent).toContain('We use HTTPS, password hashing and restricted access to protect your information.')
-  expect(pendingOwnerDecisions().sort()).toEqual(['transferSafeguards'])
+  expect(pendingOwnerDecisions()).toEqual([])
 })

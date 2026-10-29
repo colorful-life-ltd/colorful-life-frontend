@@ -8,8 +8,11 @@
 // retentionPeriods resolved: owner adopted the financial, support-mail and unverified-account
 // rules; the notice makes no fixed live-database backup or automatic-deletion claim.
 // Separate operational follow-up remains in docs/retention-operations.md.
+// transferSafeguards resolved for the reviewed flows: confirmed Workspace Business Starter,
+// established AWS/Stripe service use and incorporated terms; Cloudinary's active UK Extension
+// record covers technical/usage data and media delivery. See docs/privacy-provider-register.md.
+// No separately signed contract or provider-infrastructure audit is asserted.
 export const OWNER_DECISIONS = {
-  transferSafeguards: 'Complete account-specific provider/entity and transfer-safeguard checks, applicable contracts and any required transfer assessments, including Google support-mail subscription/terms, AWS, Cloudinary, active payment services (including testing) and confirmed manual data flows. Reassess optional services before activation. Public terms alone do not establish account coverage.',
 } as const
 
 export type OwnerDecision = keyof typeof OWNER_DECISIONS

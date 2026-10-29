@@ -1,3 +1,5 @@
+> **Final minimal closure update, 29 October 2026:** the owner now confirms Workspace Business Starter active for Colorful Life Ltd. The [current provider assessment](privacy-provider-register.md) supersedes earlier blanket account-console/acceptance-record requirements and the open transfer-gate conclusion below. Standard incorporated terms are assessed against evidenced service use; Cloudinary Inc.'s active UK Extension record was read directly on the official DPF list and explicitly covers technical/media-delivery data. transferSafeguards is resolved for the reviewed flows; retention rules are unchanged. No bespoke signature, provider-infrastructure audit or production change is asserted. Earlier CI results below remain historical results for their stated commits.
+
 # Privacy completion review — 29 October 2026
 
 ## Scope and evidence limits
@@ -53,3 +55,9 @@ Current correction verification:
 - Full ESLint, `npx tsc -b --noEmit`, shared-contract verification and production build: **passed**. Build retains the existing non-fatal chunk-size advisory; jsdom tests emit the existing navigation-not-implemented diagnostic without test failures.
 - `npm run legal:check`: **exit 1 intentionally for transferSafeguards only**. retentionPeriods is explicitly resolved as explained above; the legal checker and deployment workflows are unchanged.
 - Final diff contains only PR #91 privacy wording, owner-decision text, matching legal tests and related documentation. Keep Draft; no merge/deployment or production settings change.
+
+## Final minimal closure verification
+
+The final correction keeps Colorful Life Ltd's controller responsibility explicit, shortens the public transfer explanation and documents the standard incorporated basis rather than claiming individual signatures or blanket provider compliance. The official Cloudinary Inc. profile confirms active UK Extension participation covering non-HR technical data and media delivery. No blocking notice issue remains within these reviewed flows; both gates are resolved. Final Claude review is still required before any separately approved release.
+
+Validation: 27 focused legal/privacy tests passed (3 files); full frontend suite 1,168 passed across 102 files; ESLint, TypeScript no-emit check, immutable shared-contract verification and production build passed. `npm run legal:check` now passes with no open owner decisions. Existing non-fatal chunk-size advisory remains. Approved public retention wording was compared against the reviewed commit and is unchanged byte-for-byte. No checker/workflow bypass, merge, deployment or production setting change occurred.

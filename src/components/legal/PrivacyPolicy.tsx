@@ -1,5 +1,5 @@
 import { COMPANY } from '../../features/legal/company'
-import { ContactBlock, LegalLayout, OwnerDecisionPlaceholder } from './LegalLayout'
+import { ContactBlock, LegalLayout } from './LegalLayout'
 
 /**
  * Describes the processing the code actually performs (backend schema, services and providers).
@@ -10,7 +10,7 @@ export function PrivacyPolicy() {
     <p>This policy explains how {COMPANY.legalName}, trading as {COMPANY.brand} ("we", "us"), uses your personal data when you visit our shop, create an account or buy from us, and the rights you have under UK data protection law.</p>
 
     <h3>Who we are</h3>
-    <p>{COMPANY.legalName} is the controller of your personal data. You can contact us about privacy at:</p>
+    <p>{COMPANY.legalName} is the controller of your personal data. We remain responsible for our collection and use of your information and for meeting our obligations when sharing it with service providers. You can contact us about privacy at:</p>
     <ContactBlock />
 
     <h3>The personal data we collect</h3>
@@ -51,15 +51,8 @@ export function PrivacyPolicy() {
     </ul>
 
     <h3>International transfers</h3>
-    <p>Some service providers process information outside the UK. The applicable safeguard depends on the receiving entity, destination and service; a UK hosting region alone does not settle this. We are still checking the account-specific arrangements and any required transfer assessments.</p>
-    <ul>
-      <li><strong>Google:</strong> support email may be processed outside the UK. We are checking the terms and transfer arrangements applicable to our email subscription; we do not claim UK-only mailbox storage or completed contractual verification.</li>
-      <li><strong>AWS:</strong> its published <a href="https://aws.amazon.com/compliance/gdpr-center/">UK GDPR terms</a> include a UK GDPR Addendum and contractual transfer clauses for relevant restricted transfers.</li>
-      <li><strong>Stripe:</strong> its published <a href="https://stripe.com/legal/dta">Data Transfers Addendum</a> describes the Data Privacy Framework and a UK International Data Transfer Addendum, with the applicable mechanism determined by its terms.</li>
-      <li><strong>PayPal:</strong> its <a href="https://www.paypal.com/uk/legalhub/paypal/privacy-full">UK privacy notice</a> describes adequacy decisions, the UK IDTA or UK Addendum, or an applicable derogation for relevant transfers. We have not verified which mechanism covers each account-specific flow.</li>
-      <li><strong>Cloudinary:</strong> its <a href="https://cloudinary.com/privacy">privacy notice</a> describes international processing and participation in the UK Extension to the Data Privacy Framework. Its content-processing DPA has a separate contractual scope; we have not verified the terms and transfer coverage applicable to our account and image-delivery traffic.</li>
-    </ul>
-    <p>These are descriptions of published provider terms, not a claim that our transfer review is complete. You may contact us for further information about the safeguards applicable to your information. <OwnerDecisionPlaceholder id="transferSafeguards" /></p>
+    <p>Some providers process information outside the UK. For relevant international transfers, we rely on applicable UK adequacy regulations, including the UK Extension to the EU-US Data Privacy Framework for covered US recipients, or appropriate contractual safeguards in service agreements and incorporated data-processing terms. The applicable arrangement depends on the provider, destination and processing involved; London hosting does not mean that every provider activity stays in the UK.</p>
+    <p>Further information is available in <a href="https://cloud.google.com/terms/data-processing-addendum/">Google's data-processing terms</a>, <a href="https://aws.amazon.com/compliance/gdpr-center/">AWS's UK GDPR information</a>, <a href="https://stripe.com/legal/dta">Stripe's transfer terms</a> and <a href="https://cloudinary.com/privacy">Cloudinary's privacy notice</a>. You can contact us for further information about the safeguards applicable to your information.</p>
 
     <h3>How long we keep it</h3>
     <p>We retain necessary transaction, payment, refund and accounting records to meet applicable legal obligations. Our adopted rule is generally six years from the end of the relevant financial year, with longer retention where required by applicable law, open disputes, investigations or enquiries. Not all financial or tax records have identical statutory periods; applicable category-specific requirements and exceptions take precedence. Necessary order-confirmation snapshots are included as transaction records. We review redundant copies and fields for possible minimisation. The relevant starting point and any longer or shorter period depend on the record and legal obligation, including accounting requirements and the need to establish, exercise or defend legal claims.</p>

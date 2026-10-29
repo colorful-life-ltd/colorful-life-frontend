@@ -49,7 +49,7 @@ Keep a restricted minimal erasure ledger separately from database backups (opaqu
 
 **retentionPeriods is resolved for this notice.** The owner has formally adopted all three retention rules. The revised public wording includes financial-year starting point/category exceptions and holds, distinguishes both manual-review triggers from deletion, and uses purpose/necessity/hold criteria for backups without a fixed duration or unimplemented erasure promise. No further retention-policy approval is required for this scoped correction. This is a notice/policy decision, not a certification that every operational control has been deployed or every copy inventoried.
 
-**transferSafeguards remains open** under the [provider register completion rule](privacy-provider-register.md#remaining-transfersafeguards-evidence-and-completion-rule). No account-specific contractual or transfer coverage is inferred from owner retention approval.
+**transferSafeguards is separately resolved** by the [documented provider assessment](privacy-provider-register.md#gate-decision-and-remaining-work), using confirmed service relationships, standard incorporated terms and the official Cloudinary UK Extension record. Its closure is not inferred from owner retention approval.
 
 ## Separate operational readiness tasks
 
