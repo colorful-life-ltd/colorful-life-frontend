@@ -38,7 +38,7 @@ import { catalogueRouteHead, isPrivatePath, privateRouteHead } from './features/
 import { isLegalPath, legalHref } from './features/legal/routes'
 import { SiteFooter } from './components/legal/LegalLayout'
 import { CART_ADD_MESSAGE, CartAddFeedbackContext } from './features/cart/cartAddFeedback'
-import { USER_ACCOUNT_HINT, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
+import { USER_ACCOUNT_HINT, USER_FAREWELL_MESSAGE, USER_FAREWELL_MS, USER_WELCOME_GREETING_MS, USER_WELCOME_HINT_MS, welcomeGreeting } from './components/catalogue/userWelcome'
 
 function App() {
   const [pathname, setPathname] = useState(() => typeof window === 'undefined' ? '/' : window.location.pathname)
@@ -126,6 +126,17 @@ function App() {
         setUserDialogue(null)
       }, USER_WELCOME_HINT_MS)
     }, USER_WELCOME_GREETING_MS)
+  }
+  // Called after logout() has already cleared the session; the bubble is cosmetic only.
+  const startUserFarewell = () => {
+    const run = ++userDialogueRun.current
+    if (userDialogueTimer.current !== null) window.clearTimeout(userDialogueTimer.current)
+    setUserDialogue(USER_FAREWELL_MESSAGE)
+    userDialogueTimer.current = window.setTimeout(() => {
+      if (run !== userDialogueRun.current) return
+      userDialogueTimer.current = null
+      setUserDialogue(null)
+    }, USER_FAREWELL_MS)
   }
   const openAccount = () => {
     setAccountInitialView('hub')
@@ -354,7 +365,7 @@ function App() {
               onGuestHint={() => { if (authState.status === 'signedOut') showGuestHint('user') }}
             />
             <BookOwnedCart onGuestClick={openCart} successCount={cartAdded} /><span className="cart-add-feedback" role="status" aria-live="polite" aria-atomic="true">{cartNotice && <span key={cartAdded}>{CART_ADD_MESSAGE}</span>}</span>
-            {authState.status === 'signedOut' && guestHint && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
+            {authState.status === 'signedOut' && guestHint && !userDialogue && <button className="guest-cart-bubble" type="button" onClick={openAccount}>
               {!sandboxCheckout && guestHint === 'user' ? <>Hi! Sign in or<br />create an account.</> : <>Hi! Sign in to<br />use your cart.</>}
               <span aria-hidden="true" />
             </button>}
@@ -400,7 +411,7 @@ function App() {
       )}
       {!showReference && conditionConfirmation.pending && <ConditionConfirmationDialog offer={conditionConfirmation.pending.offer} productTitle={conditionConfirmation.pending.productTitle}
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
-      {!showReference && accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
+      {!showReference && accountOpen && <AccountModal onClose={closeAccount} onSignOut={startUserFarewell} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
         content={cartItems.length ? { kind: 'filled', items: <div aria-busy={cartLoading || pendingItemIds.length > 0}><CartItems items={cartItems} /></div>, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
     </>
