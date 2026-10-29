@@ -11,7 +11,7 @@ import { PreContractSummary } from './PreContractSummary'
 import { LEGAL_PAGES, isLegalPath, legalPage, type LegalSlug } from '../../features/legal/routes'
 import { OWNER_DECISIONS } from '../../features/legal/ownerDecisions'
 import { cancellationEmailBody, emptyCancellation } from '../../features/legal/cancellation'
-import { COMPANY } from '../../features/legal/company'
+import { COMPANY, registeredOfficeLine } from '../../features/legal/company'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | null = null
@@ -94,6 +94,15 @@ describe('legal pages', () => {
     expect(view.textContent).toContain('within 14 days of the day you, or someone you name (other than the carrier), receive the goods')
   })
 
+  it('shows the business return recipient and exact postal address without a phone number', async () => {
+    stubShipping()
+    const view = await render(<LegalSpread pathname="/legal/delivery-returns" />)
+    const returns = [...view.querySelectorAll('p')].find(p => p.textContent?.startsWith('Returning the goods:'))!
+    expect(returns.textContent).toContain('send them to Colorful Life Ltd, 3 Hawthorne Drive, Bolton upon Dearne, S63 8NS, United Kingdom')
+    expect(returns.textContent).not.toMatch(/(?:\+44|0)\s*7(?:[\s()-]*\d){9}/)
+    expect(view.textContent).toContain(`write to Colorful Life Ltd, ${registeredOfficeLine}.`)
+  })
+
   it('keeps the statutory faulty-goods rights separate from the right to cancel', async () => {
     const view = await render(<LegalSpread pathname="/legal/terms" />)
     expect(view.textContent).toContain('Consumer Rights Act 2015')
@@ -106,6 +115,7 @@ describe('legal pages', () => {
     expect(body).toContain('I hereby give notice that I cancel my contract of sale of the following goods:')
     expect(body).toContain('Set 77245 (order number 1234)')
     expect(body).toContain(COMPANY.supportEmail)
+    expect(body).toContain(registeredOfficeLine)
     const fetchSpy = vi.fn(); vi.stubGlobal('fetch', fetchSpy)
     const view = await render(<LegalSpread pathname="/legal/cancellation-form" />)
     const link = view.querySelector<HTMLAnchorElement>('a[href^="mailto:"].legal-form__button')!

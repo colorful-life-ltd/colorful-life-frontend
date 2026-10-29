@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { deliveryEstimate, getShippingOptions, shippingCharge, type ShippingOptions } from '../../features/checkout/shipping'
-import { COMPANY, returnsAddressLine } from '../../features/legal/company'
+import { COMPANY, registeredOfficeLine, returnsAddressLine } from '../../features/legal/company'
 import { LegalLayout } from './LegalLayout'
 
 /** Delivery charges and estimates come from the backend catalogue, never from copy on this page. */
@@ -34,7 +34,7 @@ export function DeliveryReturns() {
     <ul>
       <li>email <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a> with your order number, or</li>
       <li>use our <a href="/legal/cancellation-form">model cancellation form</a> (you do not have to), or</li>
-      <li>write to {COMPANY.legalName}, {returnsAddressLine}.</li>
+      <li>write to {COMPANY.legalName}, {registeredOfficeLine}.</li>
     </ul>
     <p><strong>Returning the goods:</strong> send them to {COMPANY.legalName}, {returnsAddressLine}, without undue delay and within 14 days of telling us you are cancelling. For a statutory change-of-mind cancellation, you pay the direct cost of returning the goods, provided we disclosed this before you bought them. If we failed to disclose this, we bear that cost. Faulty, misdescribed or otherwise non-conforming goods are covered by your statutory rights, including our responsibility for reasonable return costs where applicable.</p>
     <p><strong>Your refund:</strong> we refund the price you paid and the delivery charge, using your original payment method. If you chose a more expensive delivery method than our cheapest standard delivery, we refund only the cost of the cheapest standard delivery. We refund without undue delay and within 14 days of receiving the goods back, or of you showing us that you have sent them back, whichever is earlier. If you cancel before the goods are dispatched, we refund without undue delay and within 14 days of you telling us. We do not charge a refund fee.</p>
