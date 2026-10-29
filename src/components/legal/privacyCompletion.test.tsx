@@ -10,9 +10,16 @@ it('omits internal ICO application details without introducing a registration bl
   for (const internal of ['Direct Debit', 'registration application', 'registration reference', 'application number']) expect(text).not.toContain(internal)
   expect(pendingOwnerDecisions()).not.toContain('icoRegistration')
 })
-it('describes six-year retention as policy without claiming unverified automatic deletion', () => {
+it('keeps the financial schedule proposed and distinguishes manual review from deletion', () => {
   const text = policy().textContent!
-  expect(text).toContain('generally to retain necessary transaction, payment, refund and accounting records for six years')
+  expect(text).toContain('A six-year operational schedule is proposed, subject to accountant or legal confirmation')
+  expect(text).toContain('manual-review procedure covers accounts that remain unverified after 30 days')
+  expect(text).toContain('not an automatic deletion deadline')
+  expect(text).toContain('quarterly manual reviews')
+  expect(text).toContain('verified 35-day automated backup-retention setting')
+  expect(text).toContain('separate snapshots, exports and mailbox copies')
+  expect(text).toContain('proposed 12-month support-mail review threshold')
+  expect(text).not.toContain('delete support emails after 12 months')
   expect(text).toContain('only as long as necessary')
   expect(text).toContain('Necessary order-confirmation snapshots are included as transaction records')
   expect(text).toContain('do not promise automatic deletion')
@@ -21,9 +28,13 @@ it('describes six-year retention as policy without claiming unverified automatic
 })
 it('identifies payment, image and optional lookup flows and keeps transfer review open', () => {
   const element = policy(), text = element.textContent!
-  for (const provider of ['Stripe and PayPal', 'Amazon SES', 'Cloudinary', 'Ideal Postcodes']) expect(text).toContain(provider)
+  for (const provider of ['Stripe and PayPal', 'Amazon SES', 'Google', 'Cloudinary', 'Ideal Postcodes']) expect(text).toContain(provider)
   expect(text).toContain('not a claim that our transfer review is complete')
   expect(text).toContain('account-specific')
+  expect(text).toContain('custom-domain Gmail service we use for support email')
+  expect(text).toContain('checking the terms and transfer arrangements applicable to our email subscription')
+  expect(text).toContain('do not claim UK-only mailbox storage')
+  expect(element.querySelector('a[href="mailto:support@build-and-bloom.co.uk"]')).not.toBeNull()
   expect(text).not.toContain('Sandbox')
   expect(text).toContain('PayPal may also process your information if it is offered at checkout and you choose it')
   expect(element.querySelector('a[href="https://stripe.com/legal/dta"]')).not.toBeNull()

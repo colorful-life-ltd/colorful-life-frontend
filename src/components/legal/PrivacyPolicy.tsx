@@ -6,7 +6,7 @@ import { ContactBlock, LegalLayout, OwnerDecisionPlaceholder } from './LegalLayo
  * Update this page whenever a new provider, data field or purpose is introduced.
  */
 export function PrivacyPolicy() {
-  return <LegalLayout title="Privacy Policy" updated="28 October 2026">
+  return <LegalLayout title="Privacy Policy" updated="29 October 2026">
     <p>This policy explains how {COMPANY.legalName}, trading as {COMPANY.brand} ("we", "us"), uses your personal data when you visit our shop, create an account or buy from us, and the rights you have under UK data protection law.</p>
 
     <h3>Who we are</h3>
@@ -43,6 +43,7 @@ export function PrivacyPolicy() {
     <ul>
       <li><strong>Stripe and PayPal:</strong> Stripe processes card payments and helps prevent fraud. PayPal may also process your information if it is offered at checkout and you choose it. These providers receive transaction identifiers and amounts, and collect payment and technical information directly when you use their payment services. They also act as controllers for some processing under their own privacy notices: <a href="https://stripe.com/privacy">Stripe</a> and <a href="https://www.paypal.com/uk/legalhub/paypal/privacy-full">PayPal</a>.</li>
       <li><strong>Amazon Web Services (AWS)</strong> provides our London application hosting and database infrastructure and sends transactional emails through Amazon SES. Those emails may contain account-verification links, order information, delivery addresses and invoices. London hosting does not mean that every provider activity or email recipient is confined to the UK.</li>
+      <li><strong>Google</strong> provides the custom-domain Gmail service we use for support email. When you contact us at <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a>, Google processes your email address, message, attachments and related message information. Messages may include order, delivery, return or data-rights request details.</li>
       <li><strong>Cloudinary</strong> hosts product photographs. When you view a product, your browser downloads images from Cloudinary's servers, which receive your IP address and browser details as part of that request. We upload product media rather than customer account or order records; the browser request itself still conveys personal information such as your IP address.</li>
       <li><strong>Ideal Postcodes</strong>, when the address-lookup service is configured and you request a lookup, receives the postcode through our server to return address suggestions. It is not sent your saved recipient name or full saved address by this lookup.</li>
       <li><strong>Delivery companies</strong> (for example Royal Mail, Evri or DPD) receive the recipient name, address and, where needed, phone number for your order.</li>
@@ -52,6 +53,7 @@ export function PrivacyPolicy() {
     <h3>International transfers</h3>
     <p>Some service providers process information outside the UK. The applicable safeguard depends on the receiving entity, destination and service; a UK hosting region alone does not settle this. We are still checking the account-specific arrangements and any required transfer assessments.</p>
     <ul>
+      <li><strong>Google:</strong> support email may be processed outside the UK. We are checking the terms and transfer arrangements applicable to our email subscription; we do not claim UK-only mailbox storage or completed contractual verification.</li>
       <li><strong>AWS:</strong> its published <a href="https://aws.amazon.com/compliance/gdpr-center/">UK GDPR terms</a> include a UK GDPR Addendum and contractual transfer clauses for relevant restricted transfers.</li>
       <li><strong>Stripe:</strong> its published <a href="https://stripe.com/legal/dta">Data Transfers Addendum</a> describes the Data Privacy Framework and a UK International Data Transfer Addendum, with the applicable mechanism determined by its terms.</li>
       <li><strong>PayPal:</strong> its <a href="https://www.paypal.com/uk/legalhub/paypal/privacy-full">UK privacy notice</a> describes adequacy decisions, the UK IDTA or UK Addendum, or an applicable derogation for relevant transfers. We have not verified which mechanism covers each account-specific flow.</li>
@@ -60,8 +62,9 @@ export function PrivacyPolicy() {
     <p>These are descriptions of published provider terms, not a claim that our transfer review is complete. You may contact us for further information about the safeguards applicable to your information. <OwnerDecisionPlaceholder id="transferSafeguards" /></p>
 
     <h3>How long we keep it</h3>
-    <p>Our policy is generally to retain necessary transaction, payment, refund and accounting records for six years, subject to applicable legal requirements. Necessary order-confirmation snapshots are included as transaction records. We review redundant copies and fields for possible minimisation. The relevant starting point and any longer or shorter period depend on the record and legal obligation, including accounting requirements and the need to establish, exercise or defend legal claims.</p>
+    <p>We retain necessary transaction, payment, refund and accounting records to meet applicable legal obligations. A six-year operational schedule is proposed, subject to accountant or legal confirmation of the records covered, the starting point and any exceptions. Necessary order-confirmation snapshots are included as transaction records. We review redundant copies and fields for possible minimisation. The relevant starting point and any longer or shorter period depend on the record and legal obligation, including accounting requirements and the need to establish, exercise or defend legal claims.</p>
     <p>Other personal information is kept only as long as necessary for the purpose for which it was collected, then deleted or anonymised where feasible and lawful. This includes account details, saved addresses, baskets, correspondence, email copies and security records. We assess the purpose, legal requirements and unresolved transactions or disputes before removing records.</p>
+    <p>Our manual-review procedure covers accounts that remain unverified after 30 days; this is a review trigger, not an automatic deletion deadline. It also covers routine correspondence and other outstanding retention cases through quarterly manual reviews. Our production database has a verified 35-day automated backup-retention setting; separate snapshots, exports and mailbox copies have their own retention needs.</p>
     <p>We do not promise automatic deletion after a fixed period. The operational retention schedule, including treatment of email snapshots, logs and backups, is still being checked. Removing data from the application does not necessarily remove it immediately from backups or records held independently by payment providers. <OwnerDecisionPlaceholder id="retentionPeriods" /></p>
 
     <h3>Your rights</h3>

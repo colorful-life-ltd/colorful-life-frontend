@@ -1,3 +1,5 @@
+> **29 October 2026 update:** the review below is historical evidence from 28 October. Current decisions and evidence are in [retention operations](retention-operations.md) and the [provider register](privacy-provider-register.md). Google Workspace signup for the support domain is evidenced; exact subscription/terms remain pending. RDS 35-day backups and SES sending/domain verification were reconfirmed through read-only AWS API. The public storefront currently serves Stripe Sandbox settings and Cloudinary product URLs; customer-live payment/backend use is not inferred. The 30-day unverified-account manual trigger is adopted; the 12-month routine-mail threshold and six-year operational financial schedule are proposals subject to the stated approvals. These supersede earlier approved-policy/unknown-mailbox/unverified-backup statements. Both legal gates remain open. PR #93 handles the unsupported export UI separately; no export endpoint is introduced here.
+
 # Privacy completion review — 28 October 2026
 
 ## Scope and evidence limits
@@ -57,3 +59,10 @@ See [retention procedure](retention-operations.md) and [provider evidence regist
 ### Independent-review corrections
 
 The public Privacy Policy no longer describes internal ICO application/Direct Debit steps or Sandbox payment operations. PayPal processing is conditional on it being offered and chosen, not a claim of verified production activation. Necessary order-confirmation snapshots follow transaction-record retention. The simplified procedure is monthly private Admin maintenance, a short quarterly review and annual accountant review; the proposed 24-month inactivity threshold was removed because no reliable activity measure exists. Both legal gates remain open. Full frontend tests: 1,166 passed; lint, typecheck, contracts and production build passed. The unsupported data-download action is being handled in a separate frontend draft PR, with no export endpoint implementation.
+
+## 29 October 2026 verification of the current corrections
+
+- Focused legal regression suite: **26 passed, 0 failed (3 files)**, covering support-mail disclosure, proposed financial retention, manual review, separate backup/copy treatment and both open gates.
+- Full ESLint, `npx tsc -b --noEmit`, shared-contract check and production build: **passed**. Build retains the existing advisory about a chunk larger than 500 kB; no build failure.
+- `npm run legal:check`: **exit 1 intentionally**, for exactly `retentionPeriods` and `transferSafeguards`. No gate/workflow bypass. Full application suite was not rerun for these scoped privacy wording/documentation corrections.
+- Ready for independent Claude review of evidence boundaries and proposed procedures; **not ready for merge/deployment**. Keep Draft and preserve release order #88 → #91 → #92. Other PRs, primary worktrees and production configuration are untouched.
