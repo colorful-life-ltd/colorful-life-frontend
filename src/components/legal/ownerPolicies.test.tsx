@@ -27,10 +27,10 @@ describe('owner-approved sales policies', () => {
     expect(copy).toContain('dispatch confirmation email')
     expect(copy).toContain('18 or older')
   })
-  it('leaves the two unresolved privacy implementation checks visible and pending', () => {
-    expect(pendingOwnerDecisions().sort()).toEqual(['retentionPeriods', 'transferSafeguards'])
+  it('keeps the unresolved transfer check visible after retention approval', () => {
+    expect(pendingOwnerDecisions().sort()).toEqual(['transferSafeguards'])
     const copy = text(renderToStaticMarkup(<PrivacyPolicy />))
-    expect(copy.match(/Owner decision required/g)).toHaveLength(2)
+    expect(copy.match(/Owner decision required/g)).toHaveLength(1)
     expect(copy).toContain('Customers placing orders must be 18 or older')
   })
 })

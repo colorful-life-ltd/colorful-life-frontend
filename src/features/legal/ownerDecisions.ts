@@ -5,9 +5,11 @@
  *
  * To resolve one: verify the underlying facts/implementation, write accurate approved wording and delete its entry here.
  */
+// retentionPeriods resolved: owner adopted the financial, support-mail and unverified-account
+// rules; the notice makes no fixed live-database backup or automatic-deletion claim.
+// Separate operational follow-up remains in docs/retention-operations.md.
 export const OWNER_DECISIONS = {
-  retentionPeriods: 'Confirm the proposed six-year financial schedule with the accountant/legal adviser and obtain owner adoption; decide the proposed 12-month support-mail review threshold and verify practical review/disposal, mailbox/copy/backup and restore handling. The 30-day unverified-account manual-review trigger is adopted and RDS backups are verified at 35 days; neither establishes automatic deletion.',
-  transferSafeguards: 'Complete account-specific provider/entity and transfer-safeguard checks, applicable contracts and any required transfer assessments, including Google support-mail subscription/terms, AWS, Cloudinary, actual test/live payment services and optional/manual data flows. Public terms alone do not establish account coverage.',
+  transferSafeguards: 'Complete account-specific provider/entity and transfer-safeguard checks, applicable contracts and any required transfer assessments, including Google support-mail subscription/terms, AWS, Cloudinary, active payment services (including testing) and confirmed manual data flows. Reassess optional services before activation. Public terms alone do not establish account coverage.',
 } as const
 
 export type OwnerDecision = keyof typeof OWNER_DECISIONS
