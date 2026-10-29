@@ -36,3 +36,7 @@ A separately approved narrow proxy allowlist update is required before this UI r
 - [ ] Expired authentication, foreign order, unavailable network and malformed response show errors safely.
 
 All automated tests use mocked/captured local data; no customer records or live payment APIs were accessed. Claude Opus and owner release approval are required before merging.
+
+## Independent-review correction
+
+Claude Opus's initial read-only review approved the UI with a recoverability follow-up: definite request refusals were unnecessarily treated as uncertain and locked the selection. Known transaction/auth/validation 4xx refusals now unlock the selection and clear the rejected draft; a revised request gets a fresh key. Network/5xx/unknown outcomes still retain the original key/payload and keep the selection locked for safe retry. The regression covers 409 refusal/revision and retains the existing lost-response retry test. Full suite passes 1,193 tests. Final-head independent re-review is required before leaving Draft.

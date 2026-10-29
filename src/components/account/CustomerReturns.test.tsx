@@ -1,3 +1,4 @@
+import { AuthApiError } from '../../features/auth/api'
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -201,4 +202,21 @@ it('prevents duplicate submissions while the request is in flight', async () => 
   await submit()
   expect(requestReturns).toHaveBeenCalledOnce()
   await act(async () => resolve(requested))
+})
+
+it('unlocks a definitely refused request so revised quantities use a fresh key', async () => {
+  vi.mocked(requestReturns)
+    .mockRejectedValueOnce(new AuthApiError(409, 'RETURN_TRANSITION_REFUSED'))
+    .mockResolvedValueOnce(requested)
+  await open()
+  await quantity(2)
+  await submit()
+  const first = vi.mocked(requestReturns).mock.calls[0][2]
+  expect(container.querySelector('fieldset')?.disabled).toBe(false)
+  expect(container.textContent).toContain('request was refused')
+  await quantity(1)
+  await submit()
+  const second = vi.mocked(requestReturns).mock.calls[1][2]
+  expect(second.idempotencyKey).not.toEqual(first.idempotencyKey)
+  expect(second.lines[0].quantity).toBe(1)
 })

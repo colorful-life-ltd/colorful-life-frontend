@@ -1,3 +1,4 @@
+import { AuthApiError } from '../../features/auth/api'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
 import {
   readReturns,
@@ -121,12 +122,23 @@ export function CustomerReturns({
           'Your return request has been recorded. We will review each item and email return instructions when authorised.',
         )
       }
-    } catch {
+    } catch (reason) {
       if (current === generation.current.version) {
-        setUncertain(true)
-        setError(
-          'We could not confirm submission. Retry with the same selection to avoid duplicates, or refresh your return history. You can also contact support.',
-        )
+        const refused =
+          reason instanceof AuthApiError &&
+          [400, 401, 403, 404, 409, 422].includes(reason.status)
+        if (refused) {
+          draft.current = null
+          setUncertain(false)
+          setError(
+            'The return request was refused. Refresh your return history and check the quantities and eligibility before revising your request, or contact support.',
+          )
+        } else {
+          setUncertain(true)
+          setError(
+            'We could not confirm submission. Retry the original request with the same selection to avoid duplicates, or contact support.',
+          )
+        }
       }
     } finally {
       inFlight.current = false
