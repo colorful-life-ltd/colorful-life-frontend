@@ -13,6 +13,10 @@ import {
   type ReturnRequest,
 } from '../../features/returns/contract'
 import './CustomerReturns.css'
+/** The proxy accepts at most 100k (100 × 1024 bytes) for a return request body. */
+export const RETURN_REQUEST_MAX_BYTES = 100 * 1024
+const TOO_LARGE =
+  'Your return request is too large to send. Shorten the notes, then submit again.'
 const date = (value: string) =>
   new Date(value).toLocaleString('en-GB', {
     dateStyle: 'medium',
@@ -104,8 +108,18 @@ export function CustomerReturns({
       setError('Check the selected quantities.')
       return
     }
-    if (!draft.current)
-      draft.current = { idempotencyKey: crypto.randomUUID(), lines }
+    if (!draft.current) {
+      const candidate = { idempotencyKey: crypto.randomUUID(), lines }
+      // Measure the exact serialized UTF-8 body sent by requestReturns.
+      if (
+        new TextEncoder().encode(JSON.stringify(candidate)).length >
+        RETURN_REQUEST_MAX_BYTES
+      ) {
+        setError(TOO_LARGE)
+        return
+      }
+      draft.current = candidate
+    }
     inFlight.current = true
     setPending(true)
     setError('')
@@ -119,19 +133,22 @@ export function CustomerReturns({
         draft.current = null
         setUncertain(false)
         setFeedback(
-          'Your return request has been recorded. We will review each item and email return instructions when authorised.',
+          'Your return request has been recorded. We will review each item; return instructions will appear here in My Account when authorised.',
         )
       }
     } catch (reason) {
       if (current === generation.current.version) {
         const refused =
           reason instanceof AuthApiError &&
-          [400, 401, 403, 404, 409, 422].includes(reason.status)
+          [400, 401, 403, 404, 409, 413, 422].includes(reason.status)
         if (refused) {
+          // A definite refusal: nothing was recorded, so unlock the selection for editing.
           draft.current = null
           setUncertain(false)
           setError(
-            'The return request was refused. Refresh your return history and check the quantities and eligibility before revising your request, or contact support.',
+            reason.status === 413
+              ? TOO_LARGE
+              : 'The return request was refused. Refresh your return history and check the quantities and eligibility before revising your request, or contact support.',
           )
         } else {
           setUncertain(true)
@@ -386,7 +403,7 @@ export function CustomerReturns({
                   <p>
                     We determine return-postage responsibility under the
                     applicable policy and your consumer rights. Return
-                    instructions will appear here and be emailed after
+                    instructions will appear here in My Account after
                     authorisation.
                   </p>
                   <button className="checkout__primary" disabled={pending}>

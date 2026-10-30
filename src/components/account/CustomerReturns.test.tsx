@@ -3,7 +3,7 @@ import { AuthApiError } from '../../features/auth/api'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
-import { CustomerReturns } from './CustomerReturns'
+import { CustomerReturns, RETURN_REQUEST_MAX_BYTES } from './CustomerReturns'
 import {
   readReturns,
   requestReturns,
@@ -219,4 +219,61 @@ it('unlocks a definitely refused request so revised quantities use a fresh key',
   const second = vi.mocked(requestReturns).mock.calls[1][2]
   expect(second.idempotencyKey).not.toEqual(first.idempotencyKey)
   expect(second.lines[0].quantity).toBe(1)
+})
+
+async function setValue(node: Element, value: string) {
+  const proto = node instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(proto, 'value')!.set!.call(node, value)
+    node.dispatchEvent(new Event('input', { bubbles: true }))
+  })
+}
+
+it('treats HTTP 413 as a definite rejection and lets the customer edit and resubmit', async () => {
+  vi.mocked(requestReturns)
+    .mockRejectedValueOnce(new AuthApiError(413, 'Request Entity Too Large'))
+    .mockResolvedValueOnce(requested)
+  await open()
+  await quantity(1)
+  await setValue(container.querySelector('textarea')!, 'Box arrived crushed.')
+  await submit()
+  const first = vi.mocked(requestReturns).mock.calls[0][2]
+  expect(container.textContent).toContain('too large to send')
+  expect(container.textContent).not.toContain('could not confirm submission')
+  expect(container.querySelector('fieldset')?.disabled).toBe(false)
+  await setValue(container.querySelector('textarea')!, 'Crushed box.')
+  await submit()
+  const second = vi.mocked(requestReturns).mock.calls[1][2]
+  expect(second.idempotencyKey).not.toEqual(first.idempotencyKey)
+  expect(second.lines[0].reasonNote).toBe('Crushed box.')
+  expect(container.textContent).toContain('has been recorded')
+})
+
+it('blocks an oversized UTF-8 payload before sending and accepts it once shortened', async () => {
+  // 20 lines × 2,000 three-byte characters (the textarea maxLength) is about 120 kB of UTF-8, over 100k.
+  const items = Array.from({ length: 20 }, (_, i) => ({ ...empty.items[0], id: i + 1, name: `Set ${i + 1}` }))
+  vi.mocked(readReturns).mockResolvedValue({ ...empty, items })
+  await open()
+  for (const node of container.querySelectorAll('input[type=number]')) await setValue(node, '1')
+  const notes = [...container.querySelectorAll('textarea')]
+  expect(notes).toHaveLength(20)
+  for (const node of notes) await setValue(node, '€'.repeat(2000))
+  const body = JSON.stringify({ idempotencyKey: crypto.randomUUID(), lines: items.map(i => ({ orderItemId: i.id, quantity: 1, reason: 'CHANGE_OF_MIND', reasonNote: '€'.repeat(2000) })) })
+  expect(new TextEncoder().encode(body).length).toBeGreaterThan(RETURN_REQUEST_MAX_BYTES)
+  await submit()
+  expect(requestReturns).not.toHaveBeenCalled()
+  expect(container.textContent).toContain('too large to send')
+  expect(container.querySelector('fieldset')?.disabled).toBe(false)
+  for (const node of notes) await setValue(node, 'Unwanted gift.')
+  await submit()
+  expect(requestReturns).toHaveBeenCalledOnce()
+})
+
+it('promises account instructions, not return emails, in the initial mail-disabled release', async () => {
+  await open()
+  expect(container.textContent).toContain('will appear here in My Account after authorisation')
+  await quantity(1)
+  await submit()
+  expect(container.textContent).toContain('will appear here in My Account when authorised')
+  expect(container.textContent).not.toMatch(/emailed|email return instructions/i)
 })
