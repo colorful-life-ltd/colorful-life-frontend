@@ -1,6 +1,8 @@
 export const USER_WELCOME_GREETING_MS = 3_000
 export const USER_WELCOME_HINT_MS = 6_000
 export const USER_ACCOUNT_HINT = 'Click me anytime to manage your account and orders.'
+export const USER_FAREWELL_MS = 3_000
+export const USER_FAREWELL_MESSAGE = 'See you soon! Thanks for stopping by!'
 
 export function welcomeGreeting(firstName: string | null | undefined) {
   const name = firstName?.trim()

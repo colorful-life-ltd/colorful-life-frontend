@@ -59,7 +59,7 @@ export function AccountModalCloseButton({ onClose, closeRef }: { onClose: () => 
   return <button ref={closeRef} type="button" className="account-modal__close" aria-label="Close account dialog" onClick={onClose}>×</button>
 }
 
-export function AccountModal({ onClose, initialView = 'hub', initialAuthMode = 'signin' }: { onClose: () => void; initialView?: 'hub' | 'personal'; initialAuthMode?: AccountFormsMode }) {
+export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialAuthMode = 'signin' }: { onClose: () => void; onSignOut?: () => void; initialView?: 'hub' | 'personal'; initialAuthMode?: AccountFormsMode }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const previousStatus = useRef<string | undefined>(undefined)
   const { state, logout } = useAuth()
@@ -84,7 +84,7 @@ export function AccountModal({ onClose, initialView = 'hub', initialAuthMode = '
       <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : state.status === 'verificationRequired' ? ' account-modal__surface--verification' : ''}`}>
         <AccountModalCloseButton closeRef={closeRef} onClose={onClose} />
         <h1 id="account-modal-title" className="account-modal__accessible-title">My Account</h1>
-        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onClose() }} /> : <AccountForms initialMode={initialAuthMode} />}
+        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onSignOut?.(); onClose() }} /> : <AccountForms initialMode={initialAuthMode} />}
       </section>
     </div>
   )
