@@ -38,7 +38,7 @@ it('describes backup criteria without attributing an unverified duration to cust
 })
 it('identifies processing flows and the supported transfer basis without shifting controller responsibility', () => {
   const element = policy(), text = element.textContent!
-  for (const provider of ['Stripe and PayPal', 'Amazon SES', 'Google', 'Cloudinary', 'Ideal Postcodes']) expect(text).toContain(provider)
+  for (const provider of ['Stripe', 'Amazon SES', 'Google', 'Cloudinary', 'Ideal Postcodes']) expect(text).toContain(provider)
   expect(text).toContain('We remain responsible for our collection and use of your information')
   expect(text).toContain('applicable UK adequacy regulations')
   expect(text).toContain('for covered US recipients')
@@ -51,9 +51,9 @@ it('identifies processing flows and the supported transfer basis without shiftin
   expect(element.querySelector('a[href="https://cloudinary.com/privacy"]')).not.toBeNull()
   expect(element.querySelector('a[href="mailto:support@build-and-bloom.co.uk"]')).not.toBeNull()
   expect(text).not.toContain('Sandbox')
-  expect(text).toContain('PayPal may also process your information if it is offered at checkout and you choose it')
+  expect(text).not.toContain('PayPal')
   expect(element.querySelector('a[href="https://stripe.com/legal/dta"]')).not.toBeNull()
-  expect(element.querySelector('a[href="https://www.paypal.com/uk/legalhub/paypal/privacy-full"]')).not.toBeNull()
+  expect(element.querySelector('a[href="https://www.paypal.com/uk/legalhub/paypal/privacy-full"]')).toBeNull()
   expect(pendingOwnerDecisions()).toEqual([])
 })
 

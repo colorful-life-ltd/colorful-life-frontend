@@ -13,7 +13,6 @@ import { useCheckout } from '../../features/checkout/useCheckout'
 import { canRecoverPayment, parsePaymentWindow, paymentAction, paymentActionLabel } from '../../features/checkout/paymentWindow'
 import { PaymentWindowNotice } from './PaymentWindowNotice'
 import { sandboxCheckout } from '../../features/checkout/sandbox'
-import { PayPalSandboxButtons } from './PayPalSandboxButtons'
 import { StripePaymentForm } from './StripePaymentForm'
 import { PreContractSummary } from '../legal/PreContractSummary'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
@@ -214,8 +213,7 @@ function AuthenticatedCheckout({ token, userId, onAddresses, addressRevision, on
       {order.paymentWindow?.provider === 'STRIPE' && ['payment', 'submitting'].includes(phase) && secret && <StripePaymentForm key={secret} clientSecret={secret} orderId={order.id} onVerify={checkout.paymentSubmitted} onRecheck={() => void checkout.recheck()} beforeConfirm={checkout.beforeConfirm} beforeRetry={checkout.beforeRetry} onSubmissionSettled={checkout.submissionSettled} />}
       {['waiting', 'verifying'].includes(phase) && <p role="status">Payment is being verified. Confirming your order…</p>}
 
-      {sandboxCheckout && order.status === 'PENDING' && order.paymentWindow?.provider === 'PAYPAL' && paymentAction(order.paymentWindow) && !['verifying','verification-timeout','waiting'].includes(phase) && <PayPalSandboxButtons token={token} orderId={order.id} onVerification={() => checkout.paymentSubmitted()} onRefresh={() => { void checkout.reloadOrder() }} />}
-      {sandboxCheckout && !['PAYPAL', 'STRIPE'].includes(order.paymentWindow?.provider ?? '') && order.paymentWindow?.state !== 'PAID' && <p role="status">Sandbox payment is unavailable. Refresh the order; live payments are disabled.</p>}
+      {sandboxCheckout && order.paymentWindow?.provider !== 'STRIPE' && order.paymentWindow?.state !== 'PAID' && <p role="status">Sandbox payment is unavailable. Refresh the order; live payments are disabled.</p>}
       {order.status === 'PENDING' && !['PAID', 'NOT_PAYABLE'].includes(parsePaymentWindow(order.paymentWindow)?.state ?? '') && !['auth', 'verification'].includes(phase) && <button disabled={pending} onClick={() => void (parsePaymentWindow(order.paymentWindow)?.provider === 'STRIPE' && canRecoverPayment(order.paymentWindow) ? checkout.recheck() : checkout.reloadOrder())}>Check payment status</button>}
     </section>}
     {orderId && !order && phase === 'failure' && <button onClick={() => void checkout.reloadOrder()}>Retry loading order</button>}
