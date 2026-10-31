@@ -19,7 +19,7 @@ const paymentLabels: Record<string, string> = {
   OUTCOME_UNRESOLVED: 'Payment outcome unresolved', RETRY_AVAILABLE: 'Unpaid · replacement payment available',
   RETRY_REQUIRES_PROVIDER_CHECK: 'Payment check required', PAID: 'Paid', NOT_PAYABLE: 'Not payable',
 }
-const providerNames: Record<string, string> = { PAYPAL: 'PayPal', STRIPE: 'Stripe' }
+const providerNames: Record<string, string> = { STRIPE: 'Stripe' }
 export function paymentStatusLabel(value: unknown) {
   const window = parsePaymentWindow(value)
   if (!window) return 'Payment status unavailable'

@@ -51,7 +51,7 @@ describe('compact order history cards', () => {
     expect(card.querySelector('.order-card__meta')?.textContent).toBe('Order placed1 Oct 2026Total£28.492 itemsOrder #41View order details')
     expect(card.querySelector('.order-card__status')?.textContent).toBe('Confirmed')
     expect(card.querySelector('.order-card__items')?.textContent).toBe('Flower BouquetSet 1001 · Qty 2')
-    expect(fact(card, 'Payment')).toBe('Paid · PayPal'); expect(fact(card, 'Delivery')).toBe('Express Delivery')
+    expect(fact(card, 'Payment')).toBe('Paid'); expect(fact(card, 'Delivery')).toBe('Express Delivery')
   })
 
   it('keeps returns guidance, progress text, charges and addresses off the list', async () => {
@@ -79,7 +79,7 @@ describe('compact order history cards', () => {
   it.each<[PaymentWindow['state'], Partial<PaymentWindow>, string]>([
     ['PAID', { provider: 'STRIPE' }, 'Paid · Stripe'],
     ['INITIAL_PAYMENT', {}, 'Awaiting payment · Stripe'],
-    ['CHECKOUT_RESUMABLE', { provider: 'PAYPAL' }, 'Checkout can be resumed · PayPal'],
+    ['CHECKOUT_RESUMABLE', { provider: 'PAYPAL' }, 'Checkout can be resumed'],
     ['PROCESSING', {}, 'Payment processing · Stripe'],
     ['OUTCOME_UNRESOLVED', {}, 'Payment outcome unresolved · Stripe'],
     ['RETRY_AVAILABLE', {}, 'Unpaid · replacement payment available · Stripe'],

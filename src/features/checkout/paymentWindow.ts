@@ -47,7 +47,7 @@ export function parsePaymentWindow(value: unknown): PaymentWindow | null {
 export type PaymentAction = 'initial' | 'resume' | 'replacement' | 'provider-check'
 export function paymentAction(value: unknown): PaymentAction | null {
   const w = parsePaymentWindow(value)
-  if (!w) return null
+  if (!w || w.provider !== 'STRIPE') return null
   switch (w.state) {
     case 'INITIAL_PAYMENT': return 'initial'
     case 'CHECKOUT_RESUMABLE': return 'resume'
@@ -58,10 +58,10 @@ export function paymentAction(value: unknown): PaymentAction | null {
 }
 export function paymentMessage(value: unknown): string {
   const w = parsePaymentWindow(value)
-  if (!w) return 'Payment information is unavailable. Refresh the order or try again later. Do not start another payment while its outcome is unknown.'
+  if (!w || w.provider !== 'STRIPE') return 'Payment information is unavailable. Refresh the order or try again later. Do not start another payment while its outcome is unknown.'
   switch (w.state) {
     case 'INITIAL_PAYMENT': return 'Your order is ready for an initial payment. Review the final total before continuing.'
-    case 'CHECKOUT_RESUMABLE': return w.provider === 'PAYPAL' ? 'Your existing PayPal approval can be resumed. Do not start a separate payment.' : 'An existing Stripe checkout can be resumed. We will check that same payment before showing the next step.'
+    case 'CHECKOUT_RESUMABLE': return 'An existing Stripe checkout can be resumed. We will check that same payment before showing the next step.'
     case 'PROCESSING': return 'Your payment is processing. It may still succeed after the payment window closes. Do not start another payment.'
     case 'OUTCOME_UNRESOLVED': return 'Your payment outcome is unresolved. This does not mean payment failed. Wait or check its status; do not start another payment.'
     case 'RETRY_AVAILABLE': return 'The previous payment is verified unpaid. A replacement payment is available, subject to a fresh eligibility check.'
@@ -73,7 +73,7 @@ export function paymentMessage(value: unknown): string {
 export function paymentActionLabel(value: unknown): string {
   switch (paymentAction(value)) {
     case 'initial': return 'Continue to secure payment'
-    case 'resume': return parsePaymentWindow(value)?.provider === 'PAYPAL' ? 'Resume existing PayPal checkout' : 'Resume existing Stripe checkout'
+    case 'resume': return 'Resume existing Stripe checkout'
     case 'replacement': return 'Start verified-unpaid replacement payment'
     case 'provider-check': return 'Check existing payment with Stripe'
     default: return 'Payment unavailable'
@@ -81,7 +81,7 @@ export function paymentActionLabel(value: unknown): string {
 }
 export const canRecoverPayment = (value: unknown) => {
   const w = parsePaymentWindow(value)
-  return !!w && w.reason !== 'OTHER_PROVIDER' && ['CHECKOUT_RESUMABLE', 'PROCESSING', 'OUTCOME_UNRESOLVED', 'RETRY_REQUIRES_PROVIDER_CHECK'].includes(w.state)
+  return !!w && w.provider === 'STRIPE' && w.reason !== 'OTHER_PROVIDER' && ['CHECKOUT_RESUMABLE', 'PROCESSING', 'OUTCOME_UNRESOLVED', 'RETRY_REQUIRES_PROVIDER_CHECK'].includes(w.state)
 }
 
 /** Compare only snapshots of the same owned order. Financial success never regresses. */
