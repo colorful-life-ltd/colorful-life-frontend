@@ -343,3 +343,15 @@ describe('persisted order financials in customer views', () => {
     expect(container.textContent).toContain('Order total£20.50')
   })
 })
+
+it('keeps paid pre-dispatch orders in cancellation/support and exposes returns only after confirmed dispatch',async()=>{
+ history.replaceState({},'', '/account/orders/41');
+ let current={...detail,status:'CONFIRMED',payment:{status:'SUCCEEDED',paidAt:'2026-10-29T12:00:00Z'}};
+ fetcher.mockImplementation((url:string)=>url==='/api/orders/41'?response(current):response([]));
+ await mount();expect(container.textContent).toContain('Cancellation or refund before dispatch');expect(container.textContent).not.toContain('Request Return / View return history');expect(container.textContent).toContain('items and quantities');
+ current={...current,status:'DISPATCHED',dispatchedAt:'2026-10-29T12:30:00Z'};
+ await click('Refresh order');expect(container.textContent).toContain('Request Return / View return history');expect(container.textContent).not.toContain('Cancellation or refund before dispatch');
+});
+it('does not offer returns or paid-refund instructions for an unpaid order',async()=>{
+ history.replaceState({},'', '/account/orders/41');fetcher.mockImplementation((url:string)=>url==='/api/orders/41'?response({...detail,status:'PENDING',payment:null}):response([]));await mount();expect(container.textContent).not.toContain('Request Return / View return history');expect(container.textContent).not.toContain('Cancellation or refund before dispatch');
+});

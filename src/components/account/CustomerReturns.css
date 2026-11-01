@@ -1,0 +1,67 @@
+.customer-returns {
+  margin: 2rem 0;
+  padding-top: 1.5rem;
+  border-top: 1px solid #b9c5af;
+}
+.customer-return-request {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid #c6d0ba;
+  border-radius: 0.65rem;
+  background: #fffdf5;
+}
+.customer-return-line {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid #e1e5d7;
+}
+.customer-return-line:last-child {
+  border: 0;
+}
+.customer-return-line h5 {
+  font-size: 1rem;
+  margin: 0.5rem 0;
+}
+.customer-return-instructions {
+  border-left: 3px solid #536f42;
+  background: #f0f4e9;
+  padding: 1rem;
+  white-space: pre-wrap;
+}
+.customer-returns fieldset {
+  margin: 1rem 0;
+  border: 1px solid #b9c5af;
+  padding: 1rem;
+  border-radius: 0.5rem;
+}
+.customer-returns label {
+  display: block;
+  margin: 0.7rem 0;
+}
+.customer-returns input,
+.customer-returns select,
+.customer-returns textarea {
+  display: block;
+  box-sizing: border-box;
+  max-width: 100%;
+  width: 100%;
+  font: inherit;
+  padding: 0.65rem;
+  margin-top: 0.35rem;
+  border: 1px solid #94a489;
+  border-radius: 0.25rem;
+  background: #fffefa;
+}
+.customer-returns input[type='number'] {
+  width: 100px;
+}
+.customer-returns textarea {
+  min-height: 90px;
+}
+.customer-returns [role='alertdialog'] {
+  padding: 1rem;
+  border: 2px solid #6d7e5c;
+  margin-top: 1rem;
+}
+.customer-returns [role='alertdialog'] button {
+  margin: 0.4rem;
+}
