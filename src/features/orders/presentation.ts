@@ -1,5 +1,5 @@
 import type { OrderDetail, OrderSummary } from './api'
-import { canRecoverPayment, parsePaymentWindow, paymentAction } from '../checkout/paymentWindow'
+import { canRecoverPayment, paymentAction } from '../checkout/paymentWindow'
 import { parseCustomerExperience } from './experience'
 
 const orderLabels: Record<string, string> = { PENDING: 'Pending', CONFIRMED: 'Confirmed', DISPATCHED: 'Dispatched', COMPLETED: 'Completed', CANCELLED: 'Cancelled', EXPIRED: 'Expired', RETURNED: 'Returned' }
@@ -11,20 +11,6 @@ export function displayDate(value: string) {
 export function displayDay(value: string) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? 'Date unavailable' : date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
-// Short order-history labels for the authoritative payment window; the full explanation stays on Order Detail.
-const paymentLabels: Record<string, string> = {
-  INITIAL_PAYMENT: 'Awaiting payment', CHECKOUT_RESUMABLE: 'Checkout can be resumed', PROCESSING: 'Payment processing',
-  OUTCOME_UNRESOLVED: 'Payment outcome unresolved', RETRY_AVAILABLE: 'Unpaid · replacement payment available',
-  RETRY_REQUIRES_PROVIDER_CHECK: 'Payment check required', PAID: 'Paid', NOT_PAYABLE: 'Not payable',
-}
-const providerNames: Record<string, string> = { PAYPAL: 'PayPal', STRIPE: 'Stripe' }
-export function paymentStatusLabel(value: unknown) {
-  const window = parsePaymentWindow(value)
-  if (!window) return 'Payment status unavailable'
-  const label = window.state === 'NOT_PAYABLE' && window.paymentOutcome === 'UNRESOLVED' ? paymentLabels.OUTCOME_UNRESOLVED : paymentLabels[window.state]
-  return Object.hasOwn(providerNames, window.provider) ? `${label} · ${providerNames[window.provider]}` : label
 }
 
 // Persisted delivery method plus the backend fulfilment stage, if any; carrier and tracking stay on Order Detail.

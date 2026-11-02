@@ -19,6 +19,9 @@
 .my-account button { cursor: pointer; }
 .my-account button:disabled { cursor: wait; opacity: .6; }
 .my-account :is(button, input):focus-visible { outline: 2px solid #527f78; outline-offset: 3px; }
+/* Room the focus ring needs outside a control (2px outline + 3px offset, plus 1px rounding). Any My Account
+   scroll container clips overflow, so it must pad its content by at least this much. */
+.my-account { --account-focus-ring-space: 6px; }
 .my-account__back { position: absolute; top: 26px; left: 38px; min-height: 44px; border: 0; padding: 4px 0; background: none; color: #365d56; font: 600 15px/1.5 var(--account-handwriting); }
 .my-account__back:hover { text-decoration: underline; text-underline-offset: 4px; }
 .my-account__heading { display: flex; justify-content: center; align-items: flex-end; gap: 16px; margin: 0 auto 26px; padding-inline: 165px; text-align: center; }
@@ -68,7 +71,7 @@
 .saved-addresses__heading { display: flex; align-items: flex-start; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
 .saved-addresses__heading > .my-account__section-heading { flex: 1 1 225px; }
 .saved-addresses__heading > button { flex: 0 0 auto; margin-top: 2px; padding-inline: 12px; }
-.saved-addresses__body { max-height: 490px; overflow-y: auto; overscroll-behavior: contain; padding: 3px 4px 5px; margin-inline: -4px; scrollbar-width: thin; scrollbar-color: #b9bba8 transparent; }
+.saved-addresses__body { max-height: 490px; overflow-y: auto; overscroll-behavior: contain; padding: var(--account-focus-ring-space); margin-inline: calc(-1 * var(--account-focus-ring-space)); scrollbar-width: thin; scrollbar-color: #b9bba8 transparent; }
 .saved-addresses__list { display: grid; gap: 12px; }
 .saved-addresses__notice { padding: 30px 18px; border: 1px dashed #d4c5ac; border-radius: 8px; text-align: center; color: #756b59; }
 .saved-address { display: grid; grid-template-columns: 30px minmax(0, 1fr) minmax(115px, auto); gap: 6px 12px; padding: 14px; border: 1px solid #dfd1b9; border-radius: 7px; background: #faf7eef2; }

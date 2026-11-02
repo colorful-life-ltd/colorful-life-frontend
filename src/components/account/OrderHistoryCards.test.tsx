@@ -45,13 +45,14 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); document.body.innerHTML = ''; vi.unstubAllGlobals() })
 
 describe('compact order history cards', () => {
-  it('shows date, total and order number in the header, and status, items, payment and delivery in the body', async () => {
+  it('shows date, total and order number in the header, and status, items and delivery in the body', async () => {
     serve([order()]); await mount()
     const [card] = cards()
     expect(card.querySelector('.order-card__meta')?.textContent).toBe('Order placed1 Oct 2026Total£28.492 itemsOrder #41View order details')
     expect(card.querySelector('.order-card__status')?.textContent).toBe('Confirmed')
     expect(card.querySelector('.order-card__items')?.textContent).toBe('Flower BouquetSet 1001 · Qty 2')
-    expect(fact(card, 'Payment')).toBe('Paid · PayPal'); expect(fact(card, 'Delivery')).toBe('Express Delivery')
+    expect(fact(card, 'Delivery')).toBe('Express Delivery')
+    expect([...card.querySelectorAll('.order-card__facts dt')].map(dt => dt.textContent)).toEqual(['Delivery'])
   })
 
   it('keeps returns guidance, progress text, charges and addresses off the list', async () => {
@@ -76,25 +77,22 @@ describe('compact order history cards', () => {
     expect(cards()[1].querySelector('.order-card__more')).toBeNull()
   })
 
-  it.each<[PaymentWindow['state'], Partial<PaymentWindow>, string]>([
-    ['PAID', { provider: 'STRIPE' }, 'Paid · Stripe'],
-    ['INITIAL_PAYMENT', {}, 'Awaiting payment · Stripe'],
-    ['CHECKOUT_RESUMABLE', { provider: 'PAYPAL' }, 'Checkout can be resumed · PayPal'],
-    ['PROCESSING', {}, 'Payment processing · Stripe'],
-    ['OUTCOME_UNRESOLVED', {}, 'Payment outcome unresolved · Stripe'],
-    ['RETRY_AVAILABLE', {}, 'Unpaid · replacement payment available · Stripe'],
-    ['RETRY_REQUIRES_PROVIDER_CHECK', {}, 'Payment check required · Stripe'],
-    ['NOT_PAYABLE', {}, 'Not payable · Stripe'],
-    ['NOT_PAYABLE', { paymentOutcome: 'UNRESOLVED' }, 'Payment outcome unresolved · Stripe'],
-    ['PAID', { provider: 'MANUAL' }, 'Paid'],
-  ])('labels a %s window (%o) from the order’s own payment window', async (state, overrides, label) => {
+  it.each<[PaymentWindow['state'], Partial<PaymentWindow>]>([
+    ['PAID', { provider: 'PAYPAL' }], ['PAID', { provider: 'STRIPE' }], ['PAID', { provider: 'MANUAL' }],
+    ['INITIAL_PAYMENT', {}], ['CHECKOUT_RESUMABLE', { provider: 'PAYPAL' }], ['PROCESSING', {}], ['OUTCOME_UNRESOLVED', {}],
+    ['RETRY_AVAILABLE', {}], ['RETRY_REQUIRES_PROVIDER_CHECK', {}], ['NOT_PAYABLE', {}], ['NOT_PAYABLE', { paymentOutcome: 'UNRESOLVED' }],
+  ])('shows no payment method or status on a card for a %s window (%o)', async (state, overrides) => {
     serve([order({ status: state === 'PAID' ? 'CONFIRMED' : 'PENDING', paymentWindow: windowFixture(state, overrides) })]); await mount()
-    expect(fact(cards()[0], 'Payment')).toBe(label)
+    const card = cards()[0]
+    expect(fact(card, 'Payment')).toBeUndefined()
+    expect(card.textContent).not.toMatch(/Payment|PayPal|Stripe|Paid|Unpaid|payable/)
+    expect(fact(card, 'Delivery')).toBe('Express Delivery')
   })
 
-  it('never infers payment from compatibility fields when the window is missing or invalid', async () => {
+  it('shows no payment line even when the window is missing or invalid', async () => {
     serve([order({ id: 2, paymentWindow: null, payment: { status: 'SUCCEEDED', paidAt: null } }), order({ id: 1, paymentWindow: { state: 'PAID' } })]); await mount()
-    expect(cards().map(card => fact(card, 'Payment'))).toEqual(['Payment status unavailable', 'Payment status unavailable'])
+    expect(cards().map(card => fact(card, 'Payment'))).toEqual([undefined, undefined])
+    expect(cards().every(card => !/Payment/.test(card.textContent ?? ''))).toBe(true)
   })
 
   it('shows real fulfilment stages, omits the redundant confirmed stage and never invents delivery data', async () => {

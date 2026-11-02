@@ -14,5 +14,9 @@ it('keeps a visible outline in forced-colours mode, where filters may not render
 })
 it('leaves the layout box that anchors the speech bubble unchanged', () => {
   expect(css).toMatch(/\.stage-user \{[^}]*aspect-ratio: 270 \/ 378/)
-  expect(css).toMatch(/\.stage-user img \{[^}]*object-position: bottom center/)
+  // The artwork still sits on the box bottom: the 270 x 208 idle frame is drawn at the box width and top-aligned
+  // at 170/378, so its bottom edge is the box bottom (wave frames are registered to it; see userFrames.ts).
+  expect(css).toMatch(/\.stage-user img \{[^}]*top: calc\(170 \/ 378 \* 100%\)/)
+  expect(css).toMatch(/\.stage-user img \{[^}]*width: calc\(var\(--frame-w, 270\) \/ 270 \* 100%\)/)
+  expect(170 + 208).toBe(378)
 })

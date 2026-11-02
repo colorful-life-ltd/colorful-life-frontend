@@ -77,12 +77,99 @@ describe('saved address V1 form', () => {
   })
 })
 
-it('confirms deletion and names the oldest successor without touching order history',async()=>{
- vi.mocked(getAddresses).mockResolvedValue([address(1),address(2,false,false)]);await mount()
- const confirmation=vi.spyOn(window,'confirm').mockReturnValueOnce(false).mockReturnValueOnce(true)
- try {
-  await click('Delete');expect(confirmation).toHaveBeenCalledWith(expect.stringContaining('Recipient 2'));expect(deleteAddress).not.toHaveBeenCalled()
-  vi.mocked(deleteAddress).mockResolvedValue(undefined);vi.mocked(getAddresses).mockResolvedValue([address(2)])
-  await click('Delete');expect(deleteAddress).toHaveBeenCalledWith('jwt',1)
- } finally {confirmation.mockRestore()}
+describe('branded delete confirmation', () => {
+  const dialog = () => document.querySelector<HTMLDialogElement>('dialog.confirm-dialog')
+  const dialogButton = (name: string) => [...(dialog()?.querySelectorAll('button') ?? [])].find(b => b.textContent === name)!
+  const deleteButtons = () => [...container.querySelectorAll<HTMLButtonElement>('.saved-address__delete')]
+  const key = (target: Element, init: KeyboardEventInit) => act(async () => { target.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init })) })
+  beforeEach(() => {
+    // jsdom has no top layer; record the modal state the component asks for.
+    HTMLDialogElement.prototype.showModal = function () { this.setAttribute('open', '') }
+    HTMLDialogElement.prototype.close = function () { this.removeAttribute('open') }
+    vi.spyOn(window, 'confirm')
+  })
+  it('opens without deleting, names the address and explains the default consequence', async () => {
+    vi.mocked(getAddresses).mockResolvedValue([address(1), address(2, false, false)]); await mount()
+    deleteButtons()[0].focus()
+    await act(async () => deleteButtons()[0].click())
+    expect(window.confirm).not.toHaveBeenCalled()
+    expect(deleteAddress).not.toHaveBeenCalled()
+    expect(dialog()?.hasAttribute('open')).toBe(true)
+    expect(dialog()?.getAttribute('aria-modal')).toBe('true')
+    expect(document.getElementById(dialog()!.getAttribute('aria-labelledby')!)?.textContent).toBe('Delete this address?')
+    const description = document.getElementById(dialog()!.getAttribute('aria-describedby')!)!.textContent
+    expect(description).toContain('Recipient 1')
+    expect(description).toContain('This is your default delivery and billing address. Recipient 2, 1 Street will become the new default delivery and billing address.')
+    expect(description).toContain('Existing orders will not change.')
+    expect(document.activeElement).toBe(dialogButton('Cancel'))
+    expect(dialogButton('Delete address')).toBeTruthy()
+  })
+  it('explains when no default would remain, and omits default text for a non-default address', async () => {
+    vi.mocked(getAddresses).mockResolvedValue([address(1)]); await mount()
+    await act(async () => deleteButtons()[0].click())
+    expect(dialog()?.textContent).toContain('You will have no saved default address.')
+    await act(async () => dialogButton('Cancel').click())
+    await act(async () => root.unmount()); container.remove()
+    vi.mocked(getAddresses).mockResolvedValue([address(1), address(2, false, false)]); await mount()
+    await act(async () => deleteButtons()[1].click())
+    expect(dialog()?.textContent).not.toContain('default')
+  })
+  it('cancels with Cancel or Escape, restores focus and never lets Escape reach the enclosing modal', async () => {
+    vi.mocked(getAddresses).mockResolvedValue([address(1), address(2, false, false)]); await mount()
+    const outer = vi.fn(); document.addEventListener('keydown', outer)
+    try {
+      deleteButtons()[1].focus(); await act(async () => deleteButtons()[1].click())
+      await act(async () => dialogButton('Cancel').click())
+      expect(dialog()).toBeNull(); expect(document.activeElement).toBe(deleteButtons()[1])
+      deleteButtons()[1].focus(); await act(async () => deleteButtons()[1].click())
+      await key(dialog()!, { key: 'Escape' })
+      await act(async () => { dialog()!.dispatchEvent(new Event('cancel', { cancelable: true })) })
+      expect(dialog()).toBeNull(); expect(document.activeElement).toBe(deleteButtons()[1])
+      expect(outer).not.toHaveBeenCalled()
+      expect(deleteAddress).not.toHaveBeenCalled()
+    } finally { document.removeEventListener('keydown', outer) }
+  })
+  it('keeps Tab and Shift+Tab inside the dialog', async () => {
+    vi.mocked(getAddresses).mockResolvedValue([address(1)]); await mount()
+    await act(async () => deleteButtons()[0].click())
+    dialogButton('Delete address').focus(); await key(dialogButton('Delete address'), { key: 'Tab' })
+    expect(document.activeElement).toBe(dialogButton('Cancel'))
+    await key(dialogButton('Cancel'), { key: 'Tab', shiftKey: true })
+    expect(document.activeElement).toBe(dialogButton('Delete address'))
+  })
+  it('deletes once, blocks duplicates and Escape while busy, then closes, reloads and moves focus to a safe control', async () => {
+    vi.mocked(getAddresses).mockResolvedValue([address(1), address(2, false, false)]); await mount()
+    let finish!: () => void
+    vi.mocked(deleteAddress).mockImplementation(() => new Promise<void>(resolve => { finish = resolve }))
+    await act(async () => deleteButtons()[0].click())
+    dialogButton('Delete address').focus()
+    await act(async () => dialogButton('Delete address').click())
+    expect(dialogButton('Deleting…').getAttribute('aria-disabled')).toBe('true')
+    expect(dialogButton('Cancel').getAttribute('aria-disabled')).toBe('true')
+    expect(document.activeElement).toBe(dialogButton('Deleting…'))
+    await act(async () => dialogButton('Deleting…').click())
+    await act(async () => { dialog()!.dispatchEvent(new Event('cancel', { cancelable: true })) })
+    expect(dialog()).not.toBeNull()
+    expect(deleteAddress).toHaveBeenCalledTimes(1); expect(deleteAddress).toHaveBeenCalledWith('jwt', 1)
+    vi.mocked(getAddresses).mockResolvedValue([address(2)])
+    await act(async () => finish())
+    expect(dialog()).toBeNull()
+    expect(container.textContent).not.toContain('Recipient 1')
+    expect(document.activeElement?.textContent).toContain('Add address')
+  })
+  it('keeps the dialog open with an announced error after a failure and allows a safe retry', async () => {
+    vi.mocked(getAddresses).mockResolvedValue([address(1), address(2, false, false)]); await mount()
+    vi.mocked(deleteAddress).mockRejectedValueOnce(new Error('Address service unavailable'))
+    await act(async () => deleteButtons()[0].click())
+    await act(async () => dialogButton('Delete address').click())
+    const error = dialog()!.querySelector('[role="alert"]')!
+    expect(error.textContent).toBe('Address service unavailable Nothing was deleted; you can try again.')
+    expect(dialog()!.getAttribute('aria-describedby')).toContain(error.id)
+    expect(dialogButton('Delete address').getAttribute('aria-disabled')).toBe('false')
+    expect(container.querySelector('.my-account__error')).toBeNull()
+    vi.mocked(deleteAddress).mockResolvedValueOnce(undefined); vi.mocked(getAddresses).mockResolvedValue([address(2)])
+    await act(async () => dialogButton('Delete address').click())
+    expect(deleteAddress).toHaveBeenCalledTimes(2)
+    expect(dialog()).toBeNull()
+  })
 })
