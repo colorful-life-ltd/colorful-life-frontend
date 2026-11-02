@@ -32,6 +32,7 @@ export function CustomerReturns({
   orderId,
   initiallyOpen = false,
   onChanged,
+  refreshSignal = 0,
 }: {
   token: string
   orderId: number
@@ -39,6 +40,8 @@ export function CustomerReturns({
   initiallyOpen?: boolean
   /** Called after a recorded change or a manual refresh so the order status can be re-read. */
   onChanged?: () => void
+  /** Bumped by "Refresh order": re-read quietly, keeping the current history on screen. */
+  refreshSignal?: number
 }) {
   const [expanded, setExpanded] = useState(initiallyOpen),
     [data, setData] = useState<ReturnCaseView | null>(null),
@@ -80,6 +83,19 @@ export function CustomerReturns({
       tracker.version++
     }
   }, [token, orderId, expanded, revision])
+  const lastSignal = useRef(refreshSignal)
+  useEffect(() => {
+    if (lastSignal.current === refreshSignal) return
+    lastSignal.current = refreshSignal
+    if (!expanded) return
+    let active = true
+    const current = generation.current.version
+    readReturns(token, orderId).then(
+      (view) => { if (active && !inFlight.current && current === generation.current.version) setData(view) },
+      () => { if (active) setError('We could not refresh your return information. Please try again or contact support@build-and-bloom.co.uk.') },
+    )
+    return () => { active = false }
+  }, [refreshSignal, expanded, token, orderId])
   const change = () => {
     draft.current = null
     setFeedback('')

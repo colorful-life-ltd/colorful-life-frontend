@@ -99,7 +99,7 @@ describe('My Orders entry and list', () => {
     await mount(); await click('View order details')
     expect(location.pathname).toBe('/account/orders/41'); expect(container.textContent).toContain('Delivery Customer')
     fetcher.mockImplementation((url: string) => response(url === '/api/orders' ? [summary] : { ...detail, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-02T12:00:00Z' } }))
-    await click('Refresh order'); expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41')).toHaveLength(2)
+    await click('Refresh order #41'); expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41')).toHaveLength(2)
     expect(container.textContent).toContain('PaymentPaid'); expect(container.textContent).not.toContain('Resume checkout')
     await navigate('/account/orders'); await navigate('/account/orders/41')
     expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41')).toHaveLength(3)
@@ -222,7 +222,7 @@ describe('explicit Order Detail payment recovery', () => {
   })
   it('does not equate HTTP success with confirmation and permits repeated explicit recheck', async () => {
     fetcher.mockImplementation(() => response(stuck))
-    await open(); await click('Refresh order')
+    await open(); await click('Refresh order #41')
     expect(fetcher.mock.calls.every(([, init]) => init.method === 'GET')).toBe(true)
     await click('Check payment status'); await click('Check payment status')
     expect(container.textContent).toContain('An existing Stripe checkout can be resumed')
@@ -299,7 +299,7 @@ describe('order confirmation cart refresh and country presentation', () => {
     expect(container.textContent).toContain('Order placed')
     expect([...container.querySelectorAll('address')].every(node => node.textContent?.includes('United Kingdom'))).toBe(true)
     expect(paid.deliveryCountryCode).toBe('GB')
-    await click('Refresh order')
+    await click('Refresh order #41')
     expect(cart.refreshCart).toHaveBeenCalledTimes(1)
   })
   it('refreshes legacy confirmed reads on re-entry without payment or cart writes', async () => {
@@ -352,7 +352,7 @@ it('keeps paid pre-dispatch orders in cancellation/support and exposes returns o
  fetcher.mockImplementation((url:string)=>url==='/api/orders/41'?response(current):response([]));
  await mount();expect(container.textContent).toContain('Cancel before dispatch');expect(container.textContent).not.toContain('Request a return');expect(container.textContent).toContain('items and quantities');
  current={...current,status:'DISPATCHED',dispatchedAt:'2026-10-29T12:30:00Z'};
- await click('Refresh order');expect(container.textContent).toContain('Request a return');expect(container.textContent).not.toContain('Cancel before dispatch');
+ await click('Refresh order #41');expect(container.textContent).toContain('Request a return');expect(container.textContent).not.toContain('Cancel before dispatch');
 });
 it('does not offer returns or paid-refund instructions for an unpaid order',async()=>{
  history.replaceState({},'', '/account/orders/41');fetcher.mockImplementation((url:string)=>url==='/api/orders/41'?response({...detail,status:'PENDING',payment:null}):response([]));await mount();expect(container.textContent).not.toContain('Request a return');expect(container.textContent).not.toContain('Cancel before dispatch');
@@ -382,4 +382,63 @@ it('re-reads the order after a return request so the status card matches the Ret
  expect(container.querySelector('.order-detail__items')?.textContent).toContain('Return request sent')
  expect(container.textContent).toContain('Your return request has been recorded')
  expect(fetcher.mock.calls.filter(([url])=>url==='/api/orders/41')).toHaveLength(2)
+})
+
+describe('Order Details header refresh', () => {
+  const refreshButton = () => container.querySelector<HTMLButtonElement>('.order-detail-title .order-refresh')
+  it('sits beside the order title, is the only refresh control, and has a clear accessible name', async () => {
+    history.replaceState({}, '', '/account/orders/41'); await mount()
+    const title = container.querySelector('.order-detail-title')!
+    expect(title.querySelector('h1')?.textContent).toBe('Order #41')
+    expect(refreshButton()?.getAttribute('aria-label')).toBe('Refresh order #41')
+    expect(refreshButton()?.textContent).toBe('Refresh')
+    expect(refreshButton()?.type).toBe('button')
+    expect(refreshButton()?.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true')
+    expect([...container.querySelectorAll('button')].filter(b => /Refresh( order|$)/.test(b.textContent ?? '') || b.getAttribute('aria-label')?.startsWith('Refresh order'))).toHaveLength(1)
+  })
+  it('refreshes in place: disabled with a loading indicator, the detail stays mounted, and the order is re-read once', async () => {
+    history.replaceState({}, '', '/account/orders/41'); await mount()
+    const detailNode = container.querySelector('.order-detail')
+    let finish!: (value: Response) => void
+    fetcher.mockImplementation((url: string) => url === '/api/orders/41' ? new Promise(resolve => { finish = resolve }) : response([]))
+    await act(async () => refreshButton()!.click())
+    expect(refreshButton()?.getAttribute('aria-disabled')).toBe('true')
+    expect(refreshButton()?.getAttribute('aria-busy')).toBe('true')
+    expect(refreshButton()?.textContent).toBe('Refreshing…')
+    expect(container.textContent).not.toContain('Loading your order')
+    expect(container.querySelector('.order-detail')).toBe(detailNode)
+    refreshButton()!.focus()
+    await act(async () => refreshButton()!.click()) // ignored while busy
+    expect(document.activeElement).toBe(refreshButton())
+    await act(async () => finish(new Response(JSON.stringify(customerOrderFixture({ ...detail, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: '2026-10-02T12:00:00Z' } })))))
+    expect(container.querySelector('.order-detail')).toBe(detailNode)
+    expect(container.textContent).toContain('PaymentPaid')
+    expect(refreshButton()?.getAttribute('aria-disabled')).toBe('false')
+    expect(refreshButton()?.textContent).toBe('Refresh')
+    expect(document.activeElement).toBe(refreshButton())
+    expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41')).toHaveLength(2)
+  })
+  it('keeps the existing error handling when the refresh fails', async () => {
+    history.replaceState({}, '', '/account/orders/41'); await mount()
+    fetcher.mockImplementation(() => Promise.reject(new Error('private provider detail')))
+    await act(async () => refreshButton()!.click())
+    expect(container.textContent).toContain('Unable to load your orders')
+    expect(container.textContent).not.toContain('private provider')
+  })
+  it('quietly re-reads an open Returns section without hiding its history', async () => {
+    history.replaceState({}, '', '/account/orders/41')
+    const paid = { ...detail, status: 'DISPATCHED', dispatchedAt: '2026-10-29T12:30:00Z', payment: { status: 'SUCCEEDED', paidAt: '2026-10-29T12:00:00Z' }, orderItems: [{ ...item, returns: [{ id: 10, quantity: 1, status: 'REQUESTED', requestedAt: '2026-10-30T12:00:00Z' }] }] }
+    const caseView = { orderId: 41, reference: 'BB-R-41', caseId: 'c', items: [{ id: 1, name: 'Flowers', quantity: 2, remainingQuantity: 1, condition: 'NEW' }], submissions: [{ id: 's1', requestedAt: '2026-10-30T12:00:00Z', lines: [{ id: 10, orderItemId: 1, quantity: 1, reason: 'CHANGE_OF_MIND', reasonNote: null, status: 'REQUESTED', requestedAt: '2026-10-30T12:00:00Z', authorizedAt: null, receivedAt: null, inspectedAt: null, completedAt: null, rejectedAt: null, cancelledAt: null, rejectionNote: null, shippingPayer: null, instructions: null }] }] }
+    fetcher.mockImplementation((url: string) => url === '/api/orders/41/return-case' ? Promise.resolve(new Response(JSON.stringify(caseView))) : url === '/api/orders/41' ? response(paid) : response([]))
+    await mount()
+    expect(container.querySelector('.customer-return-request')).not.toBeNull()
+    fetcher.mockClear()
+    let finish!: (value: Response) => void
+    fetcher.mockImplementation((url: string) => url === '/api/orders/41/return-case' ? new Promise(resolve => { finish = resolve }) : url === '/api/orders/41' ? response(paid) : response([]))
+    await act(async () => refreshButton()!.click())
+    expect(container.querySelector('.customer-return-request')).not.toBeNull()
+    expect(container.textContent).not.toContain('Loading your returns')
+    await act(async () => finish(new Response(JSON.stringify(caseView))))
+    expect(fetcher.mock.calls.filter(([url]) => url === '/api/orders/41/return-case')).toHaveLength(1)
+  })
 })
