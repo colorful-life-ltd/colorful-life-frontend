@@ -75,6 +75,7 @@ function App() {
   const [cartOpen, setCartOpen] = useState(false)
   const [guestHint, setGuestHint] = useState<'user' | 'cart' | null>(null)
   const [userDialogue, setUserDialogue] = useState<string | null>(null)
+  const [farewellWave, setFarewellWave] = useState(0)
   const guestHintTimer = useRef<number | null>(null)
   const userDialogueTimer = useRef<number | null>(null)
   const userDialogueRun = useRef(0)
@@ -141,6 +142,7 @@ function App() {
     const run = ++userDialogueRun.current
     if (userDialogueTimer.current !== null) window.clearTimeout(userDialogueTimer.current)
     setUserDialogue(USER_FAREWELL_MESSAGE)
+    setFarewellWave(value => value + 1)
     userDialogueTimer.current = window.setTimeout(() => {
       if (run !== userDialogueRun.current) return
       userDialogueTimer.current = null
@@ -372,6 +374,8 @@ function App() {
             <BookOwnedUser
               onOpenAccount={openAccount}
               onGuestHint={() => { if (authState.status === 'signedOut') showGuestHint('user') }}
+              farewellWave={farewellWave}
+              preloadWave={accountOpen && authState.status === 'authenticated'}
             />
             <BookOwnedCart onGuestClick={openCart} successCount={cartAdded} /><span className="cart-add-feedback" role="status" aria-live="polite" aria-atomic="true">{cartNotice && <span key={cartAdded}>{CART_ADD_MESSAGE}</span>}</span>
             {authState.status === 'signedOut' && guestHint && !userDialogue && <button className="guest-cart-bubble" type="button" onClick={openAccount}>

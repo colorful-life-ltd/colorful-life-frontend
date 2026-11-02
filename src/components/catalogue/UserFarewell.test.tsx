@@ -1,13 +1,14 @@
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App'
 import { AuthProvider } from '../../features/auth/AuthProvider'
 import { AUTH_STORAGE_KEY, getCurrentUser } from '../../features/auth/api'
 import { CartProvider } from '../../features/cart/CartProvider'
 import { getCart } from '../../features/cart/api'
 import { USER_FAREWELL_MESSAGE, USER_FAREWELL_MS } from './userWelcome'
+import { FAREWELL_WAVE, WAVE_FRAME_MS } from './userFrames'
 
 vi.mock('../../features/auth/api', async original => ({ ...await original<typeof import('../../features/auth/api')>(), getCurrentUser: vi.fn() }))
 vi.mock('../../features/cart/api', async original => ({ ...await original<typeof import('../../features/cart/api')>(), getCart: vi.fn() }))
@@ -62,4 +63,25 @@ it('does not leave a stale farewell when the account is reopened', async () => {
   await act(async () => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
   await advance(USER_FAREWELL_MS * 2)
   expect(bubble()).toBeNull()
+})
+
+describe('farewell wave', () => {
+  const frame = () => character()?.dataset.frame
+  it('waves the raised hand twice on sign-out, then settles on the raised-hand pose within the bubble', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: !query.includes('prefers-reduced-motion') }))
+    await signOut()
+    const seen: (string | undefined)[] = []
+    for (let t = 0; t < FAREWELL_WAVE.length; t++) { await advance(WAVE_FRAME_MS); seen.push(frame()) }
+    expect(seen).toEqual(FAREWELL_WAVE)
+    expect(seen.filter(f => f === 'w08')).toHaveLength(2)
+    expect(seen.at(-1)).toBe('idle')
+    expect(FAREWELL_WAVE.length * WAVE_FRAME_MS).toBeLessThanOrEqual(USER_FAREWELL_MS)
+    expect(bubble()?.textContent).toBe(USER_FAREWELL_MESSAGE)
+  })
+  it('keeps the static raised-hand pose under reduced motion', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('prefers-reduced-motion') }))
+    await signOut()
+    for (let t = 0; t < 29; t++) { await advance(100); expect(frame()).toBe('idle') }
+    expect(bubble()?.textContent).toBe(USER_FAREWELL_MESSAGE)
+  })
 })

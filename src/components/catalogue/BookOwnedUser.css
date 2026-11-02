@@ -2,7 +2,9 @@
 /* On short stages the boy peeks out from under the book (see --user-width) and is dropped only when there is no room. */
 .stage-user { width: var(--user-width); }
 @container catalogue-stage (max-height: 360px) { .stage-user { display: none; } }
-.stage-user img { display: block; width: 100%; height: 100%; object-fit: contain; object-position: bottom center; }
+/* Registered wave frames (see USER_FRAMES): one common scale (the 270 px idle frame = box width), top-aligned at
+   the idle artwork's top (170 of 378), each shifted left by its measured offset. Never scaled to fit per frame. */
+.stage-user img { position: absolute; top: calc(170 / 378 * 100%); left: calc(var(--frame-dx, 0) / -270 * 100%); display: block; width: calc(var(--frame-w, 270) / 270 * 100%); height: auto; max-width: none; }
 /* The box is taller than the artwork (it anchors the speech bubble), so a box outline drew an empty rectangle
    above the boy, e.g. when focus returns here after signing in. Trace the illustration instead. */
 .stage-user:focus-visible { outline: none; }
