@@ -38,12 +38,18 @@ export function OrderDetails({ order, checking, feedback, onCheckPayment, return
   const payment = paymentView(order, experience)
   const delivery = deliveryView(order, experience)
   const paidBeforeDispatch = order.status === 'CONFIRMED' && !order.dispatchedAt && order.payment?.status === 'SUCCEEDED'
+  const headline = overview.kind === 'progress' ? returnStageLabels[overview.stage] : orderOverview(order, experience).title
   return <div className="order-detail">
-    <p className="order-detail__meta">
-      <span>Placed {displayDay(order.createdAt)}</span>
-      <span>Total <strong>{formatGbp(priceToPence(order.financials?.totalAmount ?? order.totalAmount))}</strong></span>
-    </p>
+    <div className="order-detail__header">
+      <p className="order-detail__meta">
+        <span>Placed {displayDay(order.createdAt)}</span>
+        <span>Total <strong>{formatGbp(priceToPence(order.financials?.totalAmount ?? order.totalAmount))}</strong></span>
+        <span className={`order-detail__pill order-detail__pill--${overview.kind === 'progress' ? 'ok' : 'info'}`}>{headline}</span>
+      </p>
+    </div>
 
+    <div className="order-detail__layout">
+    <div className="order-detail__main">
     <StatusCard order={order} overview={overview} experience={experience} />
 
     <section className="order-detail__section" aria-labelledby="order-items">
@@ -67,6 +73,9 @@ export function OrderDetails({ order, checking, feedback, onCheckPayment, return
       <p>This order hasn’t been dispatched yet. Email us with the items and quantities you’d like to cancel, or ask to cancel the whole order. Cancelling doesn’t automatically issue a refund; we’ll confirm by email.</p>
       <a href={`mailto:${SUPPORT}?subject=${encodeURIComponent(`Cancellation/refund request for order #${order.id}`)}`}>Email us about cancelling</a>
     </section>}
+    </div>
+
+    <div className="order-detail__side">
 
     <section className="order-detail__section" aria-labelledby="order-payment">
       <h2 id="order-payment">Payment</h2>
@@ -111,6 +120,8 @@ export function OrderDetails({ order, checking, feedback, onCheckPayment, return
           </>}
       </div>
     </section>
+    </div>
+    </div>
 
     <p className="order-detail__help">Need help with this order? <a href="/legal/delivery-returns">Delivery &amp; Returns policy</a> · <a href={`mailto:${SUPPORT}?subject=${encodeURIComponent(`Order #${order.id}`)}`}>Contact support</a></p>
   </div>

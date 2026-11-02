@@ -103,3 +103,21 @@ it('shows separate addresses and a pre-dispatch cancellation route only when rel
   expect(text()).toContain('Cancel before dispatch')
   expect(statusCard().textContent).toContain('Order confirmed')
 })
+
+it('puts summary in a full-width header, progress/items/returns in the main column and payment/delivery/addresses in the side column', async () => {
+  await act(async () => root.render(<OrderDetails order={order({ orderItems: [item(1, 'Flowers', [line(10, 'AUTHORIZED')])] })} checking={false} feedback="" onCheckPayment={() => {}} returns={<section data-testid="returns">Returns</section>} />))
+  const header = host.querySelector('.order-detail__header')!
+  expect(header.textContent).toContain('Placed 1 Oct 2026')
+  expect(header.textContent).toContain('£40.00')
+  expect(header.querySelector('.order-detail__pill')?.textContent).toBe('Return request approved')
+  const main = host.querySelector('.order-detail__layout > .order-detail__main')!
+  const side = host.querySelector('.order-detail__layout > .order-detail__side')!
+  expect(main.querySelector('.order-status--return')).not.toBeNull()
+  expect(main.querySelector('#order-items')).not.toBeNull()
+  expect(main.querySelector('[data-testid="returns"]')).not.toBeNull()
+  expect([...side.querySelectorAll('h2')].map(h => h.textContent)).toEqual(['Payment', 'Delivery', 'Delivery and billing address'])
+  expect(side.querySelector('[aria-label="Refunds"], .order-status, .order-detail__items')).toBeNull()
+  // Mobile reads in DOM order: main before side, help after both.
+  expect(main.compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  expect(side.compareDocumentPosition(host.querySelector('.order-detail__help')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
