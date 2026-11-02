@@ -6,7 +6,7 @@ import { createPortal } from 'react-dom'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError, isVerificationRequired } from '../../features/auth/api'
 import { listOrders, readOrder, type OrderSummary, type OrderDetail } from '../../features/orders/api'
-import { canCheckPayment, deliverySummary, displayDay, orderDetailId, orderStatusLabel, paymentStatusLabel } from '../../features/orders/presentation'
+import { canCheckPayment, deliverySummary, displayDay, orderDetailId, orderStatusLabel } from '../../features/orders/presentation'
 import { OrderItemThumbnail } from './OrderItemThumbnail'
 import { isOlderPaymentSnapshot, paymentMessage } from '../../features/checkout/paymentWindow'
 import { CheckoutApiError, recoverPayment } from '../../features/checkout/api'
@@ -26,8 +26,8 @@ export function CustomerOrders({ path, onAccount, onAuthenticate }: Props) {
   const [headerAction, setHeaderAction] = useState<HTMLDivElement | null>(null)
   return <main className={`checkout customer-orders${list ? '' : ' customer-orders--detail'}`} tabIndex={-1}><div className="checkout__paper">
     <p className="checkout__eyebrow">Build &amp; Bloom · Your account</p>
-    {list || !id ? <h1>{list ? 'My Orders' : 'Order unavailable'}</h1>
-      : <div className="order-detail-title"><h1>Order #{id}</h1><div className="order-detail-title__action" ref={setHeaderAction} /></div>}
+    {list || id ? <div className="order-detail-title"><h1>{list ? 'My Orders' : `Order #${id}`}</h1><div className="order-detail-title__action" ref={setHeaderAction} /></div>
+      : <h1>Order unavailable</h1>}
     {list && <button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button>}
     {state.status === 'authenticated' ? list || id ? <VerifiedOrders key={`${state.token}:${path}`} token={state.token} id={id} onAuthenticate={onAuthenticate} headerAction={headerAction} /> : <p role="alert">This order cannot be opened. Please return to My Orders.</p>
       : state.status === 'verificationRequired' ? <VerificationNotice token={state.token} message="Please verify your email to view your orders." />
@@ -48,11 +48,11 @@ function VerifiedOrders({ token, id, onAuthenticate, headerAction }: { token: st
   useConfirmedCartRefresh(state.phase === 'ready' ? state.detail : null)
   const [revision, setRevision] = useState(0)
   const reload = () => { setFeedback(''); setState({ phase: 'loading' }); setRevision(value => value + 1) }
-  // Order Details refreshes in place: the same read replaces the shown order, so the view and scroll position stay put.
+  // Order Details and My Orders refresh in place: the same read replaces what is shown, so the view and scroll position stay put.
   // The header button uses aria-disabled (not disabled) while busy so keyboard focus stays on it; this guard ignores clicks.
   const [refreshing, setRefreshing] = useState(false)
   const [returnsRefresh, setReturnsRefresh] = useState(0)
-  const refreshDetail = () => {
+  const refreshInPlace = () => {
     if (refreshing || checking) return
     setFeedback(''); setRefreshing(true); setRevision(value => value + 1); setReturnsRefresh(value => value + 1)
   }
@@ -121,9 +121,8 @@ function VerifiedOrders({ token, id, onAuthenticate, headerAction }: { token: st
     {state.detail ? <OrderDetails order={state.detail} checking={checking || refreshing} feedback={feedback} onCheckPayment={() => void checkPayment()}
       returns={canRequestReturns(state.detail) && <CustomerReturns key={`${token}:${state.detail.id}`} token={token} orderId={state.detail.id} initiallyOpen={hasReturnLines(state.detail)} onChanged={syncDetail} refreshSignal={returnsRefresh} />} />
       : state.orders.length ? <ol className="order-history" aria-label="Your orders, newest first">{state.orders.map(order => <OrderCard key={order.id} order={order} />)}</ol> : <p className="order-history__empty">You haven’t placed any orders yet.</p>}
-    {id === null && <button className="checkout__secondary" disabled={checking} onClick={reload}>Refresh orders</button>}
-    {state.detail && headerAction && createPortal(<button type="button" className="checkout__secondary order-refresh" aria-disabled={checking || refreshing} aria-busy={refreshing}
-      aria-label={`${refreshing ? 'Refreshing' : 'Refresh'} order #${state.detail.id}`} onClick={refreshDetail}>
+    {(state.detail || id === null) && headerAction && createPortal(<button type="button" className="checkout__secondary order-refresh" aria-disabled={checking || refreshing} aria-busy={refreshing}
+      aria-label={`${refreshing ? 'Refreshing' : 'Refresh'} ${state.detail ? `order #${state.detail.id}` : 'orders'}`} onClick={refreshInPlace}>
       <svg className="order-refresh__icon" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" focusable="false"><path fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" d="M20 12a8 8 0 1 1-2.34-5.66M20 4v4h-4" /></svg>
       <span>{refreshing ? 'Refreshing…' : 'Refresh'}</span>
     </button>, headerAction)}
@@ -153,7 +152,6 @@ function OrderCard({ order }: { order: OrderSummary }) {
       </li>)}</ul>
       {hidden > 0 && <p className="order-card__more">+{hidden} more {hidden === 1 ? 'product' : 'products'} in this order</p>}
       <dl className="order-card__facts">
-        <div><dt>Payment</dt><dd>{paymentStatusLabel(order.paymentWindow)}</dd></div>
         <div><dt>Delivery</dt><dd>{deliverySummary(order)}</dd></div>
       </dl>
     </div>
