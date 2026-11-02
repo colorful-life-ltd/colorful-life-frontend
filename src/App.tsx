@@ -49,6 +49,13 @@ function App() {
     window.addEventListener('popstate', update)
     return () => window.removeEventListener('popstate', update)
   }, [])
+  // The storybook homepage is a single viewport: arriving from a long scrolled page (e.g. Order Details)
+  // must not keep that page's scroll offset.
+  const previousPathname = useRef(pathname)
+  useEffect(() => {
+    if (pathname === '/' && previousPathname.current !== '/') document.documentElement.scrollTop = 0
+    previousPathname.current = pathname
+  }, [pathname])
   const { state: backendCategoriesState, retry: retryBackendCategories } = useCatalogueCategories()
   const resolvedCategories = useMemo(() => backendCategoriesState.status === 'ready' ? resolveCatalogueCategories(backendCategoriesState.categories) : [], [backendCategoriesState])
   const [view] = useState<'live' | 'reference'>('live')
