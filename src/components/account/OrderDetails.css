@@ -101,3 +101,12 @@
   .order-detail__side .order-detail__addresses { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 }
 .order-status a { color: #66527c; }
+
+/* Title row with the refresh action right-aligned; wraps under the title on narrow screens. */
+.order-detail-title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.order-detail-title h1 { margin-bottom: 8px; min-width: 0; overflow-wrap: anywhere; }
+.checkout .order-refresh { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 7px 14px; font-size: 15px; white-space: nowrap; }
+.checkout .order-refresh[aria-disabled='true'] { opacity: .5; cursor: default; }
+.order-refresh[aria-busy='true'] .order-refresh__icon { animation: order-refresh-spin 1s linear infinite; }
+@keyframes order-refresh-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .order-refresh[aria-busy='true'] .order-refresh__icon { animation: none; } }
