@@ -5,14 +5,22 @@ on:
   workflow_dispatch:
     inputs:
       action:
-        description: Sandbox host action (deploy builds current main)
+        description: Sandbox storefront host action
         type: choice
-        options: [deploy, rollback, status]
+        options: [deploy, rollback, status, nginx-install]
         default: deploy
       rollback_to:
         description: Optional 40-hex release SHA for rollback (default is the previous release)
         required: false
         default: ''
+      nginx_site_sha256:
+        description: Exact site.conf SHA-256 returned by status; required for nginx-install
+        required: false
+        default: ''
+      nginx_approved:
+        description: Explicit owner approval for the reviewed Build & Bloom Nginx SEO change
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -41,7 +49,7 @@ jobs:
           path: dist/
           if-no-files-found: error
 
-  # Push-to-Sandbox delivery. Deploy and rollback stay inert until the owner sets repository variable
+  # Push-to-Sandbox delivery. Deploy, rollback and Nginx change stay inert until the owner sets repository variable
   # SANDBOX_DEPLOY_ENABLED=true; the read-only `status` dispatch is always allowed from main.
   # Only main can assume the deploy role (OIDC subject is pinned in colorful-life-infra), and the role can
   # run only the ColorfulLife-DeployStorefront SSM document. There is no production target here.
@@ -50,6 +58,7 @@ jobs:
     if: >-
       !cancelled() && github.ref == 'refs/heads/main' && (
         (github.event_name == 'workflow_dispatch' && inputs.action == 'status') ||
+        (github.event_name == 'workflow_dispatch' && inputs.action == 'nginx-install' && vars.SANDBOX_DEPLOY_ENABLED == 'true' && inputs.nginx_approved) ||
         (vars.SANDBOX_DEPLOY_ENABLED == 'true' && (
           (github.event_name == 'push' && needs.verify.result == 'success') ||
           (github.event_name == 'workflow_dispatch' && inputs.action == 'deploy' && needs.verify.result == 'success') ||
@@ -69,6 +78,8 @@ jobs:
       DEPLOY_DOCUMENT: ColorfulLife-DeployStorefront
       ACTION: ${{ github.event_name == 'workflow_dispatch' && inputs.action || 'deploy' }}
       ROLLBACK_TO: ${{ inputs.rollback_to }}
+      NGINX_SITE_SHA256: ${{ inputs.nginx_site_sha256 }}
+      NGINX_APPROVED: ${{ inputs.nginx_approved && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         if: env.ACTION == 'deploy'
@@ -83,6 +94,7 @@ jobs:
         if: env.ACTION == 'deploy'
         env:
           VITE_API_BASE_URL: /api
+          VITE_SITE_URL: https://build-and-bloom.co.uk
           VITE_PAYMENT_MODE: ${{ vars.SANDBOX_PAYMENT_MODE || 'paypal-sandbox' }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.SANDBOX_PAYMENT_MODE == 'stripe-sandbox' && vars.VITE_STRIPE_TEST_PUBLISHABLE_KEY || '' }}
           VITE_SANDBOX_REGISTRATION_ENABLED: 'true'
@@ -118,8 +130,8 @@ jobs:
             [[ "$ROLLBACK_TO" =~ ^[0-9a-f]{40}$ ]] || { echo "rollback_to must be a 40-hex SHA"; exit 1; }
             sha="$ROLLBACK_TO"
           fi
-          params=$(jq -nc --arg a "$ACTION" --arg u "${RELEASE_URL:-}" --arg h "${RELEASE_SHA256:-}" --arg s "$sha" \
-            '{Action:[$a],Url:[$u],Sha256:[$h],Sha:[$s]}')
+          params=$(jq -nc --arg a "$ACTION" --arg u "${RELEASE_URL:-}" --arg h "${RELEASE_SHA256:-}" --arg s "$sha" --arg nsh "$NGINX_SITE_SHA256" --arg na "$NGINX_APPROVED" \
+            '{Action:[$a],Url:[$u],Sha256:[$h],Sha:[$s],SiteSha256:[$nsh],NginxApproved:[$na]}')
           id=$(aws ssm send-command --instance-ids "$INSTANCE_ID" --document-name "$DEPLOY_DOCUMENT" \
             --comment "storefront ${ACTION} ${GITHUB_SHA::12} run ${GITHUB_RUN_ID}" --timeout-seconds 600 \
             --parameters "$params" --query Command.CommandId --output text)

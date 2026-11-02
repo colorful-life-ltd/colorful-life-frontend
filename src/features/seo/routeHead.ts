@@ -8,7 +8,7 @@ import { isResetPasswordPath } from '../auth/passwordReset'
 import { legalPageBySlug } from '../legal/routes'
 
 export const SITE_NAME = 'Build & Bloom'
-export const DEFAULT_DESCRIPTION = 'Explore the Build & Bloom illustrated catalogue of LEGO® sets. Browse themed collections and find a set by name or set number.'
+export const DEFAULT_DESCRIPTION = 'Build & Bloom is a UK seller of new LEGO® sets, with UK delivery and clear delivery and returns information. Explore themed collections and find sets by name or number.'
 
 export type RobotsDirective = 'index,follow' | 'noindex,follow' | 'noindex,nofollow'
 
@@ -49,7 +49,7 @@ export function catalogueRouteHead({ spread, open, categories, categoriesReady, 
   /** True only once the API has definitively not returned the requested product. */
   productMissing?: boolean
 }): RouteHead {
-  const home: RouteHead = { title: `${SITE_NAME} | LEGO® sets catalogue`, description: DEFAULT_DESCRIPTION, canonicalPath: '/', robots: 'index,follow' }
+  const home: RouteHead = { title: `${SITE_NAME} | LEGO® Sets with UK Delivery`, description: DEFAULT_DESCRIPTION, canonicalPath: '/', robots: 'index,follow' }
   if (!open || spread === 'front-matter' || spread === 'opening') return home
   if (isCategoryIndexSpread(spread)) return { ...home, title: `Our Catalogue | ${SITE_NAME}`, description: 'Browse every Build & Bloom collection of LEGO® sets.', canonicalPath: '/' }
 

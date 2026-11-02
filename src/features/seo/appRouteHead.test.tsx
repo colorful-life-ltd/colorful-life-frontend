@@ -74,7 +74,7 @@ describe('App route metadata', () => {
 
   it('indexes the homepage with the brand title and root canonical', async () => {
     await mountAt('/')
-    expect(document.title).toBe('Build & Bloom | LEGO® sets catalogue')
+    expect(document.title).toBe('Build & Bloom | LEGO® Sets with UK Delivery')
     expect(meta('meta[name="robots"]')).toBe('index,follow')
     expect(meta('link[rel="canonical"]')).toBe(`${location.origin}/`)
   })
@@ -116,7 +116,7 @@ describe('App route metadata', () => {
     await act(async () => link.click())
     expect(location.pathname).toBe('/products/90')
     expect(container.querySelector('[data-detail-product-id="90"]')).not.toBeNull()
-    const back = [...container.querySelectorAll('button')].find(button => button.textContent === '← Back to Vehicles')!
+    const back = [...container.querySelectorAll('a')].find(link => link.textContent === '← Back to Vehicles')!
     await act(async () => back.click())
     expect(location.pathname).toBe('/categories/vehicles')
   })

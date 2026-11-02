@@ -142,7 +142,7 @@ describe('legal pages', () => {
   it('loads no third-party scripts, fonts or trackers from the page shell', () => {
     const html = indexHtml
     expect(html).not.toMatch(/<script[^>]+src=["']https?:/i)
-    expect(html).not.toMatch(/<link[^>]+href=["']https?:/i)
+    expect(html).not.toMatch(/<link(?![^>]+rel=["'](?:canonical|icon)["'])[^>]+href=["']https?:/i)
     expect(html).not.toMatch(/googletagmanager|google-analytics|fonts\.googleapis|facebook|hotjar/i)
   })
 })

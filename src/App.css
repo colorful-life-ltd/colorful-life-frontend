@@ -74,7 +74,7 @@
   /* Lets the tabletop User size itself to the space left under the book. */
   container: catalogue-stage / size;
   background-color: #e8bc89;
-  background-image: url('./assets/backgrounds/desktop-tabletop-background.png');
+  background-image: url('./assets/backgrounds/desktop-tabletop-background.webp');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

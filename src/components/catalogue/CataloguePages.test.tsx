@@ -1,6 +1,6 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
-import welcomeIllustration from '../../assets/illustrations/opening-welcome-illustration.png'
+import welcomeIllustration from '../../assets/illustrations/opening-welcome-illustration.webp'
 import { ArtworkSlot } from './ArtworkSlot'
 import { CatalogueIndexPage } from './CatalogueIndexPage'
 import { OpeningWelcomePage } from './OpeningWelcomePage'

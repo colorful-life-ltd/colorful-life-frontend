@@ -17,7 +17,7 @@ import { useCategoryCatalogue } from '../../features/catalogue/useCategoryCatalo
 import type { CatalogueCategoriesState } from '../../features/catalogue/useCatalogueCategories'
 import './CategoryCatalogue.css'
 import type { CatalogueLeafletSide, CatalogueSpread, DetailsLocation } from './catalogueSpread'
-import { categoryLocation, categorySpreadIndex, isCategoryIndexSpread, isProductDetails, legalLocation, normalizeProductLocation, productDetailsLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
+import { catalogueLocationHref, categoryLocation, categorySpreadIndex, isCategoryIndexSpread, isProductDetails, legalLocation, normalizeProductLocation, productDetailsLocation, sameSpread, spreadAfterAction } from './catalogueSpread'
 import { CustomerInformationIndex, LegalDocument } from '../legal/CustomerInformation'
 import { LEGAL_PAGES, type LegalSlug } from '../../features/legal/routes'
 import { planProductSpreads } from '../../features/catalogue/productSpreads'
@@ -33,6 +33,13 @@ type SearchDetails = { kind: 'search-details'; productId: number }
 type PresentedSpread = CatalogueSpread | SearchDetails
 const isSearchDetails = (location: PresentedSpread): location is SearchDetails => typeof location !== 'string' && location.kind === 'search-details'
 const sameLocation = (a: PresentedSpread, b: PresentedSpread) => isSearchDetails(a) || isSearchDetails(b) ? isSearchDetails(a) && isSearchDetails(b) && a.productId === b.productId : sameSpread(a, b)
+
+function SpreadNavigationLink({ href, label, disabled, onNavigate }: { href: string; label: string; disabled: boolean; onNavigate: () => void }) {
+  return <a href={href} aria-disabled={disabled} tabIndex={disabled ? -1 : undefined} onClick={event => {
+    if (disabled) { event.preventDefault(); return }
+    if (event.button === 0 && !event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey) { event.preventDefault(); onNavigate() }
+  }}>{label}</a>
+}
 
 type CatalogueProps = {
   spread: CatalogueSpread
@@ -229,15 +236,16 @@ export function CategoryCatalogue({ spread, onSpreadChange, onClose, onAddToCart
       const backToCategory = typeof location !== 'string' && (location.kind === 'details' || location.kind === 'products' && location.index === 0)
       const legal = typeof location !== 'string' && location.kind === 'legal'
       const label = legal ? '← Back to Contents' : backToCategory ? `← Back to ${displayCategoryName}` : categoryOpening ? '← Back to Categories' : location === 'categories-primary' ? '← Back to Contents' : '← Back'
+      const previous = spreadAfterAction(location, 'backward', productSpreads.length, categorySpreadCount, resolvedCategories)
       return <div className="spread-page__navigation">{location === 'front-matter'
         ? <button type="button" disabled={Boolean(turn)} onClick={onClose}>← Close Book</button>
-        : <button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('backward', spreadAfterAction(location, 'backward', productSpreads.length, categorySpreadCount, resolvedCategories))}>{label}</button>}</div>
+        : <SpreadNavigationLink href={catalogueLocationHref(previous, { open: true })} label={label} disabled={Boolean(turn)} onNavigate={() => beginTurn('backward', previous)} />}</div>
     }
     const forward = spreadAfterAction(location, 'forward', productSpreads.length, categorySpreadCount, resolvedCategories)
     if (location === 'front-matter' || sameLocation(location, forward)) return null
-    return <div className="spread-page__navigation"><button type="button" disabled={Boolean(turn)} onClick={() => beginTurn('forward', forward)}>
-      {categoryOpening ? 'Continue in the storybook →' : typeof location !== 'string' ? `More ${displayCategoryName} →` : location === 'opening' ? (backendCategoriesState.status === 'ready' ? `Discover all ${resolvedCategories.length} worlds →` : 'Discover the catalogue →') : 'More →'}
-    </button></div>
+    return <div className="spread-page__navigation"><SpreadNavigationLink href={catalogueLocationHref(forward, { open: true })}
+      label={categoryOpening ? 'Continue in the storybook →' : typeof location !== 'string' ? `More ${displayCategoryName} →` : location === 'opening' ? (backendCategoriesState.status === 'ready' ? `Discover all ${resolvedCategories.length} worlds →` : 'Discover the catalogue →') : 'More →'}
+      disabled={Boolean(turn)} onNavigate={() => beginTurn('forward', forward)} /></div>
   }
   const frozenPage = (location: PresentedSpread, side: 'left' | 'right') =>
     !isSearchDetails(location) && emptyProductPage(location, side) ? null : <div className={pageClass(location, side)}>{pageContent(location, side)}{pageNavigation(location, side)}</div>
