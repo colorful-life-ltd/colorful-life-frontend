@@ -1,6 +1,7 @@
 import { customerAddressError, normalizePostcode, customerLimits } from '../../features/account/customerInput'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { AuthApiError } from '../../features/auth/api'
+import { ConfirmDialog } from '../shared/ConfirmDialog'
 import { createAddress, deleteAddress, getAddresses, updateAddress, type Address, type AddressInput } from '../../features/account/addressApi'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { reconcileAddress, countryLabel, isUkCountry, profileRecipient, UK_COUNTRY } from '../../features/account/addressState'
@@ -113,26 +114,42 @@ export function SavedAddresses({ token }: { token: string }) {
     } finally { if (mounted.current) setPending(null) }
   }
 
-  const remove = async (address: Address) => {
-    if (pending) return
-    const successor = addresses.filter(a => a.id !== address.id).sort((a,b) => a.id-b.id)[0]
-    const nextDefault = address.isDefaultShipping || address.isDefaultBilling ? successor ? ` ${successor.recipientName}, ${successor.line1} will become the new ${[address.isDefaultShipping ? 'delivery' : '', address.isDefaultBilling ? 'billing' : ''].filter(Boolean).join(' and ')} default.` : ' You will have no saved default address.' : ''
-    if (!window.confirm(`Delete ${address.recipientName}, ${address.line1}?${nextDefault} Existing orders will not change.`)) return
+  // Delete opens a branded confirmation; nothing is deleted until the customer confirms there.
+  const [confirming, setConfirming] = useState<Address | null>(null)
+  const [deleteError, setDeleteError] = useState('')
+  const addButtonRef = useRef<HTMLButtonElement>(null)
+  const askToRemove = (address: Address) => { if (!pending) { setDeleteError(''); setConfirming(address) } }
+  const defaultConsequence = (address: Address) => {
+    if (!address.isDefaultShipping && !address.isDefaultBilling) return null
+    const kinds = [address.isDefaultShipping ? 'delivery' : '', address.isDefaultBilling ? 'billing' : ''].filter(Boolean).join(' and ')
+    const successor = addresses.filter(a => a.id !== address.id).sort((a, b) => a.id - b.id)[0]
+    return successor
+      ? `This is your default ${kinds} address. ${successor.recipientName}, ${successor.line1} will become the new default ${kinds} address.`
+      : `This is your default ${kinds} address. You will have no saved default address.`
+  }
+  const remove = async () => {
+    const address = confirming
+    if (!address || pending) return
     const mutationSequence = requestSequence.current
-    setPending(`delete:${address.id}`); setError(null)
+    setPending(`delete:${address.id}`); setDeleteError('')
+    let deleted = false
     try {
       await deleteAddress(token, address.id)
+      deleted = true
       if (!mounted.current || mutationSequence !== requestSequence.current) return
       const sequence = ++requestSequence.current
       await load(token, sequence)
-    } catch (reason) { if (mounted.current) setError(messageFor(reason))
-    } finally { if (mounted.current) setPending(null) }
+    } catch (reason) { if (mounted.current && !deleted) setDeleteError(messageFor(reason))
+    } finally {
+      // Close in the same render that clears pending, so the focus target (Add address) is enabled again.
+      if (mounted.current) { setPending(null); if (deleted) setConfirming(null) }
+    }
   }
 
   return <section className="my-account__panel saved-addresses" aria-labelledby="saved-addresses-title">
     <header className="saved-addresses__heading">
       <div className="my-account__section-heading"><img src={sectionHouse} alt="" aria-hidden="true" /><div><h3 id="saved-addresses-title">Saved Addresses</h3><p>Manage your delivery and billing addresses.</p></div></div>
-      <button className="my-account__button my-account__button--primary" type="button" onClick={beginAdd} disabled={loading || Boolean(error) || Boolean(pending)}><span aria-hidden="true">＋ </span>Add address</button>
+      <button ref={addButtonRef} className="my-account__button my-account__button--primary" type="button" onClick={beginAdd} disabled={loading || Boolean(error) || Boolean(pending)}><span aria-hidden="true">＋ </span>Add address</button>
     </header>
     <div className="saved-addresses__body" aria-busy={loading || Boolean(pending)}>
     {error && <p className="my-account__error" role="alert">{error}</p>}
@@ -144,7 +161,7 @@ export function SavedAddresses({ token }: { token: string }) {
       <div className="saved-address__actions">
         {!address.isDefaultShipping && <button className="my-account__button" type="button" onClick={() => void makeDefault(address, 'shipping')} disabled={Boolean(pending)}>Make delivery default</button>}
         {!address.isDefaultBilling && <button className="my-account__button" type="button" onClick={() => void makeDefault(address, 'billing')} disabled={Boolean(pending)}>Make billing default</button>}
-        <div className="saved-address__edit-actions"><button className="my-account__button" type="button" onClick={() => beginEdit(address)} disabled={Boolean(pending)}>Edit</button>{<button className="saved-address__delete" type="button" onClick={() => remove(address)} disabled={Boolean(pending)}>Delete</button>}</div>
+        <div className="saved-address__edit-actions"><button className="my-account__button" type="button" onClick={() => beginEdit(address)} disabled={Boolean(pending)}>Edit</button>{<button className="saved-address__delete" type="button" onClick={() => askToRemove(address)} disabled={Boolean(pending)} aria-label={`Delete address for ${address.recipientName}, ${address.line1}`}>Delete</button>}</div>
       </div>
     </article>)}</div>}
     {draft && <form ref={formRef} className="saved-addresses__form" onSubmit={save}>
@@ -156,5 +173,12 @@ export function SavedAddresses({ token }: { token: string }) {
       <div className="saved-addresses__form-actions"><button className="my-account__button my-account__button--primary" type="submit" disabled={Boolean(pending)}>{pending ? 'Saving…' : 'Save address'}</button><button className="my-account__button" type="button" onClick={cancel} disabled={Boolean(pending)}>Cancel</button></div>
     </form>}
     </div>
+    {confirming && <ConfirmDialog title="Delete this address?" confirmLabel="Delete address" busyLabel="Deleting…" busy={pending === `delete:${confirming.id}`}
+      error={deleteError ? `${deleteError} Nothing was deleted; you can try again.` : undefined} onConfirm={() => void remove()} onCancel={() => { setConfirming(null); setDeleteError('') }}
+      fallbackFocus={() => addButtonRef.current}>
+      <address className="confirm-dialog__address"><strong>{confirming.recipientName}</strong><br />{confirming.line1}{confirming.line2 && <>, {confirming.line2}</>}<br />{confirming.city} {confirming.postcode}<br />{countryLabel(confirming.country)}</address>
+      {defaultConsequence(confirming) && <p>{defaultConsequence(confirming)}</p>}
+      <p>This removes it from your saved addresses. It can’t be undone. Existing orders will not change.</p>
+    </ConfirmDialog>}
   </section>
 }
