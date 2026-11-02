@@ -81,17 +81,31 @@ jobs:
       NGINX_SITE_SHA256: ${{ inputs.nginx_site_sha256 }}
       NGINX_APPROVED: ${{ inputs.nginx_approved && 'true' || 'false' }}
     steps:
+      # Deploys run one at a time but in the order their verify jobs finish, not commit order. A push deploy that
+      # starts after main has moved on would replace a newer release with an older one, so skip it (fail closed).
+      - name: Skip a superseded push deploy
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          head=$(curl -fsS -H "Authorization: Bearer ${GH_TOKEN}" -H "Accept: application/vnd.github.sha" \
+            "${GITHUB_API_URL}/repos/${GITHUB_REPOSITORY}/commits/main")
+          [[ "$head" =~ ^[0-9a-f]{40}$ ]] || { echo "Could not read the current main SHA"; exit 1; }
+          if [ "$head" != "$GITHUB_SHA" ]; then
+            echo "::notice::Skipping deploy of ${GITHUB_SHA::12}: main is now ${head::12}, which deploys in its own run."
+            echo "SUPERSEDED=true" >> "$GITHUB_ENV"
+          fi
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        if: env.ACTION == 'deploy'
+        if: env.ACTION == 'deploy' && env.SUPERSEDED != 'true'
         with:
           persist-credentials: false
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        if: env.ACTION == 'deploy'
+        if: env.ACTION == 'deploy' && env.SUPERSEDED != 'true'
         with:
           node-version: 24
           cache: npm
       - name: Build and check the Sandbox release
-        if: env.ACTION == 'deploy'
+        if: env.ACTION == 'deploy' && env.SUPERSEDED != 'true'
         env:
           VITE_API_BASE_URL: /api
           VITE_SITE_URL: https://build-and-bloom.co.uk
@@ -107,15 +121,17 @@ jobs:
           tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -C dist -cf - . | gzip -n > storefront.tar.gz
           echo "RELEASE_SHA256=$(sha256sum storefront.tar.gz | cut -d' ' -f1)" >> "$GITHUB_ENV"
       - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        if: env.SUPERSEDED != 'true'
         with:
           role-to-assume: arn:aws:iam::919693204623:role/ColorfulLife-SandboxStorefrontDeploy
           role-session-name: storefront-${{ github.run_id }}
           aws-region: eu-west-2
       # The pinned credentials action predates allowed-account-ids, so check the account explicitly.
       - name: Confirm the Colorful Life AWS account
+        if: env.SUPERSEDED != 'true'
         run: test "$(aws sts get-caller-identity --query Account --output text)" = 919693204623
       - name: Upload release archive
-        if: env.ACTION == 'deploy'
+        if: env.ACTION == 'deploy' && env.SUPERSEDED != 'true'
         run: |
           key="storefront/${GITHUB_SHA}.tar.gz"
           aws s3 cp storefront.tar.gz "s3://${RELEASE_BUCKET}/${key}" --only-show-errors
@@ -123,6 +139,7 @@ jobs:
           echo "::add-mask::${url}"
           echo "RELEASE_URL=${url}" >> "$GITHUB_ENV"
       - name: Run the host action through SSM and wait for its result
+        if: env.SUPERSEDED != 'true'
         run: |
           sha=""
           if [ "$ACTION" = deploy ]; then sha="$GITHUB_SHA"; fi
