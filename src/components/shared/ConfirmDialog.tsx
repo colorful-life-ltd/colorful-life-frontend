@@ -27,7 +27,7 @@ export function ConfirmDialog({ title, children, confirmLabel, busyLabel, cancel
   const dialogRef = useRef<HTMLDialogElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const fallbackRef = useRef(fallbackFocus)
-  fallbackRef.current = fallbackFocus
+  useEffect(() => { fallbackRef.current = fallbackFocus }, [fallbackFocus])
   const titleId = useId(), descriptionId = useId(), errorId = useId()
 
   useEffect(() => {
