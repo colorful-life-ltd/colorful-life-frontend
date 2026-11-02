@@ -93,7 +93,7 @@ async function mount() {
 }
 async function open() {
   await mount()
-  await click('Request Return / View return history')
+  await click('Request a return')
 }
 async function quantity(n: number) {
   const node = container.querySelector('input[type=number]')!
@@ -115,7 +115,7 @@ async function submit() {
 it('loads on demand and submits a cancellation without requiring an explanation or postage payer', async () => {
   await mount()
   expect(readReturns).not.toHaveBeenCalled()
-  await click('Request Return / View return history')
+  await click('Request a return')
   await quantity(1)
   await submit()
   expect(requestReturns).toHaveBeenCalledWith('synthetic-token', 41, {
@@ -161,7 +161,7 @@ it('displays separate request states and the authorised address and seller posta
   await open()
   expect(container.textContent).toContain('Request 1')
   expect(container.textContent).toContain('Request 2')
-  expect(container.textContent).toContain('Authorised return instructions')
+  expect(container.textContent).toContain('Return instructions')
   expect(container.textContent).toContain('3 Hawthorne Drive')
   expect(container.textContent).toContain('prepaid label')
   expect(container.textContent).toContain(
@@ -183,7 +183,7 @@ it('rejects empty selection and exposes recoverable read errors', async () => {
   expect(requestReturns).not.toHaveBeenCalled()
   expect(container.textContent).toContain('Select at least one item')
   vi.mocked(readReturns).mockRejectedValueOnce(new Error('offline'))
-  await click('Refresh return history')
+  await click('Refresh returns')
   expect(container.textContent).toContain(
     'We could not load your return information',
   )

@@ -1,16 +1,13 @@
 import {CustomerReturns} from './CustomerReturns'
-import { OrderProgress } from './OrderProgress'
-import { countryLabel } from '../../features/account/addressState'
+import { OrderDetails } from './OrderDetails'
 import { useConfirmedCartRefresh } from '../../features/cart/useConfirmedCartRefresh'
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError, isVerificationRequired } from '../../features/auth/api'
 import { listOrders, readOrder, type OrderSummary, type OrderDetail } from '../../features/orders/api'
-import { canCheckPayment, canResumeCheckout, deliverySummary, displayDate, displayDay, orderDetailId, orderStatusLabel, paymentStatusLabel } from '../../features/orders/presentation'
+import { canCheckPayment, deliverySummary, displayDay, orderDetailId, orderStatusLabel, paymentStatusLabel } from '../../features/orders/presentation'
 import { OrderItemThumbnail } from './OrderItemThumbnail'
-import { isOlderPaymentSnapshot, parsePaymentWindow, paymentActionLabel, paymentMessage } from '../../features/checkout/paymentWindow'
-import { PaymentWindowNotice } from '../checkout/PaymentWindowNotice'
-import { OrderFinancialSummary } from '../checkout/OrderFinancialSummary'
+import { isOlderPaymentSnapshot, paymentMessage } from '../../features/checkout/paymentWindow'
 import { CheckoutApiError, recoverPayment } from '../../features/checkout/api'
 import { isConfirmed, navigateCheckout } from '../../features/checkout/state'
 import { formatGbp, priceToPence } from '../../features/cart/CartContext'
@@ -31,8 +28,8 @@ export function CustomerOrders({ path, onAccount, onAuthenticate }: Props) {
     {state.status === 'authenticated' ? list || id ? <VerifiedOrders key={`${state.token}:${path}`} token={state.token} id={id} onAuthenticate={onAuthenticate} /> : <p role="alert">This order cannot be opened. Please return to My Orders.</p>
       : state.status === 'verificationRequired' ? <VerificationNotice token={state.token} message="Please verify your email to view your orders." />
       : state.status === 'resolving' ? <p role="status">Restoring your account…</p> : <><p>Please sign in to view your orders.</p><button onClick={onAccount}>Sign in</button></>}
-    {!list && <button className="checkout__secondary" onClick={() => navigateCheckout('/account/orders')}>Back to My Orders</button>}
-    <BotanicalDivider /><button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button>
+    {list ? <><BotanicalDivider /><button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button></>
+      : <nav className="order-detail-nav" aria-label="Order navigation"><button className="checkout__secondary" onClick={() => navigateCheckout('/account/orders')}>Back to My Orders</button><button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button></nav>}
   </div></main>
 }
 
@@ -47,6 +44,15 @@ function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: numb
   useConfirmedCartRefresh(state.phase === 'ready' ? state.detail : null)
   const [revision, setRevision] = useState(0)
   const reload = () => { setFeedback(''); setState({ phase: 'loading' }); setRevision(value => value + 1) }
+  // Quietly re-read the order after a return change so the status card and item badges match the Returns section.
+  const syncDetail = () => {
+    if (id === null) return
+    const current = generation.current
+    void readOrder(token, id).then(next => {
+      if (generation.current !== current || recovering.current) return
+      setState(previous => previous.phase === 'ready' && previous.detail?.id === next.id && !isOlderPaymentSnapshot(previous.detail, next) ? { ...previous, detail: next } : previous)
+    }, () => { /* Keep the current view; the customer can refresh the order. */ })
+  }
   useEffect(() => {
     let active = true
     generation.current += 1
@@ -98,7 +104,9 @@ function VerifiedOrders({ token, id, onAuthenticate }: { token: string; id: numb
   if (state.phase === 'unavailable') return <p role="alert">We cannot display this order information for your account.</p>
   if (state.phase === 'error') return <><p role="alert">Unable to load your orders. Please try again.</p><button onClick={reload}>Retry</button></>
   return <>
-    {state.detail ? <><Detail order={state.detail} checking={checking} />{['DISPATCHED','COMPLETED','RETURNED'].includes(state.detail.status)&&!!state.detail.dispatchedAt&&state.detail.payment?.status==='SUCCEEDED'&&!!state.detail.payment.paidAt&&<CustomerReturns key={`${token}:${state.detail.id}`} token={token} orderId={state.detail.id}/>} {state.detail.status==='CONFIRMED'&&!state.detail.dispatchedAt&&state.detail.payment?.status==='SUCCEEDED'&&<section aria-label="Cancellation before dispatch"><h3>Cancellation or refund before dispatch</h3><p>For a paid order that has not been dispatched, contact support through the existing cancellation/refund process. Specify the items and quantities you want to cancel, or say that you want to cancel the entire order. This does not automatically issue a refund.</p><a href={`mailto:support@build-and-bloom.co.uk?subject=${encodeURIComponent(`Cancellation/refund request for order #${state.detail.id}`)}`}>Contact support about this order</a></section>} {canCheckPayment(state.detail) && <button disabled={checking} onClick={() => void checkPayment()}>{checking ? 'Checking payment status…' : 'Check payment status'}</button>}{feedback && <p role="status">{feedback}</p>}</> : state.orders.length ? <ol className="order-history" aria-label="Your orders, newest first">{state.orders.map(order => <OrderCard key={order.id} order={order} />)}</ol> : <p className="order-history__empty">You haven’t placed any orders yet.</p>}
+    {state.detail ? <OrderDetails order={state.detail} checking={checking} feedback={feedback} onCheckPayment={() => void checkPayment()}
+      returns={canRequestReturns(state.detail) && <CustomerReturns key={`${token}:${state.detail.id}`} token={token} orderId={state.detail.id} initiallyOpen={hasReturnLines(state.detail)} onChanged={syncDetail} />} />
+      : state.orders.length ? <ol className="order-history" aria-label="Your orders, newest first">{state.orders.map(order => <OrderCard key={order.id} order={order} />)}</ol> : <p className="order-history__empty">You haven’t placed any orders yet.</p>}
     <button className="checkout__secondary" disabled={checking} onClick={reload}>Refresh {id === null ? 'orders' : 'order'}</button>
   </>
 }
@@ -133,29 +141,6 @@ function OrderCard({ order }: { order: OrderSummary }) {
   </article></li>
 }
 
-function Address({ order, kind }: { order: OrderDetail; kind: 'delivery' | 'billing' }) {
-  return <address>{order[`${kind}RecipientName`]}<br />{order[`${kind}Line1`]}<br />
-    {order[`${kind}Line2`] && <>{order[`${kind}Line2`]}<br /></>}
-    {order[`${kind}City`]}<br />{order[`${kind}County`] && <>{order[`${kind}County`]}<br /></>}
-    {order[`${kind}Postcode`]}<br />{countryLabel(order[`${kind}CountryCode`])}
-    {order[`${kind}Phone`] && <><br />{order[`${kind}Phone`]}</>}
-  </address>
-}
-function Detail({ order, checking }: { order: OrderDetail; checking: boolean }) {
-  return <>
-    <p>Placed {displayDate(order.createdAt)}</p><p>Order status: {orderStatusLabel(order.status)}</p>
-    <PaymentWindowNotice value={order.paymentWindow} /><OrderProgress order={order} />
-    {parsePaymentWindow(order.paymentWindow)?.state === 'PAID' && order.payment?.paidAt && <p>Paid {displayDate(order.payment.paidAt)}</p>}
-    <section aria-labelledby="order-items"><h2 id="order-items">Items</h2><ul className="checkout__items">{order.orderItems.map(item => <li key={item.id}>
-      <strong>{item.productListing.legoProduct.title}</strong><span>Set {item.productListing.legoProduct.setNumber} · Quantity {item.quantity}</span>
-      <span>{item.conditionSnapshot === 'USED_LIKE_NEW' ? 'New – Outer Box Damage' : item.conditionSnapshot === 'NEW' ? 'New' : 'Condition unavailable'}</span>
-      <span>{formatGbp(priceToPence(item.unitPrice))} each · {formatGbp(priceToPence(item.lineTotal))}</span>
-    </li>)}</ul><OrderFinancialSummary order={order} /></section>
-    <div className="checkout__columns"><section aria-labelledby="order-delivery"><h2 id="order-delivery">Delivery address</h2><Address order={order} kind="delivery" /></section>
-      <section aria-labelledby="order-billing"><h2 id="order-billing">Billing address</h2><Address order={order} kind="billing" /></section></div>
-    {order.status === 'DISPATCHED' && <p>{order.dispatchedAt && <>Dispatched {displayDate(order.dispatchedAt)}. </>}{order.shippingCarrier}{order.trackingNumber && <> · Tracking {order.trackingNumber}</>}</p>}
-    {order.status === 'COMPLETED' && order.completedAt && <p>Completed {displayDate(order.completedAt)}.</p>}
-    <p>Need to return something? <a href="/legal/delivery-returns">Delivery &amp; Returns</a> · <a href="mailto:support@build-and-bloom.co.uk">Contact support</a></p>
-    {canResumeCheckout(order) && <button disabled={checking} onClick={() => navigateCheckout(`/checkout/orders/${order.id}`)}>{paymentActionLabel(order.paymentWindow)}</button>}
-  </>
-}
+// Unchanged Return V1 eligibility: paid, dispatched orders only.
+const canRequestReturns = (order: OrderDetail) => ['DISPATCHED', 'COMPLETED', 'RETURNED'].includes(order.status) && !!order.dispatchedAt && order.payment?.status === 'SUCCEEDED' && !!order.payment.paidAt
+const hasReturnLines = (order: OrderDetail) => order.orderItems.some(item => ((item as { returns?: unknown[] }).returns ?? []).length > 0)
