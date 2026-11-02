@@ -80,3 +80,21 @@
 }
 .order-detail__help a, .order-detail__note a { color: #66527c; }
 .checkout .customer-returns > button { justify-self: start; }
+
+/* Header and columns. Below lg the DOM order gives the existing single column. */
+.order-detail__meta { align-items: center; }
+.order-detail__layout, .order-detail__main, .order-detail__side { display: grid; gap: 18px; align-content: start; min-width: 0; }
+
+/* lg: a wider paper and a 55/45 split. Main: status, items, returns. Side: payment, delivery, addresses. */
+@media (min-width: 1024px) {
+  .checkout.customer-orders--detail .checkout__paper { max-width: 1180px; }
+  .order-detail__layout { grid-template-columns: minmax(0, 11fr) minmax(0, 9fr); gap: 0 36px; align-items: start; }
+  .order-detail__side > .order-detail__section:first-child { border-top: 0; padding-top: 0; }
+  .order-detail__side .order-detail__addresses { grid-template-columns: 1fr; gap: 12px; }
+}
+/* xl: 60/40 with a little more room. */
+@media (min-width: 1280px) {
+  .checkout.customer-orders--detail .checkout__paper { max-width: 1280px; }
+  .order-detail__layout { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 0 48px; }
+  .order-detail__side .order-detail__addresses { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+}
