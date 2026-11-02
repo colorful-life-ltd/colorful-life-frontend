@@ -31,6 +31,8 @@
 .order-status--return .order-steps li.is-current .order-steps__dot { background: #536f42; border-color: #536f42; }
 .order-steps li.is-current { color: #3f3348; font-weight: 600; }
 .order-steps li.is-done { color: #3f3348; }
+.order-steps li.is-problem { color: #7d2c1c; font-weight: 600; }
+.order-steps li.is-problem .order-steps__dot { background: #fffaf0; border-color: #a1452f; color: #a1452f; font-weight: 700; }
 
 /* Items */
 .order-detail__items { list-style: none; margin: 0; padding: 0; display: grid; }
@@ -98,3 +100,4 @@
   .order-detail__layout { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 0 48px; }
   .order-detail__side .order-detail__addresses { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 }
+.order-status a { color: #66527c; }

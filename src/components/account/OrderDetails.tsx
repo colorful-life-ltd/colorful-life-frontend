@@ -6,8 +6,8 @@ import { navigateCheckout } from '../../features/checkout/state'
 import type { OrderDetail } from '../../features/orders/api'
 import { parseCustomerExperience } from '../../features/orders/experience'
 import {
-  deliveryView, itemReturns, orderOverview, paymentView, returnOverview, returnStageLabels, RETURN_STEPS, sameAddresses,
-  type ItemReturn, type ReturnOverview,
+  deliveryView, itemReturns, paymentView, progressView, returnOverview, returnStageLabels, sameAddresses,
+  type ItemReturn, type ProgressView, type StepState,
 } from '../../features/orders/orderDetailView'
 import { canCheckPayment, canResumeCheckout, displayDate, displayDay } from '../../features/orders/presentation'
 import { OrderFinancialSummary } from '../checkout/OrderFinancialSummary'
@@ -17,11 +17,6 @@ import './OrderDetails.css'
 
 const SUPPORT = 'support@build-and-bloom.co.uk'
 const conditionLabel = (value: string) => value === 'USED_LIKE_NEW' ? 'New – Outer Box Damage' : value === 'NEW' ? 'New' : 'Condition unavailable'
-const progressText: Record<(typeof RETURN_STEPS)[number], string> = {
-  sent: 'We’re reviewing your request. Please don’t post anything until it’s approved.',
-  approved: 'Your return instructions are in the Returns section below.',
-  received: 'We’ve received your returned item. Any refund is shown under Payment.',
-}
 
 type Props = {
   order: OrderDetail
@@ -38,19 +33,20 @@ export function OrderDetails({ order, checking, feedback, onCheckPayment, return
   const payment = paymentView(order, experience)
   const delivery = deliveryView(order, experience)
   const paidBeforeDispatch = order.status === 'CONFIRMED' && !order.dispatchedAt && order.payment?.status === 'SUCCEEDED'
-  const headline = overview.kind === 'progress' ? returnStageLabels[overview.stage] : orderOverview(order, experience).title
+  const progress = progressView(order, experience)
+  const headline = progress.title
   return <div className="order-detail">
     <div className="order-detail__header">
       <p className="order-detail__meta">
         <span>Placed {displayDay(order.createdAt)}</span>
         <span>Total <strong>{formatGbp(priceToPence(order.financials?.totalAmount ?? order.totalAmount))}</strong></span>
-        <span className={`order-detail__pill order-detail__pill--${overview.kind === 'progress' ? 'ok' : 'info'}`}>{headline}</span>
+        <span className={`order-detail__pill order-detail__pill--${headlineTone(progress)}`}>{headline}</span>
       </p>
     </div>
 
     <div className="order-detail__layout">
     <div className="order-detail__main">
-    <StatusCard order={order} overview={overview} experience={experience} />
+    <StatusCard progress={progress} returnsUnavailable={overview.kind === 'unavailable'} orderId={order.id} />
 
     <section className="order-detail__section" aria-labelledby="order-items">
       <h2 id="order-items">Items</h2>
@@ -127,34 +123,32 @@ export function OrderDetails({ order, checking, feedback, onCheckPayment, return
   </div>
 }
 
-function StatusCard({ order, overview, experience }: { order: OrderDetail; overview: ReturnOverview; experience: ReturnType<typeof parseCustomerExperience> }) {
-  const orderState = orderOverview(order, experience)
-  if (overview.kind === 'progress') {
-    const current = RETURN_STEPS.indexOf(overview.stage)
-    return <section className="order-status order-status--return" aria-labelledby="order-status-title">
-      <p className="order-status__eyebrow">Return in progress</p>
-      <h2 id="order-status-title">{returnStageLabels[overview.stage]}</h2>
-      <Steps labels={RETURN_STEPS.map(s => returnStageLabels[s])} current={current} label="Return progress" />
-      <p>{progressText[overview.stage]}</p>
-      {overview.mixed && <p className="order-detail__muted">Your returned items are at different stages; each item’s status is shown below.</p>}
-      <p className="order-status__secondary">Order status: {orderState.title}</p>
-    </section>
-  }
-  return <section className="order-status" aria-labelledby="order-status-title">
-    <h2 id="order-status-title">{orderState.title}</h2>
-    {orderState.kind === 'steps' && <Steps labels={orderState.steps} current={orderState.current} label="Order progress" />}
-    {orderState.kind === 'message' && orderState.detail && <p>{orderState.detail}</p>}
-    {overview.kind === 'unavailable' && <p role="status">Return information is unavailable right now. Refresh the order to try again.</p>}
+/** The header pill follows the refund outcome on a return, so a failed or pending refund is never shown as good news. */
+function headlineTone(progress: ProgressView) {
+  if (progress.kind !== 'journey' || progress.journey !== 'return') return 'info'
+  return progress.refund === 'failed' ? 'problem' : progress.refund === 'pending' || progress.refund === 'checking' ? 'pending' : 'ok'
+}
+
+function StatusCard({ progress, returnsUnavailable, orderId }: { progress: ProgressView; returnsUnavailable: boolean; orderId: number }) {
+  const isReturn = progress.kind === 'journey' && progress.journey === 'return'
+  return <section className={`order-status${isReturn ? ' order-status--return' : ''}`} aria-labelledby="order-status-title">
+    {isReturn && <p className="order-status__eyebrow">Return and refund</p>}
+    <h2 id="order-status-title">{progress.title}</h2>
+    {progress.kind === 'journey' && <Steps steps={progress.steps} label={isReturn ? 'Return and refund progress' : 'Order progress'} />}
+    {progress.detail && <p>{progress.detail}</p>}
+    {progress.kind === 'journey' && progress.refund === 'failed' && <p><a href={`mailto:${SUPPORT}?subject=${encodeURIComponent(`Refund for order #${orderId}`)}`}>Contact us about your refund</a></p>}
+    {progress.kind === 'journey' && progress.mixed && <p className="order-detail__muted">Your returned items are at different stages; each item’s status is shown below.</p>}
+    {progress.kind === 'journey' && progress.partialReturn && <p className="order-status__secondary">A return is in progress for some items; see each item’s status below.{progress.partialReturn.approved ? ' Return instructions are in the Returns section.' : ''}</p>}
+    {returnsUnavailable && <p role="status">Return information is unavailable right now. Refresh the order to try again.</p>}
   </section>
 }
 
-/** The final step, once reached, is shown as done rather than in progress. */
-function Steps({ labels, current: reached, label }: { labels: string[]; current: number; label: string }) {
-  const current = reached >= labels.length - 1 ? labels.length : reached
-  return <ol className="order-steps" aria-label={label}>{labels.map((text, index) =>
-    <li key={text} className={index < current ? 'is-done' : index === current ? 'is-current' : undefined} aria-current={index === current ? 'step' : undefined}>
-      <span className="order-steps__dot" aria-hidden="true">{index < current ? '✓' : ''}</span>
-      <span className="order-steps__label">{text}<span className="visually-hidden">{index < current ? ' (done)' : index === current ? ' (current)' : ''}</span></span>
+const stepNote: Record<StepState, string> = { done: ' (done)', current: ' (current)', problem: ' (not completed)', upcoming: '' }
+function Steps({ steps, label }: { steps: { label: string; state: StepState }[]; label: string }) {
+  return <ol className="order-steps" aria-label={label}>{steps.map(step =>
+    <li key={step.label} className={`is-${step.state}`} aria-current={step.state === 'current' || step.state === 'problem' ? 'step' : undefined}>
+      <span className="order-steps__dot" aria-hidden="true">{step.state === 'done' ? '✓' : step.state === 'problem' ? '!' : ''}</span>
+      <span className="order-steps__label">{step.label}<span className="visually-hidden">{stepNote[step.state]}</span></span>
     </li>)}</ol>
 }
 
