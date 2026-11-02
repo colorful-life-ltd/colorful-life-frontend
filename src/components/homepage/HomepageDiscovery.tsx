@@ -11,7 +11,8 @@ export function HomepageDiscovery({ categories }: { categories: readonly Catalog
     return () => controller.abort()
   }, [])
   const visibleCategories = catalogue.loaded ? categories.filter(category => catalogue.products.some(product => product.category?.id === category.backendId)) : categories
-  return <section className="homepage-discovery" aria-labelledby="homepage-title">
+  // Crawl/assistive-technology content only: the storybook is the visible homepage. See HomepageDiscovery.css.
+  return <section className="homepage-discovery homepage-discovery--crawl-only" aria-labelledby="homepage-title">
     <div className="homepage-discovery__intro">
       <p className="homepage-discovery__eyebrow">A little shop for big imaginations</p>
       <h1 id="homepage-title">LEGO® sets with UK delivery</h1>
