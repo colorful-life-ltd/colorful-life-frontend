@@ -121,6 +121,42 @@ describe('full-order return journey: Return requested → approved → received 
     expect(v.title).toBe(title)
     expect(states(v).at(-1)).toBe(last)
   })
+  describe('the Stripe-confirmed refunded amount is authoritative', () => {
+    const detail = (v: ProgressView) => (v as { detail: string }).detail
+    it('counts a partial refund as issued and shows its exact amount without implying a full refund', () => {
+      const v = fullReturn('COMPLETED', [refund('SUCCEEDED', '10.00')]) // order total £20.00
+      expect(states(v).at(-1)).toBe('Refund issued:done')
+      expect(detail(v)).toBe('£10.00 has been refunded to your original payment method. Your bank may take a few working days to show it.')
+      expect(detail(v)).not.toMatch(/full|entire|£20\.00|outstanding|remaining/i)
+    })
+    it('sums several confirmed refunds', () => {
+      const v = fullReturn('COMPLETED', [{ ...refund('SUCCEEDED', '10.00'), id: 1 }, { ...refund('SUCCEEDED', '3.99'), id: 2 }])
+      expect(detail(v)).toContain('£13.99 has been refunded')
+    })
+    it('keeps the step open while a further refund is pending, reporting only the confirmed total', () => {
+      const v = fullReturn('COMPLETED', [{ ...refund('SUCCEEDED', '10.00'), id: 1 }, { ...refund('PROCESSING', '13.98'), id: 2 }])
+      expect(v).toMatchObject({ title: 'Refund in progress', refund: 'pending' })
+      expect(states(v).at(-1)).toBe('Refund issued:current')
+      expect(detail(v)).toBe('£10.00 has been refunded so far. A further refund has been started but isn’t confirmed yet.')
+    })
+    it('keeps the step open while a refund is under review, never counting the reviewed amount', () => {
+      const v = fullReturn('COMPLETED', [{ ...refund('SUCCEEDED', '10.00'), id: 1 }, { ...refund('SUCCEEDED', '13.98', true), id: 2 }])
+      expect(v).toMatchObject({ title: 'Refund being checked', refund: 'checking' })
+      expect(detail(v)).toBe('£10.00 has been refunded so far. We’re checking the status of a further refund.')
+    })
+    it('never shows pending, unknown or failed amounts as refunded', () => {
+      for (const refunds of [[refund('PROCESSING', '23.98')], [refund('SUCCEEDED', '23.98', true)], [refund('FAILED', '23.98')]]) {
+        const v = fullReturn('COMPLETED', refunds)
+        expect(states(v).at(-1)).not.toBe('Refund issued:done')
+        expect(detail(v)).not.toMatch(/has been refunded/)
+      }
+    })
+    it('reports only the confirmed amount when another attempt failed', () => {
+      const v = fullReturn('COMPLETED', [{ ...refund('FAILED', '23.98'), id: 1 }, { ...refund('SUCCEEDED', '10.00'), id: 2 }])
+      expect(states(v).at(-1)).toBe('Refund issued:done')
+      expect(detail(v)).toContain('£10.00 has been refunded')
+    })
+  })
   it('ignores refunds recorded before the return was requested', () => {
     expect(fullReturn('COMPLETED', [{ ...refund('SUCCEEDED', '5.00'), createdAt: '2026-10-10T12:00:00Z' }])).toMatchObject({ refund: 'none', title: 'Return received' })
   })

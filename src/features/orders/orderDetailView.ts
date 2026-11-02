@@ -110,15 +110,17 @@ export function orderJourney(order: OrderDetail, experience: CustomerExperience 
   ]) }
 }
 
-/** Order-level refunds created since the return began. A refund is only "issued" once a confirmed Stripe success
- *  is recorded and nothing else is still pending or under review. */
+/** Order-level refunds created since the return began. The Stripe-confirmed refunded total is authoritative and may be
+ *  less than the order total; it is never compared with what was paid. The step is only "issued" once nothing else is
+ *  still pending or under review, but the confirmed total is reported in every state. */
 export function refundProgress(experience: CustomerExperience | null, since: string): RefundProgress {
   const start = Date.parse(since)
   const refunds = (experience?.refunds ?? []).filter(r => Date.parse(r.createdAt) >= start)
-  if (refunds.some(r => r.reviewRequired)) return { state: 'checking', amount: null }
-  if (refunds.some(r => r.status === 'PROCESSING')) return { state: 'pending', amount: null }
-  const issued = refunds.filter(r => r.status === 'SUCCEEDED').reduce((sum, r) => sum + priceToPence(r.amount), 0)
-  if (issued > 0) return { state: 'issued', amount: formatGbp(issued) }
+  const issued = refunds.filter(r => r.status === 'SUCCEEDED' && !r.reviewRequired).reduce((sum, r) => sum + priceToPence(r.amount), 0)
+  const amount = issued > 0 ? formatGbp(issued) : null
+  if (refunds.some(r => r.reviewRequired)) return { state: 'checking', amount }
+  if (refunds.some(r => r.status === 'PROCESSING')) return { state: 'pending', amount }
+  if (amount) return { state: 'issued', amount }
   if (refunds.some(r => r.status === 'FAILED')) return { state: 'failed', amount: null }
   return { state: 'none', amount: null }
 }
@@ -129,8 +131,10 @@ const returnText: Record<'sent' | 'approved', string> = {
 }
 const refundText: Record<RefundProgress['state'], (amount: string | null) => string> = {
   none: () => 'Your refund hasn’t been issued yet. We’ll update this page once it has.',
-  pending: () => 'Your refund has been started but isn’t confirmed yet. We’ll update this page once it is.',
-  checking: () => 'We’re checking the status of your refund.',
+  pending: amount => amount
+    ? `${amount} has been refunded so far. A further refund has been started but isn’t confirmed yet.`
+    : 'Your refund has been started but isn’t confirmed yet. We’ll update this page once it is.',
+  checking: amount => amount ? `${amount} has been refunded so far. We’re checking the status of a further refund.` : 'We’re checking the status of your refund.',
   failed: () => 'Your refund couldn’t be completed. We’ll be in touch, or you can contact us.',
   issued: amount => `${amount} has been refunded to your original payment method. Your bank may take a few working days to show it.`,
 }
