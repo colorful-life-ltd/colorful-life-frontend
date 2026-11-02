@@ -196,14 +196,17 @@ export async function getCategories(signal?: AbortSignal): Promise<BackendCatego
   return data.map(category => ({ ...category, thumbnailUrl: category.thumbnailUrl ?? null })) as BackendCategory[]
 }
 
-export async function getProducts(filters: { categoryId: number }, signal?: AbortSignal): Promise<CatalogueProduct[]> {
+export async function getProducts(filters: { categoryId?: number } = {}, signal?: AbortSignal): Promise<CatalogueProduct[]> {
   const base = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '')
   const items: CatalogueProduct[] = []
   let page = 1
   let totalPages: number
   do {
     const pageSize = 100
-    const params = new URLSearchParams({ categoryId: String(filters.categoryId), page: String(page), pageSize: String(pageSize) })
+    const params = new URLSearchParams()
+    if (filters.categoryId !== undefined) params.set('categoryId', String(filters.categoryId))
+    params.set('page', String(page))
+    params.set('pageSize', String(pageSize))
     const response = await fetch(`${base}/products?${params}`, { signal })
     if (!response.ok) throw new Error('Unable to load catalogue')
     const data: unknown = await response.json()

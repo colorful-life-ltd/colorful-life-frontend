@@ -37,6 +37,7 @@ beforeEach(() => {
   fetcher = vi.fn((url: string) => {
     if (url === '/api/orders') return response([summary])
     if (url === '/api/orders/41') return response(detail)
+    if (url === '/api/products?page=1&pageSize=100') return response({ items: [], pagination: { page: 1, pageSize: 100, totalItems: 0, totalPages: 0 } })
     throw new Error(`Unexpected test request ${url}`)
   })
   vi.stubGlobal('fetch', fetcher)
@@ -50,7 +51,7 @@ describe('My Orders entry and list', () => {
   it('opens My Orders from the account card using native history', async () => {
     history.replaceState({}, '', '/'); await mount(); await click('Open your account'); await click('Open My Orders')
     expect(location.pathname).toBe('/account/orders'); expect(container.querySelector('.account-modal')).toBeNull()
-    expect(container.textContent).toContain('My Orders'); expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(container.textContent).toContain('My Orders'); expect(fetcher).toHaveBeenCalledWith('/api/orders', expect.anything())
   })
   it.each([0, 1])('returns to the storefront using navigation button %i', async index => {
     await mount()

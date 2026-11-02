@@ -16,7 +16,7 @@ const head = (pathname: string, search = '', extra: Partial<Parameters<typeof ca
 
 describe('route metadata and canonical URLs', () => {
   it('describes the homepage with the brand and an indexable root canonical', () => {
-    expect(head('/')).toEqual({ title: 'Build & Bloom | LEGO® sets catalogue', description: DEFAULT_DESCRIPTION, canonicalPath: '/', robots: 'index,follow' })
+    expect(head('/')).toEqual({ title: 'Build & Bloom | LEGO® Sets with UK Delivery', description: DEFAULT_DESCRIPTION, canonicalPath: '/', robots: 'index,follow' })
   })
 
   it('canonicalises catalogue book spreads to the homepage', () => {

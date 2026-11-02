@@ -14,7 +14,7 @@ export function OwnerDecisionPlaceholder({ id }: { id: OwnerDecision }) {
 export function LegalLayout({ title, updated, children }: { title: string; updated: string; children: ReactNode }) {
   return <article className="legal-document" aria-labelledby="legal-document-title">
     <header className="legal-document__heading">
-      <h2 id="legal-document-title">{title}</h2>
+      <h1 id="legal-document-title">{title}</h1>
       <img src={leaf} alt="" aria-hidden="true" />
       <p className="legal-document__updated">Last updated {updated}</p>
     </header>

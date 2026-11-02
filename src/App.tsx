@@ -16,6 +16,7 @@ import { CartModal } from './components/cart/CartModal'
 import { ConditionConfirmationDialog } from './components/catalogue/ConditionConfirmationDialog'
 import { CartItems } from './components/cart/CartItems'
 import { Checkout } from './components/checkout/Checkout'
+import { SandboxBanner } from './components/checkout/SandboxBanner'
 import { CustomerOrders } from './components/account/CustomerOrders'
 import { VerifyEmail } from './components/account/VerifyEmail'
 import { ResetPassword } from './components/account/ResetPassword'
@@ -26,6 +27,7 @@ import { navigateCheckout } from './features/checkout/state'
 import { BookOwnedCart } from './components/catalogue/BookOwnedCart'
 import { BookOwnedUser } from './components/catalogue/BookOwnedUser'
 import { CustomerInformationFallback, CustomerInformationNotebook } from './components/homepage/CustomerInformationFallback'
+import { HomepageDiscovery } from './components/homepage/HomepageDiscovery'
 import { useAuth } from './features/auth/AuthProvider'
 import { isSignedIn } from './features/auth/state'
 import { useCart } from './features/cart/CartContext'
@@ -344,7 +346,7 @@ function App() {
   if (pathname === '/verify-email' || isResetPasswordPath(pathname) || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
     <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} />
       // A completed reset signs this browser out, so the new password is used next.
-      : isResetPasswordPath(pathname) ? <ResetPassword onSignIn={openVerificationSignIn} onRequestNewLink={openPasswordResetRequest} /> : <Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} />}<SiteFooter /></div>
+      : isResetPasswordPath(pathname) ? <ResetPassword onSignIn={openVerificationSignIn} onRequestNewLink={openPasswordResetRequest} /> : <><SandboxBanner /><Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} /></>}<SiteFooter /></div>
     {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
   </>
 
@@ -414,6 +416,7 @@ function App() {
       {!showReference && accountOpen && <AccountModal onClose={closeAccount} onSignOut={startUserFarewell} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
         content={cartItems.length ? { kind: 'filled', items: <div aria-busy={cartLoading || pendingItemIds.length > 0}><CartItems items={cartItems} /></div>, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
+      {!showReference && pathname === '/' && !catalogueOpen && <><HomepageDiscovery categories={resolvedCategories} /><SiteFooter /></>}
     </>
   )
 }

@@ -4,7 +4,6 @@
 # here, because crawlers must be able to fetch a page to see its noindex.
 # This file is not access control: those routes are protected by authentication.
 #
-# Add "Sitemap: https://<production-domain>/sitemap.xml" once the production
-# domain and sitemap endpoint are confirmed.
 User-agent: *
 Allow: /
+Sitemap: https://build-and-bloom.co.uk/sitemap.xml

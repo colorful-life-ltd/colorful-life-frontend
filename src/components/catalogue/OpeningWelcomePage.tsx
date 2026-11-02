@@ -1,4 +1,4 @@
-import welcomeIllustration from '../../assets/illustrations/opening-welcome-illustration.png'
+import welcomeIllustration from '../../assets/illustrations/opening-welcome-illustration.webp'
 import { ArtworkSlot } from './ArtworkSlot'
 import type { Artwork } from './chapters'
 import './OpeningPages.css'

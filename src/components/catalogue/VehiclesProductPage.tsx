@@ -110,7 +110,7 @@ function ProductDetailsContent({ product, initialOffer, onAddToCart }: { product
   }, [justAdded, added.count])
   return <article className="product-details" data-detail-product-id={product.id} data-detail-listing-id={offer?.id} aria-label={product.title}>
     <h2>Product details</h2>
-    <p className="product-details__number">LEGO {product.setNumber}</p><h3 className="product-details__title">{product.title}</h3>
+    <p className="product-details__number">LEGO {product.setNumber}</p><h1 className="product-details__title">{product.title}</h1>
     {product.isRetired && <p className="product-details__retired">Retired Set</p>}
     {offer && <p className="product-details__price">{formatGbp(effectivePricePence(offer))}</p>}
     {!offer ? null : options.length > 1 ? <fieldset className="product-details__offers"><legend>Choose an offer{age && ` · ${ageLabel(age)}`}</legend>

@@ -1,7 +1,7 @@
 import { registrationAvailable, sandboxCheckout } from '../../features/checkout/sandbox'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { COMPANY } from '../../features/legal/company'
-import cottage from '../../assets/illustrations/opening-welcome-illustration.png'
+import cottage from '../../assets/illustrations/opening-welcome-illustration.webp'
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError } from '../../features/auth/api'

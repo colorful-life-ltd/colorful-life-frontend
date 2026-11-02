@@ -42,6 +42,17 @@ describe('product-level public catalogue API', () => {
     expect(fetcher.mock.calls[1][0]).toContain('page=2')
   })
 
+  it('loads all published products without a category filter for homepage links', async () => {
+    const first = product(5)
+    const second = product(6)
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce({ ok: true, json: async () => productPage([first], 1, 2, 101) })
+      .mockResolvedValueOnce({ ok: true, json: async () => productPage([second], 2, 2, 101) })
+    vi.stubGlobal('fetch', fetcher)
+    await expect(getProducts()).resolves.toEqual([first, second])
+    expect(fetcher.mock.calls.map(call => call[0])).toEqual(['/api/products?page=1&pageSize=100', '/api/products?page=2&pageSize=100'])
+  })
+
   it('parses 10759 presentation from LegoProduct while keeping condition photos on listing 16901', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, json: async () => productPage([damaged10759]) }))
     const [parsed] = await getProducts({ categoryId: 11 })
