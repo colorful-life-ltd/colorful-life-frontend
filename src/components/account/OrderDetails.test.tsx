@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
-import { afterEach, beforeEach, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { windowFixture } from '../../features/checkout/paymentWindowFixtures'
 import type { OrderDetail } from '../../features/orders/api'
 import { OrderDetails } from './OrderDetails'
@@ -32,7 +32,7 @@ const statusCard = () => host.querySelector('.order-status')!
 it('shows a paid order concisely, without payment-window diagnostics', async () => {
   await render(order())
   expect(statusCard().textContent).toContain('Dispatched')
-  expect(host.querySelector('[aria-current="step"]')?.textContent).toContain('Dispatched')
+  expect(host.querySelector('[aria-current="step"]')?.textContent).toContain('Delivered')
   expect(text()).toContain('PaymentPaid')
   for (const hidden of ['Payment window deadline', 'Payment information checked', 'These times are informational', 'Payment has been recorded', 'PayPal']) expect(text()).not.toContain(hidden)
   expect(text()).toContain('Royal Mail · Tracking RM123')
@@ -49,13 +49,14 @@ it('keeps actionable payment instructions for an unpaid order', async () => {
   expect(text()).not.toContain('PaymentPaid')
 })
 
-it('makes an active return dominant while preserving independent order state and per-item states', async () => {
+it('keeps the purchase journey for a partial return and shows each affected item’s own state', async () => {
   await render(order({ orderItems: [item(1, 'Flowers', [line(10, 'RECEIVED', { receivedAt: '2026-10-25T12:00:00Z' })]), item(2, 'Tree House', [line(11, 'AUTHORIZED'), line(12, 'REJECTED')])] }))
   const card = statusCard()
-  expect(card.classList.contains('order-status--return')).toBe(true)
-  expect(card.querySelector('h2')?.textContent).toBe('Return request approved')
-  expect(card.textContent).toContain('different stages')
-  expect(card.textContent).toContain('Order status: Dispatched')
+  expect(card.classList.contains('order-status--return')).toBe(false)
+  expect(card.querySelector('h2')?.textContent).toBe('Dispatched')
+  expect(card.textContent).toContain('A return is in progress for some items')
+  expect(card.textContent).toContain('Return instructions are in the Returns section')
+  expect(card.textContent).not.toMatch(/Refund|Order status:/)
   const items = [...host.querySelectorAll('.order-detail__items > li')]
   expect(items[0].textContent).toContain('Return received')
   expect(items[1].textContent).toContain('Return request approved')
@@ -101,11 +102,11 @@ it('shows separate addresses and a pre-dispatch cancellation route only when rel
   await render(order({ status: 'CONFIRMED', dispatchedAt: null, fulfilment: { stage: 'CONFIRMED', preparingAt: null, shipments: [] }, billingLine1: '9 Other Road' }))
   expect(text()).toContain('Delivery address'); expect(text()).toContain('Billing address')
   expect(text()).toContain('Cancel before dispatch')
-  expect(statusCard().textContent).toContain('Order confirmed')
+  expect(statusCard().textContent).toContain('Order placed')
 })
 
 it('puts summary in a full-width header, progress/items/returns in the main column and payment/delivery/addresses in the side column', async () => {
-  await act(async () => root.render(<OrderDetails order={order({ orderItems: [item(1, 'Flowers', [line(10, 'AUTHORIZED')])] })} checking={false} feedback="" onCheckPayment={() => {}} returns={<section data-testid="returns">Returns</section>} />))
+  await act(async () => root.render(<OrderDetails order={order({ orderItems: [item(1, 'Flowers', [line(10, 'AUTHORIZED', { quantity: 2 })])] })} checking={false} feedback="" onCheckPayment={() => {}} returns={<section data-testid="returns">Returns</section>} />))
   const header = host.querySelector('.order-detail__header')!
   expect(header.textContent).toContain('Placed 1 Oct 2026')
   expect(header.textContent).toContain('£40.00')
@@ -120,4 +121,49 @@ it('puts summary in a full-width header, progress/items/returns in the main colu
   // Mobile reads in DOM order: main before side, help after both.
   expect(main.compareDocumentPosition(side) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
   expect(side.compareDocumentPosition(host.querySelector('.order-detail__help')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+})
+
+describe('full-order return progress card', () => {
+  const returned = (refunds: unknown[] = []) => order({
+    refunds,
+    orderItems: [item(1, 'Flowers', [line(10, 'COMPLETED', { quantity: 2, receivedAt: '2026-10-25T12:00:00Z', completedAt: '2026-10-26T12:00:00Z' })]), item(2, 'Tree House', [line(11, 'COMPLETED', { quantity: 2 })])],
+  })
+  const steps = () => [...statusCard().querySelectorAll('.order-steps li')].map(li => `${li.querySelector('.order-steps__label')?.firstChild?.textContent}:${li.className}`)
+  it('order #11: three return stages complete, refund outstanding, no redundant order status', async () => {
+    await render(returned())
+    expect(statusCard().classList.contains('order-status--return')).toBe(true)
+    expect(statusCard().querySelector('h2')?.textContent).toBe('Return received')
+    expect(steps()).toEqual(['Return requested:is-done', 'Return approved:is-done', 'Return received:is-done', 'Refund issued:is-current'])
+    expect(statusCard().querySelector('[aria-current="step"]')?.textContent).toBe('Refund issued (current)')
+    expect(statusCard().textContent).toContain('Your refund hasn’t been issued yet')
+    expect(statusCard().textContent).not.toContain('Order status')
+    expect(host.querySelector('.order-detail__header .order-detail__pill')?.textContent).toBe('Return received')
+  })
+  it('shows a confirmed refund as issued without claiming it reached the bank', async () => {
+    await render(returned([{ id: 1, amount: '40.00', currency: 'GBP', status: 'SUCCEEDED', reviewRequired: false, createdAt: '2026-10-27T12:00:00Z' }]))
+    expect(steps().at(-1)).toBe('Refund issued:is-done')
+    expect(statusCard().textContent).toContain('£40.00 has been refunded to your original payment method. Your bank may take a few working days to show it.')
+    expect(host.querySelector('[aria-label="Refunds"]')?.textContent).toContain('Refund issued£40.00')
+  })
+  it('flags a failed refund as not completed with a contact route', async () => {
+    await render(returned([{ id: 1, amount: '40.00', currency: 'GBP', status: 'FAILED', reviewRequired: false, createdAt: '2026-10-27T12:00:00Z' }]))
+    expect(statusCard().querySelector('h2')?.textContent).toBe('Refund not completed')
+    expect(steps().at(-1)).toBe('Refund issued:is-problem')
+    expect(statusCard().querySelector('[aria-current="step"] .order-steps__label')?.textContent).toBe('Refund issued (not completed)')
+    expect(statusCard().querySelector('a[href^="mailto:"]')?.textContent).toBe('Contact us about your refund')
+    expect(statusCard().textContent).not.toMatch(/has been refunded/)
+  })
+})
+
+it.each([
+  ['FAILED', false, 'Refund not completed', 'order-detail__pill--problem'],
+  ['PROCESSING', false, 'Refund in progress', 'order-detail__pill--pending'],
+  ['SUCCEEDED', true, 'Refund being checked', 'order-detail__pill--pending'],
+  ['SUCCEEDED', false, 'Refund issued', 'order-detail__pill--ok'],
+])('gives the header status the refund’s own tone (%s, review %s)', async (status, reviewRequired, title, tone) => {
+  await render(order({ refunds: [{ id: 1, amount: '40.00', currency: 'GBP', status, reviewRequired, createdAt: '2026-10-27T12:00:00Z' }],
+    orderItems: [item(1, 'Flowers', [line(10, 'COMPLETED', { quantity: 2 })]), item(2, 'Tree House', [line(11, 'COMPLETED', { quantity: 2 })])] }))
+  const pill = host.querySelector('.order-detail__header .order-detail__pill')!
+  expect(pill.textContent).toBe(title)
+  expect(pill.classList.contains(tone)).toBe(true)
 })

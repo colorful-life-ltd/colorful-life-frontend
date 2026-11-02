@@ -14,7 +14,7 @@ import { CustomerOrders } from './CustomerOrders'
 vi.mock('../../features/auth/api', async original => ({ ...await original<typeof import('../../features/auth/api')>(), getCurrentUser: vi.fn() }))
 vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
-const statusTitle: Record<string, string> = { CONFIRMED: 'Order confirmed', DISPATCHED: 'Dispatched', COMPLETED: 'Completed' }
+const statusTitle: Record<string, string> = { CONFIRMED: 'Order placed', DISPATCHED: 'Dispatched', COMPLETED: 'Completed' }
 const item = { id: 1, quantity: 2, unitPrice: '10.25', lineTotal: '20.50', conditionSnapshot: 'NEW', productListing: { id: 900, legoProduct: { title: 'Flowers', setNumber: '123' } } }
 const summary: OrderSummary = { id: 41, status: 'PENDING', totalAmount: '20.50', createdAt: '2026-10-01T12:00:00Z', updatedAt: '2026-10-01T12:00:00Z', shippingCarrier: null, trackingNumber: null, dispatchedAt: null, completedAt: null, orderItems: [item] }
 const detail: OrderDetail = { ...summary, payment: null, reservationExpiresAt: new Date(Date.now() + 1800000).toISOString(), billingRecipientName: 'Billing Customer', billingLine1: '2 Street', billingLine2: null, billingCity: 'London', billingCounty: null, billingPostcode: 'SW1A 1AA', billingCountryCode: 'GB', billingPhone: null, deliveryRecipientName: 'Delivery Customer', deliveryLine1: '1 Street', deliveryLine2: 'Flat 1', deliveryCity: 'London', deliveryCounty: 'London', deliveryPostcode: 'SW1A 1AA', deliveryCountryCode: 'GB', deliveryPhone: '0123456789' }
@@ -212,7 +212,7 @@ describe('explicit Order Detail payment recovery', () => {
     expect(fetcher).toHaveBeenCalledTimes(2)
     expect(fetcher.mock.calls[1]).toEqual(['/api/orders/41/payments/stripe/reconcile', expect.objectContaining({ method: 'POST', headers: expect.objectContaining({ Authorization: 'Bearer jwt' }) })])
     await act(async () => finish(new Response(JSON.stringify(customerOrderFixture({ ...stuck, status: 'CONFIRMED', payment: { status: 'SUCCEEDED', paidAt: null } })))))
-    expect(container.textContent).toContain('Order confirmed')
+    expect(container.textContent).toContain('Order placed')
     expect(container.textContent).toContain('PaymentPaid')
     expect(container.textContent).toContain('Your payment and order are confirmed')
     expect(container.textContent).not.toContain('Check payment status')
@@ -296,7 +296,7 @@ describe('order confirmation cart refresh and country presentation', () => {
     await click('Check payment status')
     expect(cart.refreshCart).toHaveBeenCalledTimes(1)
     expect(cart.removeItem).not.toHaveBeenCalled(); expect(cart.updateQuantity).not.toHaveBeenCalled()
-    expect(container.textContent).toContain('Order confirmed')
+    expect(container.textContent).toContain('Order placed')
     expect([...container.querySelectorAll('address')].every(node => node.textContent?.includes('United Kingdom'))).toBe(true)
     expect(paid.deliveryCountryCode).toBe('GB')
     await click('Refresh order')
@@ -376,7 +376,9 @@ it('re-reads the order after a return request so the status card matches the Ret
  await act(async()=>{Object.getOwnPropertyDescriptor(HTMLInputElement.prototype,'value')!.set!.call(input,'1');input.dispatchEvent(new Event('input',{bubbles:true}))})
  await act(async()=>{container.querySelector('.customer-returns form')!.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))})
  await act(async()=>{})
- expect(container.querySelector('.order-status h2')?.textContent).toBe('Return request sent')
+ // One of two units returned: a partial return keeps the purchase journey and points to the item.
+ expect(container.querySelector('.order-status h2')?.textContent).toBe('Dispatched')
+ expect(container.querySelector('.order-status')?.textContent).toContain('A return is in progress for some items')
  expect(container.querySelector('.order-detail__items')?.textContent).toContain('Return request sent')
  expect(container.textContent).toContain('Your return request has been recorded')
  expect(fetcher.mock.calls.filter(([url])=>url==='/api/orders/41')).toHaveLength(2)
