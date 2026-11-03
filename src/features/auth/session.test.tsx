@@ -6,7 +6,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, useAuth } from './AuthProvider'
 import { getCurrentUser, updateCurrentUser } from './api'
-import { authenticatedFetch, clearStoredToken, readSession, SESSION_STORAGE_KEY, storeSession, storeToken, type Session } from './session'
+import { authenticatedFetch, beginPaymentConfirmation, clearStoredToken, endPaymentConfirmation, readSession, requestExpiredSession, SESSION_STORAGE_KEY, storeSession, storeToken, subscribeExpiredSession, type Session } from './session'
 import { CartContext, type CartContextValue } from '../cart/CartContext'
 import App from '../../App'
 vi.mock('../catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
@@ -327,6 +327,20 @@ describe('real auth and native navigation', () => {
 })
 
 describe('additional session safety boundaries', () => {
+  it('does not apply a queued expiry to a newly authenticated replacement session', () => {
+    const next = { ...original, token: 'replacement-after-expiry', refreshToken: 'z'.repeat(43) }
+    const expired = vi.fn()
+    const unsubscribe = subscribeExpiredSession(expired)
+    storeSession(original)
+    beginPaymentConfirmation()
+    requestExpiredSession()
+    expect(readSession()?.token).toBe(original.token)
+    storeSession(next)
+    endPaymentConfirmation()
+    expect(readSession()?.token).toBe(next.token)
+    expect(expired).not.toHaveBeenCalled()
+    unsubscribe()
+  })
   it('shares renewal across cart and checkout reads without touching frozen checkout intent', async () => {
     storeSession(original)
     const saved = JSON.stringify({ key: 'fixed-test-key', input: { items: [{ productListingId: 900, quantity: 1 }] } })
@@ -342,6 +356,7 @@ describe('additional session safety boundaries', () => {
   })
   it('settles all concurrent callers on a definitively invalid refresh', async () => {
     storeSession(original)
+    const unsubscribeExpiry = subscribeExpiredSession(clearStoredToken)
     let finish!: (response: Response) => void
     fetcher.mockImplementation((url: string) => url === '/api/auth/refresh' ? new Promise(resolve => { finish = resolve }) : Promise.resolve(rejected()))
     const callers = Promise.allSettled([getCurrentUser(original.token), getCurrentUser(original.token)])
@@ -349,6 +364,7 @@ describe('additional session safety boundaries', () => {
     finish(rejected())
     expect((await callers).every(value => value.status === 'rejected')).toBe(true)
     expect(readSession() === null).toBe(true)
+    unsubscribeExpiry()
   })
   it('deduplicates concurrent rejected refreshes into a single expiry dialog', async () => {
     storeSession(original); await mount(true)

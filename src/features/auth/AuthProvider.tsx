@@ -31,7 +31,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const sessionWasActive = useRef(Boolean(initialToken))
 
   const expireSession = useCallback(() => {
-    if (!sessionWasActive.current || pendingIntent.current !== null) return
+    if (!sessionWasActive.current) return
     sessionWasActive.current = false
     clearStoredToken()
     dispatch({ type: 'sessionExpired' })
@@ -55,15 +55,13 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // the owning profile operation must still settle the UI after cleanup.
       // Older operations cannot reach this branch after login/logout supersedes them.
       if (!readStoredToken()) {
-        if (pendingIntent.current === null && sessionWasActive.current && error instanceof SessionError && error.invalid) expireSession()
+        if (sessionWasActive.current && error instanceof SessionError && error.invalid) requestExpiredSession()
         else { sessionWasActive.current = false; dispatch({ type: 'signedOut' }) }
         return false
       }
       if (sessionGeneration() !== current) return false
       if ((error instanceof AuthApiError && error.status === 401) || (error instanceof SessionError && error.invalid)) {
-        clearStoredToken()
-        sessionWasActive.current = false
-        dispatch({ type: 'sessionExpired' })
+        requestExpiredSession()
       } else if (isVerificationRequired(error)) {
         sessionWasActive.current = true
         dispatch({ type: 'verificationRequired', token: readStoredToken()!, message: registered ? 'Your account was created. A verification email has been sent. Please verify your email before continuing.' : 'Please verify your email before continuing.' })
@@ -72,7 +70,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
       return false
     } finally { resolving.current -= 1 }
-  }, [expireSession])
+  }, [])
 
   useEffect(() => subscribeExpiredSession(expireSession), [expireSession])
 

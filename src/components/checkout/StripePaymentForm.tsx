@@ -62,26 +62,29 @@ export function PaymentForm({ orderId, clientSecret, onVerify, onRecheck, before
       if (lifecycle.current !== current) return
       beginPaymentConfirmation()
       confirmationStarted = true
-      try {
-        const result = await stripe.confirmPayment({ elements, confirmParams: { return_url: `${window.location.origin}/checkout/orders/${orderId}` }, redirect: 'if_required' })
-        if (lifecycle.current !== current) return
-        if (result.error) {
-          if (result.error.type === 'validation_error') { setError('Please complete or correct your payment details, then try again.'); setState('ready') }
-          else if (result.error.type === 'card_error' && beforeRetry) { declined.current = true; setError(`${result.error.message || 'Your card was declined.'} Check your card details or use a different card, then press Pay now to try again.`); setState('ready') }
-          else if (result.error.type === 'card_error') { setError('Your card was declined. Check the order status before another attempt.'); setState('unknown') }
-          else {
-            setState('unknown'); setError('The payment outcome is not yet known. Please check your order before trying again.')
-            if (isSessionExpiryDeferred()) { recoveryStarted = true; await callback.current() }
-          }
-        } else { setState('unknown'); recoveryStarted = true; await callback.current() }
-      } finally { endPaymentConfirmation() }
+      const result = await stripe.confirmPayment({ elements, confirmParams: { return_url: `${window.location.origin}/checkout/orders/${orderId}` }, redirect: 'if_required' })
+      if (lifecycle.current !== current) return
+      if (result.error) {
+        if (result.error.type === 'validation_error') { setError('Please complete or correct your payment details, then try again.'); setState('ready') }
+        else if (result.error.type === 'card_error' && beforeRetry) { declined.current = true; setError(`${result.error.message || 'Your card was declined.'} Check your card details or use a different card, then press Pay now to try again.`); setState('ready') }
+        else if (result.error.type === 'card_error') { setError('Your card was declined. Check the order status before another attempt.'); setState('unknown') }
+        else {
+          setState('unknown'); setError('The payment outcome is not yet known. Please check your order before trying again.')
+          if (isSessionExpiryDeferred()) { recoveryStarted = true; await callback.current() }
+        }
+      } else { setState('unknown'); recoveryStarted = true; await callback.current() }
     } catch {
       if (lifecycle.current === current) {
         setState('unknown'); setError('Connection lost during payment. Please check your order before trying again.')
         if (confirmationStarted && !recoveryStarted && isSessionExpiryDeferred()) await callback.current()
       }
     }
-    finally { locked.current = false; if (lifecycle.current === current) onSubmissionSettled?.() }
+    finally {
+      // Keep the authenticated checkout mounted through both Stripe confirmation
+      // and any order-status recovery, including recovery from thrown failures.
+      if (confirmationStarted) endPaymentConfirmation()
+      locked.current = false; if (lifecycle.current === current) onSubmissionSettled?.()
+    }
   }}>
     <PaymentElement onLoadError={() => { setState('unknown'); setError('Secure payment could not load. Please check your order and try again.') }} />
     {error && <p role="alert">{error}</p>}

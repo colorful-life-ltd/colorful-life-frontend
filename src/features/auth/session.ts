@@ -17,6 +17,7 @@ const retryableWriteAuthResponses = new WeakSet<Response>()
 let expiryRequested = false
 let paymentConfirmationDepth = 0
 let expiryWaitingForPayment = false
+let expiryGeneration: number | null = null
 let sessionStorageExpected = false
 let knownCurrentToken: string | null = null
 function retireSession() {
@@ -39,17 +40,24 @@ export function endPaymentConfirmation() {
   paymentConfirmationDepth = Math.max(0, paymentConfirmationDepth - 1)
   if (!paymentConfirmationDepth && expiryWaitingForPayment) {
     expiryWaitingForPayment = false
-    publishExpiredSession()
+    const requestedAt = expiryGeneration
+    if (requestedAt === generation) publishExpiredSession()
+    else { expiryRequested = false; expiryGeneration = null }
   }
 }
 export function requestExpiredSession() {
   if (expiryRequested) return
   expiryRequested = true
+  expiryGeneration = generation
   if (paymentConfirmationDepth) { expiryWaitingForPayment = true; return }
   publishExpiredSession()
 }
 export const manualWriteRetryRequired = (response: Response) => retryableWriteAuthResponses.has(response)
-function publishExpiredSession() { expiryListeners.forEach(listener => listener()) }
+function publishExpiredSession() {
+  // Logout or successful authentication replacement supersedes a queued expiry.
+  if (expiryGeneration !== generation) { expiryRequested = false; expiryWaitingForPayment = false; expiryGeneration = null; return }
+  expiryListeners.forEach(listener => listener())
+}
 const notify = () => listeners.forEach(listener => listener())
 
 export function readSession(): Session | null {
@@ -96,7 +104,7 @@ export function storeToken(token: string) {
   sessionStorageExpected = true
   knownCurrentToken = token
   retiredTokens.delete(token)
-  expiryRequested = false; expiryWaitingForPayment = false
+  expiryRequested = false; expiryWaitingForPayment = false; expiryGeneration = null
 }
 export function storeSession(session: Session) {
   if (!session.refreshToken) { storeToken(session.token); return }
@@ -109,7 +117,7 @@ export function storeSession(session: Session) {
   knownCurrentToken = parsed.token
   generation += 1; refreshing = null; previousTokens.clear()
   retiredTokens.delete(parsed.token)
-  expiryRequested = false; expiryWaitingForPayment = false
+  expiryRequested = false; expiryWaitingForPayment = false; expiryGeneration = null
 }
 async function revoke(refreshToken: string) {
   try {
@@ -133,7 +141,7 @@ async function renew(token: string): Promise<string> {
   if (session.token !== token) return session.token
   const current = generation
   if (!session.refreshToken) {
-    if (generation === current) { clearStoredToken(); requestExpiredSession() }
+    if (generation === current) requestExpiredSession()
     throw new SessionError(true)
   }
   const operation = (async () => {
@@ -142,7 +150,7 @@ async function renew(token: string): Promise<string> {
       response = await fetch(`${apiBase()}/auth/refresh`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ refreshToken: session.refreshToken }), signal: AbortSignal.timeout(10000) })
     } catch { throw new SessionError() }
     if (response.status === 401) {
-      if (generation === current) { clearStoredToken(); requestExpiredSession() }
+      if (generation === current) requestExpiredSession()
       throw new SessionError(true)
     }
     if (!response.ok) throw new SessionError()
@@ -196,6 +204,6 @@ export async function authenticatedFetch(url: string, init: RequestInit, token: 
   if (!readOnly) { retryableWriteAuthResponses.add(response); return response }
   const retried = await send(renewed)
   if (generation !== current) throw new SessionError(true)
-  if (retried.status === 401) { clearStoredToken(); requestExpiredSession(); throw new SessionError(true) }
+  if (retried.status === 401) { requestExpiredSession(); throw new SessionError(true) }
   return retried
 }
