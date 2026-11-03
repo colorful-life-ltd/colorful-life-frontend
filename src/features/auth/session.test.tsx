@@ -5,8 +5,8 @@ import { act, useEffect } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, useAuth } from './AuthProvider'
-import { getCurrentUser } from './api'
-import { authenticatedFetch, clearStoredToken, readSession, SESSION_STORAGE_KEY, storeSession, storeToken, type Session } from './session'
+import { getCurrentUser, updateCurrentUser } from './api'
+import { authenticatedFetch, beginPaymentConfirmation, clearStoredToken, endPaymentConfirmation, readSession, requestExpiredSession, SESSION_STORAGE_KEY, storeSession, storeToken, subscribeExpiredSession, type Session } from './session'
 import { CartContext, type CartContextValue } from '../cart/CartContext'
 import App from '../../App'
 vi.mock('../catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
@@ -21,6 +21,8 @@ let root: Root | undefined
 let container: HTMLDivElement
 let auth: ReturnType<typeof useAuth>
 let fetcher: ReturnType<typeof vi.fn>
+const nativeShowModal = HTMLDialogElement.prototype.showModal
+const nativeClose = HTMLDialogElement.prototype.close
 function Capture() {
   const value = useAuth()
   useEffect(() => { auth = value }, [value])
@@ -39,6 +41,8 @@ async function click(text: string) {
   })
 }
 beforeEach(() => {
+  Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.setAttribute('open', '') } })
+  Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value(this: HTMLDialogElement) { this.removeAttribute('open') } })
   clearStoredToken(); sessionStorage.clear(); history.replaceState({}, '', '/')
   fetcher = vi.fn((url: string) => {
     if (url === '/api/users/me') return Promise.resolve(result(user))
@@ -53,9 +57,18 @@ beforeEach(() => {
 afterEach(async () => {
   if (root) await act(async () => root!.unmount())
   root = undefined; clearStoredToken(); document.body.innerHTML = ''; vi.unstubAllGlobals()
+  if (nativeShowModal) Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value: nativeShowModal })
+  else delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).showModal
+  if (nativeClose) Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value: nativeClose })
+  else delete (HTMLDialogElement.prototype as Partial<HTMLDialogElement>).close
 })
 
 describe('real provider session restoration', () => {
+  it('keeps initial signed-out load normal and does not show an expiry dialog', async () => {
+    await mount(true)
+    expect(auth.state.status).toBe('signedOut')
+    expect(container.querySelector('[role="alertdialog"]')).toBeNull()
+  })
   it.each(['invalid', 'rejected-retry', 'network', 'server', 'verified', 'unverified'])('converges after explicit login profile restoration: %s', async kind => {
     await mount(true); await click('Open your account')
     fetcher.mockImplementation((url: string) => {
@@ -99,6 +112,60 @@ describe('real provider session restoration', () => {
     expect(auth.state.status).toBe('authenticated')
     expect(fetcher).toHaveBeenCalledTimes(1)
     expect(Boolean(readSession()?.refreshToken)).toBe(true)
+  })
+  it('shows one expiry dialog when sessionStorage is cleared while signed in and focus returns', async () => {
+    storeSession(original); await mount(true)
+    expect(auth.state.status).toBe('authenticated')
+    sessionStorage.clear()
+    await act(async () => window.dispatchEvent(new Event('focus')))
+    expect(auth.state).toMatchObject({ status: 'signedOut', reason: 'expired' })
+    expect(container.querySelectorAll('[role="alertdialog"]')).toHaveLength(1)
+    expect(container.textContent).toContain('Your session has expired or is no longer available. Please sign in again to continue.')
+    await click('OK')
+    expect(readSession() === null).toBe(true)
+    expect(container.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(container.querySelector('.account-modal')).not.toBeNull()
+    expect(auth.state.status).toBe('signedOut')
+  })
+  it('shows expiry when a read remains unauthorized after a successful refresh', async () => {
+    storeSession(original); await mount(true)
+    const callsBefore = fetcher.mock.calls.length
+    fetcher.mockImplementation((url: string) => url === '/api/auth/refresh' ? Promise.resolve(result(replacement)) : Promise.resolve(rejected()))
+    await act(async () => { await getCurrentUser(original.token).catch(() => undefined) })
+    expect(fetcher.mock.calls.slice(callsBefore, callsBefore + 3).map(([url]) => url)).toEqual(['/api/users/me', '/api/auth/refresh', '/api/users/me'])
+    expect(auth.state).toMatchObject({ status: 'signedOut', reason: 'expired' })
+    expect(container.querySelectorAll('[role="alertdialog"]')).toHaveLength(1)
+  })
+  it('returns from a private route to the homepage and opens the existing sign-in form after OK', async () => {
+    storeSession(original); history.replaceState({}, '', '/account/orders/41')
+    fetcher.mockImplementation((url: string) => url === '/api/auth/logout' ? Promise.resolve(new Response(null, { status: 204 })) : Promise.resolve(result(url === '/api/users/me' ? user : [])))
+    await mount(true)
+    sessionStorage.clear()
+    await act(async () => window.dispatchEvent(new Event('focus')))
+    await click('OK')
+    expect(location.pathname).toBe('/')
+    expect(container.querySelector('.account-modal')).not.toBeNull()
+    expect(container.querySelector('input[type="email"]')).not.toBeNull()
+    expect(document.activeElement).toBe(container.querySelector('input[type="email"]'))
+  })
+  it('never sends an in-memory token after its sessionStorage entry disappears', async () => {
+    storeSession(original); await mount()
+    sessionStorage.clear()
+    let response = ''
+    await act(async () => { response = await authenticatedFetch('/api/private-read', { method: 'GET' }, original.token).then(() => 'sent', () => 'blocked') })
+    expect(response).toBe('blocked')
+    expect(fetcher).toHaveBeenCalledTimes(1)
+    expect(auth.state).toMatchObject({ status: 'signedOut', reason: 'expired' })
+  })
+  it('does not send a recently rotated token after the replacement session disappears', async () => {
+    storeSession(original)
+    fetcher.mockImplementation((url: string, init: RequestInit) => url === '/api/auth/refresh' ? Promise.resolve(result(replacement))
+      : new Headers(init.headers).get('Authorization') === `Bearer ${replacement.token}` ? result(user) : rejected())
+    await getCurrentUser(original.token)
+    const callsBeforeStorageLoss = fetcher.mock.calls.length
+    sessionStorage.clear()
+    await getCurrentUser(original.token).catch(() => undefined)
+    expect(fetcher.mock.calls).toHaveLength(callsBeforeStorageLoss)
   })
   it('stores the complete login contract atomically and restores it on same-tab reload', async () => {
     fetcher.mockImplementation((url: string) => Promise.resolve(result(url === '/api/auth/login' ? original : user)))
@@ -156,7 +223,8 @@ describe('real provider session restoration', () => {
   it.each(['network', 'server', 'malformed'])('retains credentials on %s profile restoration failure', async kind => {
     storeSession(original)
     fetcher.mockImplementation(() => kind === 'network' ? Promise.reject(new Error('Offline')) : Promise.resolve(result(kind === 'malformed' ? {} : {}, kind === 'server' ? 503 : 200)))
-    await mount(); expect(auth.state.status).toBe('error'); expect(readSession()?.token === original.token).toBe(true)
+    await mount(true); expect(auth.state.status).toBe('error'); expect(readSession()?.token === original.token).toBe(true)
+    expect(container.querySelector('[role="alertdialog"]')).toBeNull()
   })
   it('stops after one refresh and one rejected retry', async () => {
     storeSession(original)
@@ -219,6 +287,14 @@ describe('shared renewal and logout races', () => {
     expect(response.status).toBe(401)
     expect(fetcher.mock.calls.map(([url]) => url)).toEqual(['/api/isolated-write', '/api/auth/refresh'])
   })
+  it('gives manual retry guidance after a write 401 when refresh succeeds without replaying the write', async () => {
+    storeSession(original)
+    fetcher.mockImplementation((url: string) => url === '/api/auth/refresh' ? Promise.resolve(result(replacement)) : Promise.resolve(rejected()))
+    const error = await updateCurrentUser(original.token, { firstName: 'Updated' }).catch(reason => reason)
+    expect(error.message).toBe('Your session was refreshed. Please try that action again.')
+    expect(fetcher.mock.calls.map(([url]) => url)).toEqual(['/api/users/me', '/api/auth/refresh'])
+    expect(readSession()?.token).toBe(replacement.token)
+  })
 })
 
 describe('real auth and native navigation', () => {
@@ -251,6 +327,20 @@ describe('real auth and native navigation', () => {
 })
 
 describe('additional session safety boundaries', () => {
+  it('does not apply a queued expiry to a newly authenticated replacement session', () => {
+    const next = { ...original, token: 'replacement-after-expiry', refreshToken: 'z'.repeat(43) }
+    const expired = vi.fn()
+    const unsubscribe = subscribeExpiredSession(expired)
+    storeSession(original)
+    beginPaymentConfirmation()
+    requestExpiredSession()
+    expect(readSession()?.token).toBe(original.token)
+    storeSession(next)
+    endPaymentConfirmation()
+    expect(readSession()?.token).toBe(next.token)
+    expect(expired).not.toHaveBeenCalled()
+    unsubscribe()
+  })
   it('shares renewal across cart and checkout reads without touching frozen checkout intent', async () => {
     storeSession(original)
     const saved = JSON.stringify({ key: 'fixed-test-key', input: { items: [{ productListingId: 900, quantity: 1 }] } })
@@ -266,6 +356,7 @@ describe('additional session safety boundaries', () => {
   })
   it('settles all concurrent callers on a definitively invalid refresh', async () => {
     storeSession(original)
+    const unsubscribeExpiry = subscribeExpiredSession(clearStoredToken)
     let finish!: (response: Response) => void
     fetcher.mockImplementation((url: string) => url === '/api/auth/refresh' ? new Promise(resolve => { finish = resolve }) : Promise.resolve(rejected()))
     const callers = Promise.allSettled([getCurrentUser(original.token), getCurrentUser(original.token)])
@@ -273,6 +364,17 @@ describe('additional session safety boundaries', () => {
     finish(rejected())
     expect((await callers).every(value => value.status === 'rejected')).toBe(true)
     expect(readSession() === null).toBe(true)
+    unsubscribeExpiry()
+  })
+  it('deduplicates concurrent rejected refreshes into a single expiry dialog', async () => {
+    storeSession(original); await mount(true)
+    let finish!: (response: Response) => void
+    fetcher.mockImplementation((url: string) => url === '/api/auth/refresh' ? new Promise(resolve => { finish = resolve }) : Promise.resolve(rejected()))
+    const calls = Promise.allSettled([getCurrentUser(original.token), getCurrentUser(original.token)])
+    await vi.waitFor(() => expect(fetcher.mock.calls.filter(([url]) => url === '/api/auth/refresh')).toHaveLength(1))
+    await act(async () => { finish(rejected()); await calls })
+    expect(container.querySelectorAll('[role="alertdialog"]')).toHaveLength(1)
+    expect(auth.state).toMatchObject({ status: 'signedOut', reason: 'expired' })
   })
   it('rejects a malformed login response without persisting or rendering its content', async () => {
     fetcher.mockImplementation(() => Promise.resolve(result({ token: 'malformed-marker', refreshToken: 'not-valid' })))

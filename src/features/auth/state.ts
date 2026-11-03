@@ -2,7 +2,7 @@ import type { CurrentUser } from './api'
 
 export type AuthState =
   | { status: 'resolving' }
-  | { status: 'signedOut'; error?: string }
+  | { status: 'signedOut'; error?: string; reason?: 'expired' }
   | { status: 'authenticating'; mode: 'signin' | 'signup' }
   | { status: 'authenticated'; token: string; user: CurrentUser }
   | { status: 'verificationRequired'; token: string; message: string }
@@ -15,6 +15,7 @@ export type AuthAction =
   | { type: 'authenticated'; token: string; user: CurrentUser }
   | { type: 'verificationRequired'; token: string; message: string }
   | { type: 'signedOut'; error?: string }
+  | { type: 'sessionExpired' }
   | { type: 'error'; message: string; token?: string }
 
 export function authReducer(_state: AuthState, action: AuthAction): AuthState {
@@ -25,6 +26,7 @@ export function authReducer(_state: AuthState, action: AuthAction): AuthState {
     case 'authenticated': return { status: 'authenticated', token: action.token, user: action.user }
     case 'verificationRequired': return { status: 'verificationRequired', token: action.token, message: action.message }
     case 'signedOut': return { status: 'signedOut', error: action.error }
+    case 'sessionExpired': return { status: 'signedOut', reason: 'expired' }
     case 'error': return { status: 'error', message: action.message, token: action.token }
   }
 }
