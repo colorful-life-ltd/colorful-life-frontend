@@ -135,6 +135,7 @@ function StatusCard({ progress, returnsUnavailable, orderId }: { progress: Progr
     {isReturn && <p className="order-status__eyebrow">Return and refund</p>}
     <h2 id="order-status-title">{progress.title}</h2>
     {progress.kind === 'journey' && <Steps steps={progress.steps} label={isReturn ? 'Return and refund progress' : 'Order progress'} />}
+    {progress.kind === 'journey' && progress.deliveredAt && <p className="order-status__delivered">Delivered on {displayDay(progress.deliveredAt)}</p>}
     {progress.detail && <p>{progress.detail}</p>}
     {progress.kind === 'journey' && progress.refund === 'failed' && <p><a href={`mailto:${SUPPORT}?subject=${encodeURIComponent(`Refund for order #${orderId}`)}`}>Contact us about your refund</a></p>}
     {progress.kind === 'journey' && progress.mixed && <p className="order-detail__muted">Your returned items are at different stages; each item’s status is shown below.</p>}

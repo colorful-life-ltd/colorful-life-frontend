@@ -1,6 +1,6 @@
 export type CustomerRefund = { id: number; amount: string; currency: string; status: 'SUCCEEDED'|'PROCESSING'|'FAILED'; reviewRequired: boolean; createdAt: string }
 export type CustomerReturn = { id: number; quantity: number; status: string; requestedAt: string }
-export type CustomerShipment = { sequence: number; carrierName: string; trackingNumber: string|null; trackingUrl: string|null; dispatchedAt: string; tracking?: { progress: string; deliveredAt: string|null } }
+export type CustomerShipment = { sequence: number; carrierName: string; trackingNumber: string|null; trackingUrl: string|null; dispatchedAt: string; tracking?: { progress: string; deliveredAt: string|null; deliveryConfirmation?: 'MANUAL'|'CARRIER'|null } }
 export type CustomerExperience = { refunds: CustomerRefund[]; cancellation: {state:'NONE'|'REQUESTED'|'CANCELLED';cancelledAt:string|null}|null; fulfilment: {stage:string|null;preparingAt:string|null;shipments:CustomerShipment[]}|null; returns: CustomerReturn[] }
 const record = (v: unknown): v is Record<string,unknown> => !!v && typeof v === 'object' && !Array.isArray(v)
 const id = (v: unknown): v is number => typeof v === 'number' && Number.isSafeInteger(v) && v > 0
@@ -36,8 +36,10 @@ export function parseCustomerExperience(value: unknown): CustomerExperience|null
       if (!record(s) || !id(s.sequence) || typeof s.carrierName!=='string' || !(s.trackingNumber===null || typeof s.trackingNumber==='string') || !date(s.dispatchedAt)) return null
       let tracking: CustomerShipment['tracking']
       if (s.tracking !== undefined) {
-        if (!record(s.tracking) || !['DISPATCHED','IN_TRANSIT','DELIVERED'].includes(String(s.tracking.progress)) || !nullableDate(s.tracking.deliveredAt)) return null
-        tracking={progress:String(s.tracking.progress),deliveredAt:s.tracking.deliveredAt as string|null}
+        const confirmation = record(s.tracking) ? s.tracking.deliveryConfirmation : undefined
+        if (!record(s.tracking) || !['DISPATCHED','IN_TRANSIT','DELIVERED'].includes(String(s.tracking.progress)) || !nullableDate(s.tracking.deliveredAt)
+          || !(confirmation === undefined || confirmation === null || confirmation === 'MANUAL' || confirmation === 'CARRIER')) return null
+        tracking={progress:String(s.tracking.progress),deliveredAt:s.tracking.deliveredAt as string|null,...(confirmation === undefined ? {} : {deliveryConfirmation:confirmation as 'MANUAL'|'CARRIER'|null})}
       }
       shipments.push({sequence:s.sequence,carrierName:s.carrierName,trackingNumber:s.trackingNumber,trackingUrl:safeCustomerTrackingUrl(s.trackingUrl),dispatchedAt:s.dispatchedAt,...(tracking?{tracking}:{})})
     }

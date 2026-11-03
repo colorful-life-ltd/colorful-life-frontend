@@ -68,6 +68,8 @@ const item = (id: number, quantity: number, returns: unknown[] = []) => ({ id, q
 const line = (id: number, status: string, quantity = 1, requestedAt = '2026-10-20T12:00:00Z') => ({ id, quantity, status, requestedAt })
 const fullReturn = (status: string, refunds: unknown[] = []) => view({ orderItems: [item(1, 1, [line(10, status)]), item(2, 2, [line(11, status, 2)])], refunds })
 
+const shipped = (deliveryConfirmation: 'MANUAL' | 'CARRIER') => ({ sequence: 1, carrierName: 'Royal Mail', trackingNumber: 'AB123456789GB', trackingUrl: null, dispatchedAt: '2026-10-03T12:00:00.000Z',
+  tracking: { progress: 'DELIVERED', lastEventAt: null, exception: null, exceptionAt: null, deliveredAt: '2026-10-05T09:30:00.000Z', deliveryConfirmation } })
 describe('purchase journey: Order placed → Dispatched → Delivered', () => {
   const journey = (patch: Record<string, unknown>) => { const o = { ...base, ...patch } as OrderDetail; return orderJourney(o, parseCustomerExperience(o)) }
   it('marks only what the backend reports', () => {
@@ -75,7 +77,35 @@ describe('purchase journey: Order placed → Dispatched → Delivered', () => {
     expect(journey({ status: 'CONFIRMED', dispatchedAt: null, fulfilment: { stage: 'PREPARING', preparingAt: '2026-10-02T12:00:00Z', shipments: [] } }).title).toBe('Preparing your order')
     expect(states(journey({}))).toEqual(['Order placed:done', 'Dispatched:done', 'Delivered:current'])
     expect(journey({ fulfilment: { stage: 'IN_TRANSIT', preparingAt: null, shipments: [] } }).title).toBe('In transit')
-    expect(states(journey({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [] } }))).toEqual(['Order placed:done', 'Dispatched:done', 'Delivered:done'])
+    expect(states(journey({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [shipped('MANUAL')] } }))).toEqual(['Order placed:done', 'Dispatched:done', 'Delivered:done'])
+  })
+  it.each(['MANUAL', 'CARRIER'] as const)('completes progress and reports the delivery time for a %s delivery', confirmation => {
+    const v = journey({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [shipped(confirmation)] } })
+    expect(v).toMatchObject({ title: 'Delivered', deliveredAt: '2026-10-05T09:30:00.000Z' })
+    expect(states(v)).toEqual(['Order placed:done', 'Dispatched:done', 'Delivered:done'])
+  })
+  it('reports the latest delivery time when every shipment is delivered', () => {
+    const later = { ...shipped('MANUAL'), sequence: 2, tracking: { ...shipped('MANUAL').tracking, deliveredAt: '2026-10-06T10:00:00.000Z' } }
+    expect(journey({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [shipped('CARRIER'), later] } })).toMatchObject({ deliveredAt: '2026-10-06T10:00:00.000Z' })
+  })
+  it.each([
+    ['no shipments', []],
+    ['a shipment without delivery time', [{ ...shipped('MANUAL'), tracking: { progress: 'DELIVERED', deliveredAt: null } }]],
+    ['a shipment only in transit', [{ ...shipped('MANUAL'), tracking: { progress: 'IN_TRANSIT', deliveredAt: null } }]],
+    ['tracking without progress evidence', [{ ...shipped('MANUAL'), tracking: undefined }]],
+  ])('never claims delivery from a DELIVERED stage with %s', (_name, shipments) => {
+    const v = journey({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments } })
+    expect(v).toMatchObject({ title: 'Dispatched' }); expect(v).not.toHaveProperty('deliveredAt')
+    expect(states(v)).toEqual(['Order placed:done', 'Dispatched:done', 'Delivered:current'])
+  })
+  it('does not infer delivery from elapsed time or a delivery time on an undelivered stage', () => {
+    const v = journey({ dispatchedAt: '2020-01-01T00:00:00Z', fulfilment: { stage: 'DISPATCHED', preparingAt: null, shipments: [shipped('MANUAL')] } })
+    expect(v).toMatchObject({ title: 'Dispatched' }); expect(v).not.toHaveProperty('deliveredAt')
+  })
+  it('treats an unknown delivery confirmation as malformed rather than delivered', () => {
+    const bad = { ...shipped('MANUAL'), tracking: { ...shipped('MANUAL').tracking, deliveryConfirmation: 'GUESSED' } }
+    expect(parseCustomerExperience({ ...base, fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [bad] } })).toBeNull()
+    expect(journey({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [bad] } })).not.toMatchObject({ title: 'Delivered' })
   })
   it('never invents delivery: a completed order without a delivered stage ends at “Completed”', () => {
     const v = journey({ status: 'COMPLETED' })
