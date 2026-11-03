@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Elements, PaymentElement, useElements, useStripe } from '@stripe/react-stripe-js'
 import { stripeForPayment } from '../../features/checkout/stripeLoader'
 import type { RetryAdmission } from '../../features/checkout/useCheckout'
+import { beginPaymentConfirmation, endPaymentConfirmation, isSessionExpiryDeferred } from '../../features/auth/session'
 
-export function StripePaymentForm({ clientSecret, orderId, onVerify, onRecheck, beforeConfirm, beforeRetry, onSubmissionSettled }: { clientSecret: string; orderId: number; onVerify: () => void; onRecheck?: () => void; beforeConfirm?: () => Promise<boolean>; beforeRetry?: () => Promise<RetryAdmission>; onSubmissionSettled?: () => void }) {
+export function StripePaymentForm({ clientSecret, orderId, onVerify, onRecheck, beforeConfirm, beforeRetry, onSubmissionSettled }: { clientSecret: string; orderId: number; onVerify: () => void | Promise<void>; onRecheck?: () => void; beforeConfirm?: () => Promise<boolean>; beforeRetry?: () => Promise<RetryAdmission>; onSubmissionSettled?: () => void }) {
   const [unavailable, setUnavailable] = useState(false)
   const [stripePromise] = useState(stripeForPayment)
   useEffect(() => {
@@ -33,7 +34,11 @@ export function PaymentForm({ orderId, clientSecret, onVerify, onRecheck, before
     const current = ++lifecycle.current
     void stripe.retrievePaymentIntent(clientSecret).then(result => {
       if (!active) return
-      if (['succeeded', 'processing'].includes(result.paymentIntent?.status ?? '')) { callback.current(); return }
+      if (['succeeded', 'processing'].includes(result.paymentIntent?.status ?? '')) {
+        beginPaymentConfirmation()
+        void Promise.resolve(callback.current()).finally(endPaymentConfirmation)
+        return
+      }
       if (result.error || !['requires_payment_method', 'requires_confirmation', 'requires_action'].includes(result.paymentIntent?.status ?? '')) { setState('unknown'); setError('This payment cannot be resumed. Please check your order status.'); return }
       setState('ready')
     }).catch(() => { if (active) { setState('unknown'); setError('Unable to check payment status. Please recheck your order.') } })
@@ -43,6 +48,8 @@ export function PaymentForm({ orderId, clientSecret, onVerify, onRecheck, before
     event.preventDefault()
     if (!stripe || !elements || locked.current || state !== 'ready') return
     const current = lifecycle.current
+    let confirmationStarted = false
+    let recoveryStarted = false
     locked.current = true; setState('submitting'); setError(null)
     try {
       if (declined.current && beforeRetry) {
@@ -53,15 +60,27 @@ export function PaymentForm({ orderId, clientSecret, onVerify, onRecheck, before
         if (admission === 'stop') { setState('unknown'); setError('This payment can no longer be retried here. Check your order status.'); return }
       } else if (beforeConfirm && !await beforeConfirm()) { if (lifecycle.current === current) { setState('unknown'); setError('Payment eligibility changed. Refresh the order before continuing.') }; return }
       if (lifecycle.current !== current) return
-      const result = await stripe.confirmPayment({ elements, confirmParams: { return_url: `${window.location.origin}/checkout/orders/${orderId}` }, redirect: 'if_required' })
-      if (lifecycle.current !== current) return
-      if (result.error) {
-        if (result.error.type === 'validation_error') { setError('Please complete or correct your payment details, then try again.'); setState('ready') }
-        else if (result.error.type === 'card_error' && beforeRetry) { declined.current = true; setError(`${result.error.message || 'Your card was declined.'} Check your card details or use a different card, then press Pay now to try again.`); setState('ready') }
-        else if (result.error.type === 'card_error') { setError('Your card was declined. Check the order status before another attempt.'); setState('unknown') }
-        else { setState('unknown'); setError('The payment outcome is not yet known. Please check your order before trying again.') }
-      } else { setState('unknown'); callback.current() }
-    } catch { if (lifecycle.current === current) { setState('unknown'); setError('Connection lost during payment. Please check your order before trying again.') } }
+      beginPaymentConfirmation()
+      confirmationStarted = true
+      try {
+        const result = await stripe.confirmPayment({ elements, confirmParams: { return_url: `${window.location.origin}/checkout/orders/${orderId}` }, redirect: 'if_required' })
+        if (lifecycle.current !== current) return
+        if (result.error) {
+          if (result.error.type === 'validation_error') { setError('Please complete or correct your payment details, then try again.'); setState('ready') }
+          else if (result.error.type === 'card_error' && beforeRetry) { declined.current = true; setError(`${result.error.message || 'Your card was declined.'} Check your card details or use a different card, then press Pay now to try again.`); setState('ready') }
+          else if (result.error.type === 'card_error') { setError('Your card was declined. Check the order status before another attempt.'); setState('unknown') }
+          else {
+            setState('unknown'); setError('The payment outcome is not yet known. Please check your order before trying again.')
+            if (isSessionExpiryDeferred()) { recoveryStarted = true; await callback.current() }
+          }
+        } else { setState('unknown'); recoveryStarted = true; await callback.current() }
+      } finally { endPaymentConfirmation() }
+    } catch {
+      if (lifecycle.current === current) {
+        setState('unknown'); setError('Connection lost during payment. Please check your order before trying again.')
+        if (confirmationStarted && !recoveryStarted && isSessionExpiryDeferred()) await callback.current()
+      }
+    }
     finally { locked.current = false; if (lifecycle.current === current) onSubmissionSettled?.() }
   }}>
     <PaymentElement onLoadError={() => { setState('unknown'); setError('Secure payment could not load. Please check your order and try again.') }} />

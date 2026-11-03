@@ -59,19 +59,21 @@ export function AccountModalCloseButton({ onClose, closeRef }: { onClose: () => 
   return <button ref={closeRef} type="button" className="account-modal__close" aria-label="Close account dialog" onClick={onClose}>×</button>
 }
 
-export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialAuthMode = 'signin' }: { onClose: () => void; onSignOut?: () => void; initialView?: 'hub' | 'personal'; initialAuthMode?: AccountFormsMode }) {
+export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialAuthMode = 'signin', focusSignIn = false }: { onClose: () => void; onSignOut?: () => void; initialView?: 'hub' | 'personal'; initialAuthMode?: AccountFormsMode; focusSignIn?: boolean }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const previousStatus = useRef<string | undefined>(undefined)
   const { state, logout } = useAuth()
   const [view, setView] = useState<'hub' | 'personal'>(initialView)
   useEffect(() => {
-    closeRef.current?.focus()
+    const signIn = focusSignIn ? document.querySelector<HTMLInputElement>('.account-modal input[type="email"]') : null
+    const target = signIn ?? closeRef.current
+    target?.focus({ preventScroll: true })
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') onClose()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
+  }, [onClose, focusSignIn])
   useEffect(() => {
     if (previousStatus.current === 'authenticating' && state.status === 'authenticated') { setView('hub'); onClose() }
     previousStatus.current = state.status

@@ -3,6 +3,7 @@ import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PaymentForm } from './StripePaymentForm'
+import { requestExpiredSession, storeSession, subscribeExpiredSession } from '../../features/auth/session'
 const mocks = vi.hoisted(() => ({ confirm: vi.fn(), retrieve: vi.fn(), elements: {} }))
 vi.mock('@stripe/stripe-js/pure', () => ({ loadStripe: vi.fn(() => Promise.resolve(null)) }))
 vi.mock('@stripe/react-stripe-js', () => {
@@ -17,6 +18,22 @@ async function submit() { await act(async () => { container.querySelector('form'
 beforeEach(() => { mocks.confirm.mockReset(); mocks.retrieve.mockReset().mockResolvedValue({ paymentIntent: { status: 'requires_payment_method' } }) })
 afterEach(async () => { if (root) await act(async () => root.unmount()); document.body.innerHTML = ''; vi.unstubAllEnvs() })
 describe('Stripe payment submission', () => {
+  it('defers session-expiry teardown until Stripe confirmation and order verification finish', async () => {
+    storeSession({ token: 'test-token', refreshToken: 'a'.repeat(43), accessTokenExpiresAt: '2030-01-01T00:00:00Z', refreshExpiresAt: '2030-02-01T00:00:00Z' })
+    let finishVerification!: () => void
+    const expired = vi.fn()
+    const unsubscribe = subscribeExpiredSession(expired)
+    mocks.confirm.mockImplementation(() => { requestExpiredSession(); return Promise.resolve({ paymentIntent: { status: 'succeeded' } }) })
+    const verify = vi.fn(() => new Promise<void>(resolve => { finishVerification = resolve }))
+    container = document.createElement('div'); document.body.append(container); root = createRoot(container)
+    await act(async () => root.render(<PaymentForm clientSecret="secret" orderId={41} onVerify={verify} />))
+    await submit()
+    expect(verify).toHaveBeenCalledOnce()
+    expect(expired).not.toHaveBeenCalled()
+    await act(async () => { finishVerification(); await Promise.resolve() })
+    expect(expired).toHaveBeenCalledOnce()
+    unsubscribe()
+  })
   it('blocks duplicate payment submission and uses order-specific return URL', async () => {
     let resolve!: (value: object) => void
     mocks.confirm.mockImplementation(() => new Promise(done => { resolve = done }))

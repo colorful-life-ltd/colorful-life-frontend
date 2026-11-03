@@ -339,10 +339,10 @@ export function useCheckout(token: string, userId: number, orderId: number | nul
     if (!active.current || !submission.current) return
     submission.current = false; busy.current = false; setPhase('payment')
   }
-  const paymentSubmitted = () => {
+  const paymentSubmitted = async () => {
     if (!active.current) return
     if (submission.current) { submission.current = false; busy.current = false }
-    void verify()
+    await verify()
   }
   const restart = () => { clearAttempt(userId); navigateCheckout('/') }
   const reloadOrder = async () => {

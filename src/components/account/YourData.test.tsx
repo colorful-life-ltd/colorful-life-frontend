@@ -78,6 +78,17 @@ describe('Your data', () => {
     expect(url).toMatch(/\/users\/me$/); expect(init.method).toBe('DELETE')
     expect(onDeleted).toHaveBeenCalledOnce()
   })
+
+  it('keeps the existing wrong-password error for account deletion', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: 'INVALID_PASSWORD', message: 'Password is incorrect' } }), { status: 403 })))
+    const onDeleted = vi.fn()
+    const view = await mount(<YourData token="token" onDeleted={onDeleted} />)
+    await type(view.querySelector('input[type="password"]')!, 'Wrong1!pass')
+    await act(async () => view.querySelector<HTMLInputElement>('input[type="checkbox"]')!.click())
+    await act(async () => view.querySelector<HTMLButtonElement>('button[type="submit"]')!.click())
+    expect(view.textContent).toContain('That password is not correct.')
+    expect(onDeleted).not.toHaveBeenCalled()
+  })
 })
 
 describe('pre-purchase disclosures', () => {

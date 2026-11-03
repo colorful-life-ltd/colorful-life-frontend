@@ -12,6 +12,7 @@ import { catalogueHistoryState, catalogueLocationFromUrl, catalogueLocationHref,
 import type { CatalogueLeafletSide } from './components/catalogue/catalogueSpread'
 import './App.css'
 import { AccountModal } from './components/homepage/AccountModal'
+import { SessionExpiredDialog } from './components/account/SessionExpiredDialog'
 import { CartModal } from './components/cart/CartModal'
 import { ConditionConfirmationDialog } from './components/catalogue/ConditionConfirmationDialog'
 import { CartItems } from './components/cart/CartItems'
@@ -72,6 +73,8 @@ function App() {
   const [accountAuthMode, setAccountAuthMode] = useState<'signin' | 'forgot'>('signin')
   const [addressRevision, setAddressRevision] = useState(0)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [accountFormReset, setAccountFormReset] = useState(0)
+  const [focusSignInAfterExpiry, setFocusSignInAfterExpiry] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
   const [guestHint, setGuestHint] = useState<'user' | 'cart' | null>(null)
   const [userDialogue, setUserDialogue] = useState<string | null>(null)
@@ -85,7 +88,7 @@ function App() {
   const previousSpread = useRef(spread)
   const previouslyOpen = useRef(false)
   const previousAuthStatus = useRef<string | undefined>(undefined)
-  const { state: authState, logout } = useAuth()
+  const { state: authState, logout, dismissExpiredSession } = useAuth()
   const { items: cartItems, refreshCart, addListing, isLoading: cartLoading, error: cartError, pendingItemIds } = useCart()
   const cartCheckoutMessage = cartCheckoutBlocked(cartItems) ? cartCopy().blocked
     : cartError || (cartItems.length && !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0) ? cartCopy().freshNone : null)
@@ -341,22 +344,43 @@ function App() {
   const closeAccount = () => {
     if (accountInitialView === 'personal') setAddressRevision(value => value + 1)
     setAccountOpen(false)
+    setFocusSignInAfterExpiry(false)
     requestAnimationFrame(() => {
       const target = stageRef.current?.querySelector<HTMLButtonElement>('.stage-user') ?? document.querySelector<HTMLElement>('.checkout')
       target?.focus({ preventScroll: true })
     })
   }
 
+  const finishExpiredSession = () => {
+    logout()
+    dismissExpiredSession()
+    setAccountOpen(false)
+    setCartOpen(false)
+    conditionConfirmation.cancel()
+    cancelUserDialogue()
+    dismissGuestHint()
+    if (isPrivatePath(pathname)) navigateCheckout('/')
+    setAccountInitialView('hub')
+    setAccountAuthMode('signin')
+    setAccountFormReset(value => value + 1)
+    setFocusSignInAfterExpiry(true)
+    setAccountOpen(true)
+  }
+  const expiryDialog = authState.status === 'signedOut' && authState.reason === 'expired'
+    ? <SessionExpiredDialog onConfirm={finishExpiredSession} /> : null
+
   if (pathname === '/account/orders' || pathname.startsWith('/account/orders/')) return <>
     <div inert={accountOpen}><CustomerOrders path={pathname} onAccount={openAccount} onAuthenticate={() => { logout(); openAccount() }} /><SiteFooter /></div>
-    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
+    {accountOpen && <AccountModal key={accountFormReset} onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} focusSignIn={focusSignInAfterExpiry} />}
+    {expiryDialog}
   </>
 
   if (pathname === '/verify-email' || isResetPasswordPath(pathname) || pathname === '/checkout' || pathname.startsWith('/checkout/')) return <>
     <div inert={accountOpen}>{pathname === '/verify-email' ? <VerifyEmail onSignIn={openVerificationSignIn} />
       // A completed reset signs this browser out, so the new password is used next.
       : isResetPasswordPath(pathname) ? <ResetPassword onSignIn={openVerificationSignIn} onRequestNewLink={openPasswordResetRequest} /> : <><SandboxBanner /><Checkout key={`${pathname}:${authState.status === 'authenticated' ? authState.user.id : 'guest'}`} onAccount={openAccount} onAddresses={openAddresses} addressRevision={addressRevision} /></>}<SiteFooter /></div>
-    {accountOpen && <AccountModal onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
+    {accountOpen && <AccountModal key={accountFormReset} onClose={closeAccount} initialView={accountInitialView} initialAuthMode={accountAuthMode} focusSignIn={focusSignInAfterExpiry} />}
+    {expiryDialog}
   </>
 
   return (
@@ -424,7 +448,8 @@ function App() {
       )}
       {!showReference && conditionConfirmation.pending && <ConditionConfirmationDialog offer={conditionConfirmation.pending.offer} productTitle={conditionConfirmation.pending.productTitle}
         onCancel={conditionConfirmation.cancel} onConfirm={conditionConfirmation.confirm} />}
-      {!showReference && accountOpen && <AccountModal onClose={closeAccount} onSignOut={startUserFarewell} initialView={accountInitialView} initialAuthMode={accountAuthMode} />}
+      {!showReference && accountOpen && <AccountModal key={accountFormReset} onClose={closeAccount} onSignOut={startUserFarewell} initialView={accountInitialView} initialAuthMode={accountAuthMode} focusSignIn={focusSignInAfterExpiry} />}
+      {expiryDialog}
       {!showReference && cartOpen && isSignedIn(authState) && <CartModal onClose={closeCart}
         content={cartItems.length ? { kind: 'filled', items: <div aria-busy={cartLoading || pendingItemIds.length > 0}><CartItems items={cartItems} /></div>, summary: cartCheckoutMessage ? <p id="cart-checkout-status" role="status">{cartCheckoutMessage}</p> : undefined, actions: <><button className="cart-modal__action" aria-describedby={cartCheckoutMessage ? 'cart-checkout-status' : undefined} disabled={cartLoading || !!cartError || pendingItemIds.length > 0 || cartCheckoutBlocked(cartItems) || !cartItems.some(item => (checkoutQuantity(item) ?? 0) > 0)} onClick={() => { setCartOpen(false); navigateCheckout('/checkout') }}>{cartCopy().checkout}</button>{cartItems.some(item => (item.allocatedQuantity ?? 0) > 0) && <button onClick={() => { setCartOpen(false); navigateCheckout('/account/orders') }}>{cartCopy().orders}</button>}</> } : { kind: 'empty' }} />}
       {!showReference && pathname === '/' && !catalogueOpen && <><HomepageDiscovery categories={resolvedCategories} /><SiteFooter /></>}
