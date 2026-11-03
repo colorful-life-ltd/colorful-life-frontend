@@ -67,7 +67,7 @@ export type ProgressStep = { label: string; state: StepState }
 export type RefundProgress = { state: 'none' | 'pending' | 'checking' | 'failed' | 'issued'; amount: string | null }
 export type ProgressView =
   | { kind: 'message'; title: string; detail?: string }
-  | { kind: 'journey'; journey: 'order' | 'return'; title: string; steps: ProgressStep[]; detail?: string; refund?: RefundProgress['state']; mixed?: boolean; partialReturn?: { approved: boolean } }
+  | { kind: 'journey'; journey: 'order' | 'return'; title: string; steps: ProgressStep[]; detail?: string; deliveredAt?: string; refund?: RefundProgress['state']; mixed?: boolean; partialReturn?: { approved: boolean } }
 
 /** Marks the first not-done step as current, keeping explicit current/problem states. */
 function sequence(steps: Array<{ label: string; done: boolean; state?: StepState }>): ProgressStep[] {
@@ -93,21 +93,32 @@ function orderMessage(order: OrderDetail, experience: CustomerExperience | null)
   return null
 }
 
-/** Order placed → Dispatched → Delivered. Delivered needs the backend DELIVERED stage; an admin-completed
- *  order without it ends at "Completed" rather than claiming delivery. */
+/** When the order was delivered: the backend reports DELIVERED and every shipment carries a delivery time
+ *  (an operator-confirmed manual delivery or verified carrier proof). Never inferred from time or transit. */
+export function deliveredAt(experience: CustomerExperience | null): string | null {
+  const fulfilment = experience?.fulfilment
+  if (fulfilment?.stage !== 'DELIVERED' || !fulfilment.shipments.length) return null
+  const times = fulfilment.shipments.map(s => s.tracking?.progress === 'DELIVERED' ? s.tracking.deliveredAt : null)
+  if (times.some(t => !t || Number.isNaN(Date.parse(t)))) return null
+  return (times as string[]).reduce((latest, t) => Date.parse(t) > Date.parse(latest) ? t : latest)
+}
+
+/** Order placed → Dispatched → Delivered. Delivered needs the backend DELIVERED stage with delivery times; an
+ *  admin-completed order without it ends at "Completed" rather than claiming delivery. */
 export function orderJourney(order: OrderDetail, experience: CustomerExperience | null): ProgressView {
   const message = orderMessage(order, experience)
   if (message) return message
   const stage = experience?.fulfilment?.stage ?? null
-  const delivered = stage === 'DELIVERED'
-  const dispatched = delivered || stage === 'DISPATCHED' || stage === 'IN_TRANSIT' || ['DISPATCHED', 'COMPLETED'].includes(order.status) || !!order.dispatchedAt
+  const when = deliveredAt(experience)
+  const delivered = when !== null
+  const dispatched = delivered || stage === 'DELIVERED' || stage === 'DISPATCHED' || stage === 'IN_TRANSIT' || ['DISPATCHED', 'COMPLETED'].includes(order.status) || !!order.dispatchedAt
   const completedOnly = order.status === 'COMPLETED' && !delivered
   const title = delivered ? 'Delivered' : completedOnly ? 'Completed' : stage === 'IN_TRANSIT' ? 'In transit' : dispatched ? 'Dispatched' : stage === 'PREPARING' ? 'Preparing your order' : 'Order placed'
   return { kind: 'journey', journey: 'order', title, steps: sequence([
     { label: 'Order placed', done: true },
     { label: 'Dispatched', done: dispatched },
     { label: completedOnly ? 'Completed' : 'Delivered', done: delivered || completedOnly },
-  ]) }
+  ]), ...(when ? { deliveredAt: when } : {}) }
 }
 
 /** Order-level refunds created since the return began. The Stripe-confirmed refunded total is authoritative and may be

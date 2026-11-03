@@ -167,3 +167,20 @@ it.each([
   expect(pill.textContent).toBe(title)
   expect(pill.classList.contains(tone)).toBe(true)
 })
+
+it('shows an operator-confirmed delivery as completed progress with the delivery date', async () => {
+  const delivered = { sequence: 1, carrierName: 'Royal Mail', trackingNumber: 'RM123', trackingUrl: 'https://track.example/RM123', dispatchedAt: '2026-10-03T12:00:00Z',
+    tracking: { progress: 'DELIVERED', lastEventAt: null, exception: null, exceptionAt: null, deliveredAt: '2026-10-05T09:30:00Z', deliveryConfirmation: 'MANUAL' } }
+  await render(order({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [delivered] } }))
+  expect(statusCard().querySelector('h2')?.textContent).toBe('Delivered')
+  expect(host.querySelector('[aria-current="step"]')).toBeNull()
+  expect([...host.querySelectorAll('.order-steps li')].map(li => li.className)).toEqual(['is-done', 'is-done', 'is-done'])
+  expect(statusCard().textContent).toContain('Delivered on 5 Oct 2026')
+  expect(text()).toContain('Dispatched 3 Oct 2026 · Delivered 5 Oct 2026')
+})
+
+it('keeps a dispatched order at Dispatched without a delivery date', async () => {
+  await render(order())
+  expect(statusCard().textContent).not.toContain('Delivered on')
+  expect(host.querySelector('[aria-current="step"]')?.textContent).toContain('Delivered')
+})
