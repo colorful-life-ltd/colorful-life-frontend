@@ -483,3 +483,50 @@ describe('My Orders header refresh', () => {
     expect(container.textContent).not.toContain('private provider')
   })
 })
+
+describe('Order Details top navigation', () => {
+  const crumb = () => container.querySelector<HTMLAnchorElement>('nav.order-detail-breadcrumb a')
+  async function openDetail(path = '/account/orders/41') { history.replaceState({}, '', path); await mount() }
+  it('offers a keyboard-reachable “← My Orders” link above the order, before any order content', async () => {
+    await openDetail()
+    const nav = container.querySelector('nav.order-detail-breadcrumb')!
+    expect(nav.getAttribute('aria-label')).toBe('Breadcrumb')
+    expect(crumb()!.getAttribute('href')).toBe('/account/orders')
+    expect(crumb()!.textContent).toBe('← My Orders')
+    expect(crumb()!.querySelector('[aria-hidden="true"]')?.textContent).toBe('← ')
+    expect(crumb()!.tabIndex).toBe(0)
+    const title = container.querySelector('.order-detail-title')!
+    expect(nav.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(nav.compareDocumentPosition(container.querySelector('.order-detail')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    // It is the first link or button on the page, so keyboard users reach it first.
+    expect(container.querySelector('main a[href], main button')).toBe(crumb())
+  })
+  it('returns to My Orders in place on a plain click', async () => {
+    await openDetail()
+    crumb()!.focus(); expect(document.activeElement).toBe(crumb())
+    await act(async () => { crumb()!.click() })
+    expect(location.pathname).toBe('/account/orders')
+    expect(container.querySelector('h1')?.textContent).toBe('My Orders')
+    expect(crumb()).toBeNull()
+  })
+  it('leaves modified clicks to the browser (new tab or window)', async () => {
+    await openDetail()
+    const event = new MouseEvent('click', { bubbles: true, cancelable: true, ctrlKey: true })
+    await act(async () => { crumb()!.dispatchEvent(event) })
+    expect(event.defaultPrevented).toBe(false)
+    expect(location.pathname).toBe('/account/orders/41')
+  })
+  it('keeps the bottom navigation and its behaviour', async () => {
+    await openDetail()
+    const bottom = container.querySelector('nav.order-detail-nav')!
+    expect([...bottom.querySelectorAll('button')].map(b => b.textContent)).toEqual(['Back to My Orders', 'Back to storefront'])
+    await click('Back to My Orders')
+    expect(location.pathname).toBe('/account/orders')
+  })
+  it('appears on an unopenable order route but not on My Orders itself', async () => {
+    await openDetail('/account/orders/not-a-number')
+    expect(crumb()?.getAttribute('href')).toBe('/account/orders')
+    await navigate('/account/orders')
+    expect(crumb()).toBeNull()
+  })
+})

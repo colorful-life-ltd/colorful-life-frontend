@@ -102,6 +102,11 @@
 .order-status a { color: #66527c; }
 
 /* Title row with the refresh action right-aligned; wraps under the title on narrow screens. */
+/* Top-of-page way back to My Orders; the bottom navigation stays. */
+.order-detail-breadcrumb { margin: 4px 0 2px; font-size: 15px; }
+.order-detail-breadcrumb a { display: inline-block; padding: 6px 0; color: #66527c; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.order-detail-breadcrumb a:hover { color: #3f3348; }
+.order-detail-breadcrumb a:focus-visible { outline: 3px solid #9379b1; outline-offset: 3px; border-radius: 4px; }
 .order-detail-title { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
 .order-detail-title h1 { margin-bottom: 8px; min-width: 0; overflow-wrap: anywhere; }
 .checkout .order-refresh { display: inline-flex; align-items: center; gap: 6px; margin: 0; padding: 7px 14px; font-size: 15px; white-space: nowrap; }

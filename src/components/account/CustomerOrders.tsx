@@ -1,7 +1,7 @@
 import {CustomerReturns} from './CustomerReturns'
 import { OrderDetails } from './OrderDetails'
 import { useConfirmedCartRefresh } from '../../features/cart/useConfirmedCartRefresh'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError, isVerificationRequired } from '../../features/auth/api'
@@ -26,6 +26,7 @@ export function CustomerOrders({ path, onAccount, onAuthenticate }: Props) {
   const [headerAction, setHeaderAction] = useState<HTMLDivElement | null>(null)
   return <main className={`checkout customer-orders${list ? '' : ' customer-orders--detail'}`} tabIndex={-1}><div className="checkout__paper">
     <p className="checkout__eyebrow">Build &amp; Bloom · Your account</p>
+    {!list && <nav className="order-detail-breadcrumb" aria-label="Breadcrumb"><a href="/account/orders" onClick={toMyOrders}><span aria-hidden="true">← </span>My Orders</a></nav>}
     {list || id ? <div className="order-detail-title"><h1>{list ? 'My Orders' : `Order #${id}`}</h1><div className="order-detail-title__action" ref={setHeaderAction} /></div>
       : <h1>Order unavailable</h1>}
     {list && <button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button>}
@@ -35,6 +36,13 @@ export function CustomerOrders({ path, onAccount, onAuthenticate }: Props) {
     {list ? <><BotanicalDivider /><button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button></>
       : <nav className="order-detail-nav" aria-label="Order navigation"><button className="checkout__secondary" onClick={() => navigateCheckout('/account/orders')}>Back to My Orders</button><button className="checkout__secondary" onClick={() => navigateCheckout('/')}>Back to storefront</button></nav>}
   </div></main>
+}
+
+/** A real link (keyboard, new tab, middle-click); a plain left click stays in the app like the bottom buttons. */
+function toMyOrders(event: MouseEvent<HTMLAnchorElement>) {
+  if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return
+  event.preventDefault()
+  navigateCheckout('/account/orders')
 }
 
 type ReadState = { phase: 'loading' } | { phase: 'ready'; orders: OrderSummary[]; detail: OrderDetail | null } | { phase: 'error' } | { phase: 'auth' } | { phase: 'verification' } | { phase: 'unavailable' }
