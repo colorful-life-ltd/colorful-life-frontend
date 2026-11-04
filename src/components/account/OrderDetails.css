@@ -20,8 +20,8 @@
 .order-status__secondary { font-size: 14px; color: #5d5266; }
 
 /* One progress language for delivery and returns: the Returns green marks completed steps and the segments
-   leading to them; every step not yet completed (including the current one) is a hollow neutral ring. */
-.order-status { --progress-done: #536f42; --progress-pending: #bdb5ab; --progress-surface: #fffaf0; }
+   between them; every step not yet completed (including the current one) is a hollow neutral ring (3:1 on the card). */
+.order-status { --progress-done: #536f42; --progress-pending: #8a8278; --progress-surface: #fffaf0; }
 .order-steps { list-style: none; margin: 4px 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; counter-reset: step; }
 .order-steps li { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; font-size: 14px; color: #786487; }
 .order-steps li + li::before { content: ''; position: absolute; top: 11px; right: 50%; width: 100%; height: 3px; background: var(--progress-pending); z-index: 0; }

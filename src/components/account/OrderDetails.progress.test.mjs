@@ -9,6 +9,8 @@ const css = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'OrderDet
 const rules = [...css.matchAll(/([^{}@]+)\{([^{}]*)\}/g)].map(([, sel, body]) => ({ sels: sel.split(',').map(s => s.trim().replace(/\s+/g, ' ')), body }))
 const decl = (selector, prop) => rules.filter(r => r.sels.includes(selector)).map(r => new RegExp(`(?:^|;|\\s)${prop}:\\s*([^;]+)`).exec(r.body)?.[1].trim()).filter(Boolean).at(-1)
 const token = name => decl('.order-status', name)
+const luminance = hex => [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255).map(c => c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4).reduce((sum, c, i) => sum + c * [0.2126, 0.7152, 0.0722][i], 0)
+const contrast = (a, b) => { const [lo, hi] = [luminance(a), luminance(b)].sort((x, y) => x - y); return (hi + 0.05) / (lo + 0.05) }
 const PURPLE = /#66527c|#c9bcd6/i
 const progressRules = rules.filter(r => r.sels.some(s => s.includes('.order-steps')))
 
@@ -23,7 +25,8 @@ describe('order progress colours', () => {
     expect(decl('.order-steps__dot', 'color')).toBe('#fff')
   })
   it('keeps every incomplete step a hollow neutral ring joined by neutral segments', () => {
-    expect(token('--progress-pending')).toMatch(/^#[0-9a-f]{6}$/i)
+    // The ring is the only mark on an incomplete step, so it must meet WCAG 1.4.11 (3:1) on both card backgrounds.
+    for (const card of ['.order-status', '.order-status--return']) expect(contrast(token('--progress-pending'), decl(card, 'background'))).toBeGreaterThanOrEqual(3)
     expect(decl('.order-steps__dot', 'background')).toBe('var(--progress-surface)')
     expect(decl('.order-steps__dot', 'border')).toBe('2px solid var(--progress-pending)')
     expect(decl('.order-steps li + li::before', 'background')).toBe('var(--progress-pending)')
