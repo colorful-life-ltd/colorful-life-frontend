@@ -70,8 +70,9 @@ export function catalogueRouteHead({ spread, open, categories, categoriesReady, 
   if (!category) return { ...home, title: `Collection | ${SITE_NAME}`, canonicalPath: null, robots: categoriesReady ? 'noindex,follow' : 'index,follow' }
   const backend = category.backendCategory
   const description = clip(backend.description?.trim() || backend.subtitle?.trim() || `Browse the ${category.label} collection of LEGO® sets at ${SITE_NAME}.`)
-  // Later product spreads hold different products, so they keep their own canonical.
-  const canonicalPath = spread.kind === 'products' && spread.index > 0 ? `${category.href}?page=${spread.index + 1}` : category.href
+  // Every product spread differs from the category's introductory/featured page,
+  // including page 1. Keep each listing page independently canonical.
+  const canonicalPath = spread.kind === 'products' ? `${category.href}?page=${spread.index + 1}` : category.href
   return { title: `${category.label} LEGO® sets | ${SITE_NAME}`, description, canonicalPath, robots: 'index,follow' }
 }
 

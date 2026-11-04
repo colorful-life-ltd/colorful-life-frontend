@@ -10,7 +10,7 @@ describe('Product structured data from verified API data', () => {
   it('describes an in-stock product with its real GBP price and NEW condition', () => {
     const data = productJsonLd(product(1, [offer(11, { legoProductId: 1, effectivePrice: '25.99' })], { setNumber: '42226', title: 'Truck' }), origin)
     expect(data).toMatchObject({
-      '@type': 'Product', name: 'Truck', sku: '42226', url: 'https://shop.test/products/1', image: ['/product-image-1.jpg'],
+      '@type': 'Product', name: 'Truck', sku: '42226', mpn: '42226', url: 'https://shop.test/products/1', image: ['/product-image-1.jpg'],
       offers: [{ '@type': 'Offer', price: '25.99', priceCurrency: 'GBP', availability: 'https://schema.org/InStock', itemCondition: 'https://schema.org/NewCondition' }],
     })
   })
@@ -45,7 +45,7 @@ describe('Product structured data from verified API data', () => {
 
   it('emits no ratings, reviews or business details and omits absent fields', () => {
     const json = JSON.stringify(productJsonLd(product(6, [offer(6)], { description: null, productImages: [] }), origin))
-    for (const field of ['aggregateRating', 'review', 'seller', 'description', 'image']) expect(json).not.toContain(`"${field}"`)
+    for (const field of ['aggregateRating', 'review', 'seller', 'description', 'image', 'gtin', 'gtin13']) expect(json).not.toContain(`"${field}"`)
   })
 
   it('builds a breadcrumb trail from the resolved category', () => {

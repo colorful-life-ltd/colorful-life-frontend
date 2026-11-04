@@ -1,0 +1,2364 @@
+{
+  "observed_utc": "2026-11-04T20:34:43.752954+00:00",
+  "method": "Unauthenticated GET, 3 concurrent HTTP workers. Rendered samples separately at 2s intervals; faster initial browser crawl hit 429 and was stopped. No financial/auth writes.",
+  "http_results": [
+    {
+      "url": "https://build-and-bloom.co.uk/",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/help",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/help",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/legal/contact",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/legal/contact",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/legal/delivery-returns",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/legal/delivery-returns",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/legal/cancellation-form",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/legal/cancellation-form",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/legal/terms",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/legal/terms",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/legal/privacy",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/legal/privacy",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/legal/cookies",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/legal/cookies",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/harry-potter",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/harry-potter",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/star-wars",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/star-wars",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/friends",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/friends",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/city",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/city",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/disney",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/disney",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/marvel",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/marvel",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/jurassic-world",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/jurassic-world",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/ninjago",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/ninjago",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/dc-batman",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/dc-batman",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/vehicles",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/vehicles",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/creator",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/creator",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/others",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/others",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/brickheadz",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/brickheadz",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/juniors",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/juniors",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/minecraft",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/minecraft",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/13262",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/13262",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/13263",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/13263",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14062",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14062",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14647",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14647",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14648",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14648",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14649",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14649",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14650",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14650",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14940",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14940",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14941",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14941",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14942",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14942",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14943",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14943",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14944",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14944",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14945",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14945",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14946",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14946",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14947",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14947",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14948",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14948",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14949",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14949",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14950",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14950",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14951",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14951",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14952",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14952",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14953",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14953",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14954",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14954",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14955",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14955",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14956",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14956",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14957",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14957",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14958",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14958",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14959",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14959",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14960",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14960",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14961",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14961",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14962",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14962",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14963",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14963",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14964",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14964",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14965",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14965",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14966",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14966",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14967",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14967",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14968",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14968",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14969",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14969",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14970",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14970",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14971",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14971",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14972",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14972",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14973",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14973",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14974",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14974",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14975",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14975",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14976",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14976",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14977",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14977",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14978",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14978",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14979",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14979",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14980",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14980",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14981",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14981",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14982",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14982",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14983",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14983",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14984",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14984",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14985",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14985",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14986",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14986",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14987",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14987",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14988",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14988",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "http://build-and-bloom.co.uk/",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/",
+      "redirects": [
+        {
+          "status": 308,
+          "location": "https://build-and-bloom.co.uk/"
+        }
+      ],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "http://www.build-and-bloom.co.uk/",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/",
+      "redirects": [
+        {
+          "status": 301,
+          "location": "https://build-and-bloom.co.uk/"
+        }
+      ],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://www.build-and-bloom.co.uk/",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/",
+      "redirects": [
+        {
+          "status": 301,
+          "location": "https://build-and-bloom.co.uk/"
+        }
+      ],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://www.build-and-bloom.co.uk/products/14988?x=1",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14988?x=1",
+      "redirects": [
+        {
+          "status": 301,
+          "location": "https://build-and-bloom.co.uk/products/14988?x=1"
+        }
+      ],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/robots.txt",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/robots.txt",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/plain",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow"
+      },
+      "bytes": 419,
+      "sha256": "a1a6d532f0bce0a0dc7414ceeac74dd800c88c6eb08896f26e6100e36d23d8be",
+      "title": "",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/sitemap.xml",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/sitemap.xml",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "application/xml; charset=utf-8",
+        "Vary": "Accept-Encoding, Origin",
+        "Cache-Control": "public, max-age=3600",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 7874,
+      "sha256": "a101e7970c9ff7d23c99e4720d8b863ed8461b6e1f88664b2f8e3ea6b7cbb58d",
+      "title": "",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/sitemap-1.xml",
+      "status": 404,
+      "final": "https://build-and-bloom.co.uk/sitemap-1.xml",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "application/json; charset=utf-8",
+        "Vary": "Origin",
+        "X-Robots-Tag": "index, follow"
+      },
+      "bytes": 60,
+      "sha256": "82f7a9e2d7023da9b03ae9f3abbe34bab762a2c1851c0a86bc7e0e6b3dcf33f7",
+      "title": "",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/account",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/account",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/checkout",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/checkout",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "noindex, nofollow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/999999999",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/999999999",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/nonexistent-seo-audit-route",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/nonexistent-seo-audit-route",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14988/",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14988/",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14988?details=14988",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/products/14988?details=14988",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/marvel?page=2",
+      "status": 200,
+      "final": "https://build-and-bloom.co.uk/categories/marvel?page=2",
+      "redirects": [],
+      "headers": {
+        "Server": "nginx/1.28.3 (Ubuntu)",
+        "Content-Type": "text/html",
+        "Vary": "Accept-Encoding",
+        "Cache-Control": "no-store",
+        "X-Robots-Tag": "index, follow",
+        "Content-Encoding": "gzip"
+      },
+      "bytes": 1759,
+      "sha256": "82cb1a5db3fd217526af8a363f958c912fe29f2cf3be9ee95f34ec00b8735614",
+      "title": "Build & Bloom | LEGO® Sets with UK Delivery",
+      "anchors": []
+    }
+  ],
+  "rendered_samples": [
+    {
+      "url": "https://build-and-bloom.co.uk/products/14965",
+      "title": "Betrayal at Cloud City™ (75222) | Build & Bloom",
+      "description": "Relive iconic moments from Star Wars: The Empire Strikes Back with the impressive Betrayal at Cloud City set, featuring four detailed sections, Slave I, the…",
+      "canonical": "https://build-and-bloom.co.uk/products/14965",
+      "h1": [
+        "Betrayal at Cloud City™"
+      ],
+      "text": "Product details\nTake a closer look\n← Back to Star Wars\nProduct details\n\nLEGO 75222\n\nBetrayal at Cloud City™\n\nRetired Set\n\n£1,200.00\n\nNew · Ages 14+\n\nStock: 1\n\nAdd to cart\n\nRelive iconic moments from Star Wars: The Empire Strikes Back with the impressive Betrayal at Cloud City set, featuring four detailed sections, Slave I, the Twin-Pod Cloud Car and 18 minifigures plus 2 droids. Explore memorable scenes including the carbon-freezing chamber, Luke and Vader’s duel, the dining room, interrogation chamber and landing platforms. A spectacular Master Builder Series set made for both play and display.",
+      "links": [
+        {
+          "text": "← Back to Star Wars",
+          "href": "/categories/star-wars"
+        }
+      ],
+      "jsonld": [
+        [
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Betrayal at Cloud City™",
+            "sku": "75222",
+            "brand": {
+              "@type": "Brand",
+              "name": "LEGO"
+            },
+            "description": "Relive iconic moments from Star Wars: The Empire Strikes Back with the impressive Betrayal at Cloud City set, featuring four detailed sections, Slave I, the Twin-Pod Cloud Car and 18 minifigures plus 2 droids. Explore memorable scenes including the carbon-freezing chamber, Luke and Vader’s duel, the dining room, interrogation chamber and landing platforms. A spectacular Master Builder Series set made for both play and display.",
+            "image": [
+              "https://res.cloudinary.com/wonton79/image/upload/v1790528647/colorful-life/products/14965-3b7da078-505c-4195-b910-8543182e75c4.jpg",
+              "https://res.cloudinary.com/wonton79/image/upload/v1790528648/colorful-life/products/14965-92adfd85-eed8-4b8f-96a0-cc02cfc517ed.jpg",
+              "https://res.cloudinary.com/wonton79/image/upload/v1790528648/colorful-life/products/14965-d44fdf3b-4265-4feb-8831-af817c79efac.jpg"
+            ],
+            "url": "https://build-and-bloom.co.uk/products/14965",
+            "offers": [
+              {
+                "@type": "Offer",
+                "price": "1200",
+                "priceCurrency": "GBP",
+                "availability": "https://schema.org/InStock",
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://build-and-bloom.co.uk/products/14965"
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Build & Bloom",
+                "item": "https://build-and-bloom.co.uk/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Star Wars",
+                "item": "https://build-and-bloom.co.uk/categories/star-wars"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Betrayal at Cloud City™",
+                "item": "https://build-and-bloom.co.uk/products/14965"
+              }
+            ]
+          }
+        ]
+      ],
+      "images": [
+        {
+          "alt": "LEGO Star Wars 75222 Betrayal at Cloud City box front",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        }
+      ],
+      "api": [
+        {
+          "url": "https://build-and-bloom.co.uk/api/products/by-product/14965",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/categories",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/products?categoryId=2&page=1&pageSize=100",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14968",
+      "title": "2 Fast 2 Furious Nissan Skyline GT-R (R34) (76917) | Build & Bloom",
+      "description": "Race into the world of 2 Fast 2 Furious with Brian O’Conner’s iconic Nissan Skyline GT-R (R34). Featuring its famous silver-and-blue street-racing look, rear…",
+      "canonical": "https://build-and-bloom.co.uk/products/14968",
+      "h1": [
+        "2 Fast 2 Furious Nissan Skyline GT-R (R34)"
+      ],
+      "text": "Product details\nTake a closer look\n← Back to Vehicles\nProduct details\n\nLEGO 76917\n\n2 Fast 2 Furious Nissan Skyline GT-R (R34)\n\n£39.99\n\nNew · Ages 9+\n\nStock: 8\n\nAdd to cart\n\nRace into the world of 2 Fast 2 Furious with Brian O’Conner’s iconic Nissan Skyline GT-R (R34). Featuring its famous silver-and-blue street-racing look, rear wing and movie-inspired details, this collectible Speed Champions build is made for Fast & Furious fans and car lovers alike.",
+      "links": [
+        {
+          "text": "← Back to Vehicles",
+          "href": "/categories/vehicles"
+        }
+      ],
+      "jsonld": [
+        [
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "2 Fast 2 Furious Nissan Skyline GT-R (R34)",
+            "sku": "76917",
+            "brand": {
+              "@type": "Brand",
+              "name": "LEGO"
+            },
+            "description": "Race into the world of 2 Fast 2 Furious with Brian O’Conner’s iconic Nissan Skyline GT-R (R34). Featuring its famous silver-and-blue street-racing look, rear wing and movie-inspired details, this collectible Speed Champions build is made for Fast & Furious fans and car lovers alike.",
+            "image": [
+              "https://res.cloudinary.com/wonton79/image/upload/v1790531509/colorful-life/products/14968-59a4284a-6499-4f24-b21c-2b1ba1da09cd.png",
+              "https://res.cloudinary.com/wonton79/image/upload/v1790531509/colorful-life/products/14968-9daa991b-ea66-497a-a788-4c40e44c3f72.webp",
+              "https://res.cloudinary.com/wonton79/image/upload/v1790531511/colorful-life/products/14968-19130bf6-06ab-44d2-a2bc-aef478b9077a.png"
+            ],
+            "url": "https://build-and-bloom.co.uk/products/14968",
+            "offers": [
+              {
+                "@type": "Offer",
+                "price": "39.99",
+                "priceCurrency": "GBP",
+                "availability": "https://schema.org/InStock",
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://build-and-bloom.co.uk/products/14968"
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Build & Bloom",
+                "item": "https://build-and-bloom.co.uk/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Vehicles",
+                "item": "https://build-and-bloom.co.uk/categories/vehicles"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "2 Fast 2 Furious Nissan Skyline GT-R (R34)",
+                "item": "https://build-and-bloom.co.uk/products/14968"
+              }
+            ]
+          }
+        ]
+      ],
+      "images": [
+        {
+          "alt": "LEGO Speed Champions Nissan Skyline GT-R (R34) 76917 box and car",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        }
+      ],
+      "api": [
+        {
+          "url": "https://build-and-bloom.co.uk/api/products/by-product/14968",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/categories",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/products?categoryId=11&page=1&pageSize=100",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14961",
+      "title": "Olivia's Deluxe Bedroom (41329) | Build & Bloom",
+      "description": "Explore Olivia’s science-inspired bedroom packed with clever inventions and playful details.Help her robot Zobito ride the working elevator and track system…",
+      "canonical": "https://build-and-bloom.co.uk/products/14961",
+      "h1": [
+        "Olivia's Deluxe Bedroom"
+      ],
+      "text": "Product details\nTake a closer look\n← Back to Friends\nProduct details\n\nLEGO 41329\n\nOlivia's Deluxe Bedroom\n\nRetired Set\n\n£15.99\n\nNew – Outer Box Damage · Ages 6+\n\nNever built or played with. Contents and internal packaging are complete. Only the outer box has cosmetic damage.\n\nStock: 1\n\nAdd to cart\n\nExplore Olivia’s science-inspired bedroom packed with clever inventions and playful details.Help her robot Zobito ride the working elevator and track system around the room.Includes a rocket-shaped bed, computer desk and a fun working coffee machine.A colourful LEGO® Friends bedroom set with Olivia and Zobito.",
+      "links": [
+        {
+          "text": "← Back to Friends",
+          "href": "/categories/friends"
+        }
+      ],
+      "jsonld": [
+        [
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Olivia's Deluxe Bedroom",
+            "sku": "41329",
+            "brand": {
+              "@type": "Brand",
+              "name": "LEGO"
+            },
+            "description": "Explore Olivia’s science-inspired bedroom packed with clever inventions and playful details.Help her robot Zobito ride the working elevator and track system around the room.Includes a rocket-shaped bed, computer desk and a fun working coffee machine.A colourful LEGO® Friends bedroom set with Olivia and Zobito.",
+            "image": [
+              "https://res.cloudinary.com/wonton79/image/upload/v1790516359/colorful-life/products/14961-22f13001-d26e-4238-a43e-46ac8efb2940.jpg",
+              "https://res.cloudinary.com/wonton79/image/upload/v1790516360/colorful-life/products/14961-fe610e37-ca0c-485c-9660-c5ac98d2379b.jpg",
+              "https://res.cloudinary.com/wonton79/image/upload/v1790516361/colorful-life/products/14961-f776c97f-2519-40f9-bd6d-c3aad369c2e9.jpg"
+            ],
+            "url": "https://build-and-bloom.co.uk/products/14961",
+            "offers": [
+              {
+                "@type": "Offer",
+                "price": "15.99",
+                "priceCurrency": "GBP",
+                "availability": "https://schema.org/InStock",
+                "url": "https://build-and-bloom.co.uk/products/14961"
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Build & Bloom",
+                "item": "https://build-and-bloom.co.uk/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Friends",
+                "item": "https://build-and-bloom.co.uk/categories/friends"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Olivia's Deluxe Bedroom",
+                "item": "https://build-and-bloom.co.uk/products/14961"
+              }
+            ]
+          }
+        ]
+      ],
+      "images": [
+        {
+          "alt": "LEGO Friends Olivia’s Deluxe Bedroom 41329 set box showing Olivia’s colourful science-themed bedroom",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        }
+      ],
+      "api": [
+        {
+          "url": "https://build-and-bloom.co.uk/api/products/by-product/14961",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/categories",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/products?categoryId=3&page=1&pageSize=100",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/products/14984",
+      "title": "Moana Village House & Boat (43282) | Build & Bloom",
+      "description": "Bring the magic of Disney’s Moana 2 to life with the LEGO Disney Moana Village House & Boat (43282). This charming 85-piece set features a tropical village…",
+      "canonical": "https://build-and-bloom.co.uk/products/14984",
+      "h1": [
+        "Moana Village House & Boat"
+      ],
+      "text": "Product details\nTake a closer look\n← Back to Disney\nProduct details\n\nLEGO 43282\n\nMoana Village House & Boat\n\n£19.99\n\nNew · Ages 4+\n\nStock: 1\n\nAdd to cart\n\nBring the magic of Disney’s Moana 2 to life with the LEGO Disney Moana Village House & Boat (43282). This charming 85-piece set features a tropical village house, a palm tree and a little boat, alongside beloved characters Moana, Simea and Pua the pig. With cosy beds, a kitchen area and playful accessories, young adventurers can create their own island stories. Perfect for imaginative play and a lovely gift for children aged 4 and up.",
+      "links": [
+        {
+          "text": "← Back to Disney",
+          "href": "/categories/disney"
+        }
+      ],
+      "jsonld": [
+        [
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            "name": "Moana Village House & Boat",
+            "sku": "43282",
+            "brand": {
+              "@type": "Brand",
+              "name": "LEGO"
+            },
+            "description": "Bring the magic of Disney’s Moana 2 to life with the LEGO Disney Moana Village House & Boat (43282). This charming 85-piece set features a tropical village house, a palm tree and a little boat, alongside beloved characters Moana, Simea and Pua the pig. With cosy beds, a kitchen area and playful accessories, young adventurers can create their own island stories. Perfect for imaginative play and a lovely gift for children aged 4 and up.",
+            "image": [
+              "https://res.cloudinary.com/wonton79/image/upload/v1792319508/colorful-life/products/14984-87a2b5bb-99e6-4e7f-a06f-c89cd0b2fd5b.png",
+              "https://res.cloudinary.com/wonton79/image/upload/v1792319509/colorful-life/products/14984-11196fb4-8b2a-4c1b-803e-609801c9a22c.png",
+              "https://res.cloudinary.com/wonton79/image/upload/v1792319509/colorful-life/products/14984-5adaab51-a38b-4bdc-b75e-19882ef823c0.png"
+            ],
+            "url": "https://build-and-bloom.co.uk/products/14984",
+            "offers": [
+              {
+                "@type": "Offer",
+                "price": "19.99",
+                "priceCurrency": "GBP",
+                "availability": "https://schema.org/InStock",
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://build-and-bloom.co.uk/products/14984"
+              }
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": "Build & Bloom",
+                "item": "https://build-and-bloom.co.uk/"
+              },
+              {
+                "@type": "ListItem",
+                "position": 2,
+                "name": "Disney",
+                "item": "https://build-and-bloom.co.uk/categories/disney"
+              },
+              {
+                "@type": "ListItem",
+                "position": 3,
+                "name": "Moana Village House & Boat",
+                "item": "https://build-and-bloom.co.uk/products/14984"
+              }
+            ]
+          }
+        ]
+      ],
+      "images": [
+        {
+          "alt": "Moana Village House & Boat",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        },
+        {
+          "alt": "",
+          "complete": true,
+          "width": 160
+        }
+      ],
+      "api": [
+        {
+          "url": "https://build-and-bloom.co.uk/api/products/by-product/14984",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/categories",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/products?categoryId=5&page=1&pageSize=100",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/vehicles",
+      "title": "Vehicles LEGO® sets | Build & Bloom",
+      "description": "Feel the joy of movement with speedy cars, powerful machines and journeys limited only by imagination.",
+      "canonical": "https://build-and-bloom.co.uk/categories/vehicles",
+      "h1": [
+        "Vehicles"
+      ],
+      "text": "A LITTLE WORLD OF POSSIBILITY\n\nVehicles\n\nBuilt for the thrill\n\nFeel the joy of movement with speedy cars, powerful machines and journeys limited only by imagination.\n\nA collection to unfold\nBrowse the leaflet →\n← Back to Categories\nFeatured build\n\nBuilt for the thrill\n\nLEGO 77245\n\nAston Martin Aramco F1® AMR24 Race Car\nSpeed Champions\n269 pieces\nAges 10+\n\nFrom\n£25.99\n\nView Details →\nContinue in the storybook →",
+      "links": [
+        {
+          "text": "← Back to Categories",
+          "href": "/?spread=categories-more"
+        },
+        {
+          "text": "",
+          "href": "/products/13263"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/13263"
+        },
+        {
+          "text": "Continue in the storybook →",
+          "href": "/categories/vehicles?page=1"
+        }
+      ],
+      "jsonld": [],
+      "images": [
+        {
+          "alt": "",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "Illustrated Aston Martin Aramco F1® AMR24 Race Car",
+          "complete": true,
+          "width": 768
+        }
+      ],
+      "api": [
+        {
+          "url": "https://build-and-bloom.co.uk/api/categories",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/products?categoryId=11&page=1&pageSize=100",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/vehicles?page=1",
+      "title": "Vehicles LEGO® sets | Build & Bloom",
+      "description": "Feel the joy of movement with speedy cars, powerful machines and journeys limited only by imagination.",
+      "canonical": "https://build-and-bloom.co.uk/categories/vehicles",
+      "h1": [],
+      "text": "Vehicles product spread 1 of 4\nVehicles\n\nLEGO 77251\n\nMcLaren F1® Team MCL38 Race Car\nSpeed Champions\n269 pieces\nAges 10+\n\nFrom\n£25.97\n\nView Details →\n\nLEGO 77244\n\nMercedes-AMG F1 W15 Race Car\nSpeed Champions\n267 pieces\nAges 10+\n\nFrom\n£25.99\n\nView Details →\n← Back to Vehicles\nMore amazing vehicles\n\nLEGO 76917\n\n2 Fast 2 Furious Nissan Skyline GT-R (R34)\nSpeed Champions\n319 pieces\nAges 9+\n\nFrom\n£39.99\n\nView Details →\n\nLEGO 76934\n\nFerrari F40 Supercar\nSpeed Champions\n318 pieces\nAges 9+\n\nFrom\n£25.99\n\nView Details →\nMore Vehicles →",
+      "links": [
+        {
+          "text": "",
+          "href": "/products/14977"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14977"
+        },
+        {
+          "text": "",
+          "href": "/products/14976"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14976"
+        },
+        {
+          "text": "← Back to Vehicles",
+          "href": "/categories/vehicles"
+        },
+        {
+          "text": "",
+          "href": "/products/14968"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14968"
+        },
+        {
+          "text": "",
+          "href": "/products/14967"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14967"
+        },
+        {
+          "text": "More Vehicles →",
+          "href": "/categories/vehicles?page=2"
+        }
+      ],
+      "jsonld": [],
+      "images": [
+        {
+          "alt": "Illustrated McLaren F1® Team MCL38 Race Car",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "Illustrated Mercedes-AMG F1 W15 Race Car",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "Illustrated 2 Fast 2 Furious Nissan Skyline GT-R (R34)",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "Illustrated Ferrari F40 Supercar",
+          "complete": true,
+          "width": 768
+        }
+      ],
+      "api": [
+        {
+          "url": "https://build-and-bloom.co.uk/api/categories",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/products?categoryId=11&page=1&pageSize=100",
+          "status": 200
+        }
+      ]
+    },
+    {
+      "url": "https://build-and-bloom.co.uk/categories/vehicles?page=2",
+      "title": "Vehicles LEGO® sets | Build & Bloom",
+      "description": "Feel the joy of movement with speedy cars, powerful machines and journeys limited only by imagination.",
+      "canonical": "https://build-and-bloom.co.uk/categories/vehicles?page=2",
+      "h1": [],
+      "text": "Vehicles product spread 2 of 4\nVehicles\n\nLEGO 42090\n\nGetaway Truck\nTechnic\n128 pieces\nAges 7+\n\nFrom\n£19.99\n\nView Details →\n\nLEGO 77248\n\nBWT Alpine F1 Team A524\nSpeed Champions\n258 pieces\nAges 10+\n\nFrom\n£25.99\n\nView Details →\n← Back\nMore amazing vehicles\n\nLEGO 77255\n\nLEGO Speed Champions Lightning McQueen\nSpeed Champions\n270 pieces\nAges 9+\n\nFrom\n£25.99\n\nView Details →\n\nLEGO 42203\n\nTipping Dump Truck\nTechnic\n462 pieces\nAges 9+\n\nFrom\n£44.99\n\nView Details →\nMore Vehicles →",
+      "links": [
+        {
+          "text": "",
+          "href": "/products/14963"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14963"
+        },
+        {
+          "text": "",
+          "href": "/products/14953"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14953"
+        },
+        {
+          "text": "← Back",
+          "href": "/categories/vehicles?page=1"
+        },
+        {
+          "text": "",
+          "href": "/products/14942"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14942"
+        },
+        {
+          "text": "",
+          "href": "/products/14650"
+        },
+        {
+          "text": "View Details →",
+          "href": "/products/14650"
+        },
+        {
+          "text": "More Vehicles →",
+          "href": "/categories/vehicles?page=3"
+        }
+      ],
+      "jsonld": [],
+      "images": [
+        {
+          "alt": "Illustrated Getaway Truck",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "Illustrated BWT Alpine F1 Team A524",
+          "complete": true,
+          "width": 768
+        },
+        {
+          "alt": "Illustrated LEGO Speed Champions Lightning McQueen",
+          "complete": true,
+          "width": 500
+        },
+        {
+          "alt": "Illustrated Tipping Dump Truck",
+          "complete": true,
+          "width": 768
+        }
+      ],
+      "api": [
+        {
+          "url": "https://build-and-bloom.co.uk/api/categories",
+          "status": 200
+        },
+        {
+          "url": "https://build-and-bloom.co.uk/api/products?categoryId=11&page=1&pageSize=100",
+          "status": 200
+        }
+      ]
+    }
+  ],
+  "performance": {
+    "desktop": {
+      "viewport": "1440x900",
+      "cache": "disabled",
+      "network": "unthrottled",
+      "cpu": "unthrottled",
+      "LCP_ms": 372,
+      "transfer_bytes": 2719431
+    },
+    "mobile": {
+      "viewport": "390x844",
+      "cache": "disabled",
+      "download_bytes_per_second": 200000,
+      "upload_bytes_per_second": 93750,
+      "latency_ms": 150,
+      "cpu_slowdown": 4,
+      "LCP_ms": 14068,
+      "CLS_sum_no_input": 0,
+      "transfer_bytes": 2677167
+    },
+    "limitations": "One cold Chromium lab navigation per profile, not Lighthouse or field p75; six random bookmark images change transfer size; INP not measured. PSI returned429 quota exceeded."
+  }
+}
