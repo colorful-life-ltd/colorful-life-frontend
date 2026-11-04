@@ -1,12 +1,28 @@
 // @vitest-environment jsdom
 import { beforeEach, describe, expect, it } from 'vitest'
+import shell from '../../../index.html?raw'
 import { applyRouteHead } from './documentHead'
 
-const staticHead = '<title>Build &amp; Bloom</title><meta name="description" content="Default"><meta property="og:title" content="Build &amp; Bloom">'
+const staticHead = new DOMParser().parseFromString(shell, 'text/html').head.innerHTML
 const count = (selector: string) => document.head.querySelectorAll(selector).length
 
 describe('document head synchronisation', () => {
   beforeEach(() => { document.head.innerHTML = staticHead })
+
+  it('does not give every deep link the homepage canonical before JavaScript resolves its route', () => {
+    expect(count('link[rel="canonical"]')).toBe(0)
+    expect(count('meta[property="og:url"]')).toBe(0)
+  })
+
+  it.each(['/', '/products/14988', '/categories/marvel', '/categories/marvel?page=1', '/legal/contact'])('resolves exactly one canonical and social URL from the real shared shell for %s', path => {
+    const head = { title: 'Resolved route', description: 'Resolved description', canonicalPath: path, robots: 'index,follow' as const }
+    applyRouteHead(head)
+    applyRouteHead(head)
+    expect(count('link[rel="canonical"]')).toBe(1)
+    expect(count('meta[property="og:url"]')).toBe(1)
+    expect(document.querySelector('link[rel="canonical"]')!.getAttribute('href')).toBe(`${location.origin}${path}`)
+    expect(document.querySelector('meta[property="og:url"]')!.getAttribute('content')).toBe(`${location.origin}${path}`)
+  })
 
   it('updates the static index.html tags in place instead of duplicating them', () => {
     applyRouteHead({ title: 'Vehicles | Build & Bloom', description: 'Cars', canonicalPath: '/categories/vehicles', robots: 'index,follow' })

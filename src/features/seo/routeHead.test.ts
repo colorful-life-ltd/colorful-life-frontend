@@ -33,13 +33,15 @@ describe('route metadata and canonical URLs', () => {
   })
 
   it('collapses category URL variants that show the same content onto one canonical', () => {
-    for (const search of ['', '?leaflet=front', '?leaflet=back', '?page=1', '?page=0', '?page=abc', '?utm_source=mail']) {
+    for (const search of ['', '?leaflet=front', '?leaflet=back', '?page=0', '?page=abc', '?utm_source=mail']) {
       expect(head('/categories/vehicles', search).canonicalPath).toBe('/categories/vehicles')
     }
     expect(head('/categories/vehicles/').canonicalPath).toBe('/categories/vehicles')
   })
 
-  it('keeps a self canonical for later product spreads, which list different products', () => {
+  it('keeps all product spreads distinct from the category introduction, including page 1', () => {
+    expect(head('/categories/vehicles', '?page=1').canonicalPath).toBe('/categories/vehicles?page=1')
+    expect(head('/categories/vehicles', '?page=1&utm_source=mail').canonicalPath).toBe('/categories/vehicles?page=1')
     expect(head('/categories/vehicles', '?page=3').canonicalPath).toBe('/categories/vehicles?page=3')
     expect(catalogueRouteHead({ spread: productLocation('vehicles', 1), open: true, categories, categoriesReady: true }).canonicalPath).toBe('/categories/vehicles?page=2')
   })

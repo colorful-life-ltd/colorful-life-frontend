@@ -26,6 +26,7 @@ export function productJsonLd(product: CatalogueProduct, origin: string): JsonLd
     '@type': 'Product',
     name: product.title,
     sku: product.setNumber,
+    mpn: product.setNumber,
     brand: { '@type': 'Brand', name: 'LEGO' },
     ...(product.description?.trim() ? { description: product.description.trim() } : {}),
     ...(images.length ? { image: images } : {}),

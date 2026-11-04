@@ -79,10 +79,10 @@ describe('App route metadata', () => {
     expect(meta('link[rel="canonical"]')).toBe(`${location.origin}/`)
   })
 
-  it('opens a category with its own title and canonical', async () => {
+  it('opens the first product spread with its own canonical, distinct from the category introduction', async () => {
     await mountAt('/categories/vehicles?page=1')
     expect(document.title).toBe('Vehicles LEGO® sets | Build & Bloom')
-    expect(meta('link[rel="canonical"]')).toBe(`${location.origin}/categories/vehicles`)
+    expect(meta('link[rel="canonical"]')).toBe(`${location.origin}/categories/vehicles?page=1`)
   })
 
   it('opens a stable product URL directly, including a sold-out product, with honest structured data', async () => {
