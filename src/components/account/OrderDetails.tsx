@@ -124,8 +124,11 @@ export function OrderDetails({ order, checking, feedback, onCheckPayment, return
 }
 
 /** The header pill follows the refund outcome on a return, so a failed or pending refund is never shown as good news. */
+/** Header badge tone, shared with the progress card: green while a journey is on track, neutral or amber for
+ *  orders outside a journey, and the refund's own warning/error tone on a return. */
 function headlineTone(progress: ProgressView) {
-  if (progress.kind !== 'journey' || progress.journey !== 'return') return 'info'
+  if (progress.kind === 'message') return progress.tone
+  if (progress.journey === 'order') return 'ok'
   return progress.refund === 'failed' ? 'problem' : progress.refund === 'pending' || progress.refund === 'checking' ? 'pending' : 'ok'
 }
 

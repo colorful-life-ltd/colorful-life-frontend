@@ -66,7 +66,7 @@ export type StepState = 'done' | 'current' | 'problem' | 'upcoming'
 export type ProgressStep = { label: string; state: StepState }
 export type RefundProgress = { state: 'none' | 'pending' | 'checking' | 'failed' | 'issued'; amount: string | null }
 export type ProgressView =
-  | { kind: 'message'; title: string; detail?: string }
+  | { kind: 'message'; title: string; detail?: string; tone: 'pending' | 'muted' }
   | { kind: 'journey'; journey: 'order' | 'return'; title: string; steps: ProgressStep[]; detail?: string; deliveredAt?: string; refund?: RefundProgress['state']; mixed?: boolean; partialReturn?: { approved: boolean } }
 
 /** Marks the first not-done step as current, keeping explicit current/problem states. */
@@ -82,14 +82,14 @@ function sequence(steps: Array<{ label: string; done: boolean; state?: StepState
 
 /** Messages for orders without a purchase journey; null means the journey applies. */
 function orderMessage(order: OrderDetail, experience: CustomerExperience | null): Extract<ProgressView, { kind: 'message' }> | null {
-  if (experience?.cancellation?.state === 'CANCELLED' || order.status === 'CANCELLED') return { kind: 'message', title: 'Order cancelled' }
-  if (experience?.cancellation?.state === 'REQUESTED') return { kind: 'message', title: 'Cancellation requested', detail: 'We are reviewing your request. Your order is not cancelled yet.' }
+  if (experience?.cancellation?.state === 'CANCELLED' || order.status === 'CANCELLED') return { kind: 'message', title: 'Order cancelled', tone: 'muted' }
+  if (experience?.cancellation?.state === 'REQUESTED') return { kind: 'message', title: 'Cancellation requested', detail: 'We are reviewing your request. Your order is not cancelled yet.', tone: 'pending' }
   if (order.status === 'PENDING') return parsePaymentWindow(order.paymentWindow)?.state === 'PAID'
-    ? { kind: 'message', title: 'Confirming your order', detail: 'Your payment has been recorded and the order is being confirmed.' }
-    : { kind: 'message', title: 'Awaiting payment' }
-  if (order.status === 'EXPIRED') return { kind: 'message', title: 'Order expired', detail: 'This order was not paid in time and has not been placed.' }
-  if (order.status === 'RETURNED') return { kind: 'message', title: 'Order returned' }
-  if (!['CONFIRMED', 'DISPATCHED', 'COMPLETED'].includes(order.status)) return { kind: 'message', title: 'Status unavailable', detail: 'Refresh the order for its latest status.' }
+    ? { kind: 'message', title: 'Confirming your order', detail: 'Your payment has been recorded and the order is being confirmed.', tone: 'pending' }
+    : { kind: 'message', title: 'Awaiting payment', tone: 'pending' }
+  if (order.status === 'EXPIRED') return { kind: 'message', title: 'Order expired', detail: 'This order was not paid in time and has not been placed.', tone: 'muted' }
+  if (order.status === 'RETURNED') return { kind: 'message', title: 'Order returned', tone: 'muted' }
+  if (!['CONFIRMED', 'DISPATCHED', 'COMPLETED'].includes(order.status)) return { kind: 'message', title: 'Status unavailable', detail: 'Refresh the order for its latest status.', tone: 'muted' }
   return null
 }
 

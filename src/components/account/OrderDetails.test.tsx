@@ -184,3 +184,40 @@ it('keeps a dispatched order at Dispatched without a delivery date', async () =>
   expect(statusCard().textContent).not.toContain('Delivered on')
   expect(host.querySelector('[aria-current="step"]')?.textContent).toContain('Delivered')
 })
+
+describe('order progress milestones', () => {
+  const dots = () => [...statusCard().querySelectorAll('.order-steps li')].map(li => `${li.querySelector('.order-steps__label')?.firstChild?.textContent}:${li.className}:${li.querySelector('.order-steps__dot')?.textContent}`)
+  const pill = () => host.querySelector('.order-detail__header .order-detail__pill')!
+  it('placed: only Order placed is completed', async () => {
+    await render(order({ status: 'CONFIRMED', dispatchedAt: null, fulfilment: { stage: null, preparingAt: null, shipments: [] } }))
+    expect(dots()).toEqual(['Order placed:is-done:✓', 'Dispatched:is-current:', 'Delivered:is-upcoming:'])
+    expect(pill().className).toBe('order-detail__pill order-detail__pill--ok')
+  })
+  it('dispatched: the first two are completed and Delivered stays a hollow ring without a checkmark', async () => {
+    await render(order())
+    expect(dots()).toEqual(['Order placed:is-done:✓', 'Dispatched:is-done:✓', 'Delivered:is-current:'])
+    expect(statusCard().querySelectorAll('.is-done')).toHaveLength(2)
+    expect(pill().textContent).toBe('Dispatched')
+    expect(pill().classList.contains('order-detail__pill--ok')).toBe(true)
+  })
+  it('a DELIVERED stage without confirmed delivery times keeps Delivered hollow', async () => {
+    await render(order({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [{ sequence: 1, carrierName: 'Royal Mail', trackingNumber: 'RM123', trackingUrl: null, dispatchedAt: '2026-10-03T12:00:00Z' }] } }))
+    expect(dots().at(-1)).toBe('Delivered:is-current:')
+  })
+  it('delivered: all three milestones are completed with checkmarks', async () => {
+    await render(order({ fulfilment: { stage: 'DELIVERED', preparingAt: null, shipments: [{ sequence: 1, carrierName: 'Royal Mail', trackingNumber: 'RM123', trackingUrl: null, dispatchedAt: '2026-10-03T12:00:00Z',
+      tracking: { progress: 'DELIVERED', lastEventAt: null, exception: null, exceptionAt: null, deliveredAt: '2026-10-05T09:30:00Z', deliveryConfirmation: 'MANUAL' } }] } }))
+    expect(dots()).toEqual(['Order placed:is-done:✓', 'Dispatched:is-done:✓', 'Delivered:is-done:✓'])
+    expect(pill().textContent).toBe('Delivered')
+    expect(pill().classList.contains('order-detail__pill--ok')).toBe(true)
+  })
+  it.each([
+    [{ status: 'PENDING', payment: null, dispatchedAt: null, fulfilment: { stage: null, preparingAt: null, shipments: [] }, paymentWindow: windowFixture('INITIAL_PAYMENT') }, 'Awaiting payment', 'pending'],
+    [{ status: 'CANCELLED' }, 'Order cancelled', 'muted'],
+    [{ status: 'EXPIRED', payment: null, dispatchedAt: null }, 'Order expired', 'muted'],
+  ])('gives orders outside the journey a non-purple semantic badge (%#)', async (patch, title, tone) => {
+    await render(order(patch))
+    expect(pill().textContent).toBe(title)
+    expect(pill().className).toBe(`order-detail__pill order-detail__pill--${tone}`)
+  })
+})
