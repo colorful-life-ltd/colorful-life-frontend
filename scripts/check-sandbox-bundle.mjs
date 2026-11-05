@@ -28,7 +28,7 @@ function files(dir) {
 export function checkBundle(dir, clientId, mode = 'paypal-sandbox', stripeKey = '') {
   const problems = []
   if (!existsSync(join(dir, 'index.html'))) return ['index.html is missing']
-  if (!/^[A-Za-z0-9_-]{20,128}$/.test(clientId ?? '')) problems.push('VITE_PAYPAL_SANDBOX_CLIENT_ID is missing or malformed')
+  if (mode === 'paypal-sandbox' && !/^[A-Za-z0-9_-]{20,128}$/.test(clientId ?? '')) problems.push('VITE_PAYPAL_SANDBOX_CLIENT_ID is missing or malformed')
   if (!['paypal-sandbox', 'stripe-sandbox'].includes(mode)) problems.push('Invalid Sandbox payment mode')
   if (mode === 'stripe-sandbox' && !/^pk_test_[A-Za-z0-9]{8,}$/.test(stripeKey)) problems.push('Stripe Test publishable key is missing or malformed')
   let stripeKeyFound = false

@@ -7,6 +7,7 @@ it.each(['stripe-sandbox','paypal-sandbox'])('rejects Live publishable keys in %
  const {stripeForPayment}=await import('./stripeLoader');expect(stripeForPayment()).toBeNull();expect(load).not.toHaveBeenCalled()
 })
 it('loads only the Test key lazily and preserves Sandbox registration admission',async()=>{
+ vi.stubEnv('VITE_TARGET_ENVIRONMENT','sandbox');vi.stubEnv('VITE_API_ENVIRONMENT','sandbox');vi.stubEnv('VITE_API_BASE_URL','/api');vi.stubEnv('VITE_SITE_URL','https://build-and-bloom.co.uk');
  vi.stubEnv('VITE_PAYMENT_MODE','stripe-sandbox');vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY','pk_test_synthetic123456');vi.stubEnv('VITE_SANDBOX_REGISTRATION_ENABLED','false')
  const {stripeForPayment}=await import('./stripeLoader');expect(load).not.toHaveBeenCalled();await stripeForPayment();await stripeForPayment();expect(load).toHaveBeenCalledTimes(1)
  const settings=await import('./sandbox');expect(settings.sandboxCheckout).toBe(true);expect(settings.registrationAvailable).toBe(false)

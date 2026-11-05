@@ -150,7 +150,8 @@ describe('legal pages', () => {
 describe('Stripe loading', () => {
   it('does not load Stripe.js until the payment step asks for it, then loads it once', async () => {
     vi.resetModules()
-    vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_lazy')
+    vi.stubEnv('VITE_TARGET_ENVIRONMENT', 'sandbox'); vi.stubEnv('VITE_API_ENVIRONMENT', 'sandbox'); vi.stubEnv('VITE_SITE_URL', 'https://build-and-bloom.co.uk'); vi.stubEnv('VITE_API_BASE_URL', '/api'); vi.stubEnv('VITE_PAYMENT_MODE', 'stripe-sandbox');
+    vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', 'pk_test_lazySynthetic123456')
     const loadStripe = vi.fn(() => Promise.resolve(null))
     vi.doMock('@stripe/stripe-js/pure', () => ({ loadStripe }))
     vi.doMock('@stripe/stripe-js', () => { throw new Error('the side-effect entry must never be imported') })
