@@ -17,7 +17,7 @@ This is a reasoned application of standard frameworks to established service rel
 
 ## Scope exclusions
 
-- PayPal: Sandbox capability is documented, but active processing of real customer data is not established. No production activation or live-customer transfer is inferred; no speculative PayPal sign-off blocks the current scope. Reassess if actual personal-data processing beyond the reviewed scope is introduced.
+- PayPal: retired. The Storefront no longer contains a PayPal button, SDK loader or create/capture call, and the bundle check rejects the PayPal SDK URL. No customer data is sent to PayPal by the Storefront. Historical Sandbox PayPal records remain readable server-side only.
 - Ideal Postcodes and particular carriers/advisers: source capability or examples do not demonstrate an active transfer; do not add hypothetical providers to the closure checklist. Review actual new flows before use.
 - Turnstile: not integrated in the current storefront; excluded. Reassess before activation.
 - No separate analytics/advertising integration was identified. Source review is not a claim to have audited every provider SDK's internal systems.

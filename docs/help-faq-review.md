@@ -33,7 +33,7 @@ Final local checks: full Vitest 1,167 passed / 0 failed (101 files); full ESLint
 
 ## Independent-review corrections
 
-The payment answer names card payments processed by Stripe only. Current `src/components/checkout/Checkout.tsx` renders PayPal buttons only behind `sandboxCheckout`; no production PayPal readiness has been verified. Do not add PayPal as a live method until that dependency is independently verified. Live-provider activation itself was not changed or tested by this frontend task. No Sandbox instructions remain in the payment FAQ.
+The payment answer names card payments processed by Stripe only. PayPal checkout has been removed from the Storefront entirely; do not add PayPal to customer copy.
 
 Return postage uses the exact approved short answer and links to Delivery & Returns for full statutory rules; related answers use plain language without automatic opened-set deductions or bank-posting guarantees. One tracking question brings the total to 24. The permalink uses its visible label as its accessible name (redundant aria-label removed). Notebook/fallback accessible descriptions now say Help & FAQs. Category-anchor focus and exact payment/postage/tracking wording have dedicated tests.
 
