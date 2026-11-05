@@ -62,3 +62,8 @@ it('permits only an exact Stripe Test public key in a Stripe Sandbox artifact',(
  writeFileSync(join(dir,'assets/secret.js'),'sk_test_SyntheticSecret123456')
  expect(checkBundle(dir,CLIENT_ID,'stripe-sandbox',key).some(x=>x.includes('Stripe secret'))).toBe(true)
 })
+
+it('allows Stripe-only Sandbox output without an obsolete PayPal client ID', () => {
+ const key = 'pk_test_OnlyPublicSynthetic123456'
+ expect(checkBundle(bundle({ 'assets/index.js': `const key="${key}"` }), undefined, 'stripe-sandbox', key)).toEqual([])
+})

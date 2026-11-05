@@ -42,6 +42,14 @@ jobs:
       - run: npm run lint
       - run: npm run test:run
       - run: npm run build
+        env:
+          VITE_TARGET_ENVIRONMENT: sandbox
+          VITE_API_ENVIRONMENT: sandbox
+          VITE_API_BASE_URL: /api
+          VITE_SITE_URL: https://build-and-bloom.co.uk
+          VITE_PAYMENT_MODE: stripe-sandbox
+          VITE_STRIPE_PUBLISHABLE_KEY: pk_test_ciSyntheticOnly123456
+          VITE_SOURCE_REVISION: ${{ github.sha }}
       - run: npm run legal:check
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -107,12 +115,14 @@ jobs:
       - name: Build and check the Sandbox release
         if: env.ACTION == 'deploy' && env.SUPERSEDED != 'true'
         env:
+          VITE_TARGET_ENVIRONMENT: sandbox
+          VITE_API_ENVIRONMENT: sandbox
+          VITE_SOURCE_REVISION: ${{ github.sha }}
           VITE_API_BASE_URL: /api
           VITE_SITE_URL: https://build-and-bloom.co.uk
-          VITE_PAYMENT_MODE: ${{ vars.SANDBOX_PAYMENT_MODE || 'paypal-sandbox' }}
+          VITE_PAYMENT_MODE: ${{ vars.SANDBOX_PAYMENT_MODE }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.SANDBOX_PAYMENT_MODE == 'stripe-sandbox' && vars.VITE_STRIPE_TEST_PUBLISHABLE_KEY || '' }}
           VITE_SANDBOX_REGISTRATION_ENABLED: 'true'
-          VITE_PAYPAL_SANDBOX_CLIENT_ID: ${{ vars.VITE_PAYPAL_SANDBOX_CLIENT_ID }}
         run: |
           npm ci
           npm run legal:check

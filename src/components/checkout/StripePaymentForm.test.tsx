@@ -146,7 +146,8 @@ describe('Stripe payment submission', () => {
     mocks.retrieve.mockResolvedValue({ paymentIntent: { status: 'processing' } })
     const verify = await mount(); expect(verify).toHaveBeenCalledOnce(); expect(mocks.confirm).not.toHaveBeenCalled()
   })
-  it.each(['', 'pk_test_mock'])('handles unavailable Stripe configuration/SDK with key %s', async key => {
+  it.each(['', 'pk_test_mockSynthetic123456'])('handles unavailable Stripe configuration/SDK with key %s', async key => {
+    vi.stubEnv('VITE_TARGET_ENVIRONMENT', 'sandbox'); vi.stubEnv('VITE_API_ENVIRONMENT', 'sandbox'); vi.stubEnv('VITE_SITE_URL', 'https://build-and-bloom.co.uk'); vi.stubEnv('VITE_API_BASE_URL', '/api'); vi.stubEnv('VITE_PAYMENT_MODE', 'stripe-sandbox');
     vi.stubEnv('VITE_STRIPE_PUBLISHABLE_KEY', key)
     vi.resetModules()
     const { StripePaymentForm } = await import('./StripePaymentForm')
