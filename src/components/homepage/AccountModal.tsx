@@ -86,7 +86,7 @@ export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialA
       <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : state.status === 'verificationRequired' ? ' account-modal__surface--verification' : ''}`}>
         <AccountModalCloseButton closeRef={closeRef} onClose={onClose} />
         <h1 id="account-modal-title" className="account-modal__accessible-title">My Account</h1>
-        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onSignOut?.(); onClose() }} /> : <AccountForms initialMode={initialAuthMode} />}
+        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onSignOut?.(); onClose() }} /> : <AccountForms initialMode={initialAuthMode} onExplore={onClose} />}
       </section>
     </div>
   )

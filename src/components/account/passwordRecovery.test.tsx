@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AccountForms, AccountView, ForgotPasswordView } from './AccountForms'
 import { ResetPassword } from './ResetPassword'
 import { capturedResetToken, captureResetToken, clearResetRequestCooldown, forgetResetToken } from '../../features/auth/passwordReset'
+// Exercises the open-registration form (Production now defaults to closed; see RegistrationClosedDialog.test.tsx).
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const GENERIC = 'If an account exists for that email, we’ve sent a password reset link.'

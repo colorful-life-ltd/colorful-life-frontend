@@ -31,7 +31,10 @@ export function validateEnvironment(env: PublicEnvironment): StorefrontEnvironme
     if (target === 'production' && /(^|[.-])(sandbox|staging|localhost)([.-]|$)/i.test(api.hostname)) throw Error('Sandbox API cannot be a Production target')
   }
   if (env.VITE_PAYPAL_SANDBOX_CLIENT_ID || (target === 'production' && env.VITE_SANDBOX_REGISTRATION_ENABLED && env.VITE_SANDBOX_REGISTRATION_ENABLED !== 'false')) throw Error('Conflicting Sandbox configuration')
-  const allowed = new Set(['VITE_TARGET_ENVIRONMENT', 'VITE_API_ENVIRONMENT', 'VITE_PAYMENT_MODE', 'VITE_STRIPE_PUBLISHABLE_KEY', 'VITE_SITE_URL', 'VITE_API_BASE_URL', 'VITE_SOURCE_REVISION', 'VITE_SANDBOX_REGISTRATION_ENABLED', 'VITE_PAYPAL_SANDBOX_CLIENT_ID'])
+  // Production registration opt-in; Sandbox has its own switch and must not borrow this one.
+  if (target === 'sandbox' && env.VITE_REGISTRATION_ENABLED && env.VITE_REGISTRATION_ENABLED !== 'false') throw Error('Conflicting Sandbox configuration')
+  if (env.VITE_REGISTRATION_ENABLED !== undefined && env.VITE_REGISTRATION_ENABLED !== 'true' && env.VITE_REGISTRATION_ENABLED !== 'false') throw Error('Registration setting must be true or false')
+  const allowed = new Set(['VITE_TARGET_ENVIRONMENT', 'VITE_API_ENVIRONMENT', 'VITE_PAYMENT_MODE', 'VITE_STRIPE_PUBLISHABLE_KEY', 'VITE_SITE_URL', 'VITE_API_BASE_URL', 'VITE_SOURCE_REVISION', 'VITE_SANDBOX_REGISTRATION_ENABLED', 'VITE_REGISTRATION_ENABLED', 'VITE_PAYPAL_SANDBOX_CLIENT_ID'])
   for (const [name, value] of Object.entries(env)) {
     if (name.startsWith('VITE_') && !allowed.has(name)) throw Error('Unknown public configuration field')
     if (name.startsWith('VITE_') && /SECRET|PASSWORD|TOKEN|PRIVATE_KEY/.test(name)) throw Error('Private credential field in public configuration')

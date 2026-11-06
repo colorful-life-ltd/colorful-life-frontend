@@ -4,5 +4,9 @@ export const sandboxCheckout = stripeSandbox || import.meta.env.VITE_PAYMENT_MOD
 // A stale 'paypal-sandbox' label (now rejected at build) still counts as test-only, so it
 // keeps the Sandbox registration restriction; it never enables any payment provider.
 
-// Explicit owner-controlled Sandbox opt-in; production registration is unchanged.
-export const registrationAvailable = !sandboxCheckout || import.meta.env.VITE_SANDBOX_REGISTRATION_ENABLED === 'true'
+// Registration is closed unless the owner opts in explicitly: Sandbox keeps its own
+// VITE_SANDBOX_REGISTRATION_ENABLED; Production needs VITE_REGISTRATION_ENABLED=true.
+// The backend enforces REGISTRATION_ENABLED independently.
+export const registrationAvailable = sandboxCheckout
+  ? import.meta.env.VITE_SANDBOX_REGISTRATION_ENABLED === 'true'
+  : import.meta.env.VITE_REGISTRATION_ENABLED === 'true'

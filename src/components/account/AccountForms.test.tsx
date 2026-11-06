@@ -1,6 +1,9 @@
 import { renderToStaticMarkup } from 'react-dom/server'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { AccountForms, AccountView } from './AccountForms'
+
+// Exercises the open-registration form (Production now defaults to closed; see RegistrationClosedDialog.test.tsx).
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
 describe('account experience', () => {
   it('opens with one sign-in task, labelled credentials and a registration switch', () => {

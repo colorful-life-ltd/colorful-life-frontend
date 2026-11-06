@@ -18,6 +18,10 @@ describe('explicit environment contract', () => {
     { ...live, VITE_API_BASE_URL: 'https://sandbox.example.com/api' },
     { ...live, VITE_API_BASE_URL: 'http://localhost:3000' },
     { ...live, VITE_SANDBOX_REGISTRATION_ENABLED: 'true' },
+    { ...valid, VITE_REGISTRATION_ENABLED: 'true' },
+    { ...valid, VITE_REGISTRATION_ENABLED: 'yes' },
+    { ...live, VITE_REGISTRATION_ENABLED: 'TRUE' },
+    { ...live, VITE_REGISTRATION_ENABLED: '1' },
     { ...valid, VITE_PAYPAL_SANDBOX_CLIENT_ID: 'conflicting' },
     { ...valid, VITE_OTHER: 'sk_test_syntheticPrivateKey123' },
   ])('rejects unsafe configuration before any Stripe initialization %#', async env => {
@@ -26,6 +30,10 @@ describe('explicit environment contract', () => {
     const { stripeForPayment } = await import('./stripeLoader')
     expect(stripeForPayment()).toBeNull(); expect(load).not.toHaveBeenCalled()
   })
+  it.each([
+    { ...live, VITE_REGISTRATION_ENABLED: 'true' }, { ...live, VITE_REGISTRATION_ENABLED: 'false' },
+    { ...valid, VITE_REGISTRATION_ENABLED: 'false' }, { ...valid, VITE_SANDBOX_REGISTRATION_ENABLED: 'true' },
+  ])('accepts an explicit registration setting for its own target %#', env => { expect(validateEnvironment(env).target).toBe(env.VITE_TARGET_ENVIRONMENT) })
   it.each([valid, live])('initializes Stripe lazily and only once for $VITE_TARGET_ENVIRONMENT', async env => {
     for (const [key, value] of Object.entries(env)) vi.stubEnv(key, value)
     const { stripeForPayment } = await import('./stripeLoader')

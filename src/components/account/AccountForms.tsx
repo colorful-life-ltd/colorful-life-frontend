@@ -8,6 +8,7 @@ import { AuthApiError } from '../../features/auth/api'
 import { passwordPolicyError, requestPasswordReset, RESET_REQUEST_COOLDOWN_SECONDS, resetRequestCooldownSeconds, startResetRequestCooldown } from '../../features/auth/passwordReset'
 import './AccountExperience.css'
 import { VerificationNotice } from './VerificationNotice'
+import { RegistrationClosedDialog } from './RegistrationClosedDialog'
 
 export type AccountMode = 'signin' | 'create'
 type FieldName = 'email' | 'password' | 'confirmPassword'
@@ -103,7 +104,8 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
           </p>}
           <button className="account-form__submit" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : creating ? 'Create Account' : 'Sign In'}</button>
         </form>
-        {registrationAvailable && <p className="account-experience__switch">
+        {/* Production keeps Create Account visible while closed (it opens the Opening Soon announcement); Sandbox hides it unless opted in. */}
+        {(registrationAvailable || !sandboxCheckout) && <p className="account-experience__switch">
           {creating ? 'Already part of our little world?' : 'New to our little world?'}{' '}
           <button type="button" onClick={() => onModeChange(creating ? 'signin' : 'create')}>
             {creating ? 'Sign In' : 'Create Account'}<span aria-hidden="true"> →</span>
@@ -227,7 +229,8 @@ export function ForgotPasswordView({ initialEmail = '', onBack }: { initialEmail
 
 export type AccountFormsMode = 'signin' | 'forgot'
 
-export function AccountForms({ initialMode = 'signin' }: { initialMode?: AccountFormsMode }) {
+/** `onExplore` leaves the account overlay so a visitor turned away from closed registration returns to browsing. */
+export function AccountForms({ initialMode = 'signin', onExplore }: { initialMode?: AccountFormsMode; onExplore?: () => void }) {
   const [mode, setMode] = useState<AccountMode | 'forgot'>(sandboxCheckout ? 'signin' : initialMode)
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
@@ -236,6 +239,7 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
   const [restoring, setRestoring] = useState(false)
   const restoringLock = useRef(false)
   const [formError, setFormError] = useState<string>()
+  const [registrationNotice, setRegistrationNotice] = useState(false)
   const submitting = state.status === 'authenticating'
   const serverError = state.status === 'signedOut' ? state.error : state.status === 'error' ? state.message : state.status === 'verificationRequired' ? state.message : undefined
   useLayoutEffect(() => {
@@ -248,7 +252,9 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
   }, [mode])
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (mode === 'forgot' || (!registrationAvailable && mode === 'create')) return
+    if (mode === 'forgot') return
+    // Defence in depth: the create form is not reachable while closed, but never send a doomed signup.
+    if (mode === 'create' && !registrationAvailable) { setFormError(undefined); return setRegistrationNotice(true) }
     const current = drafts[mode]
     if (!current.email.trim()) return setFormError('Enter your email address.')
     if (!current.password) return setFormError('Enter your password.')
@@ -260,6 +266,12 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
     setFormError(undefined)
     await authenticate(mode === 'create' ? 'signup' : 'signin', { email: current.email, password: current.password })
   }
+  // While registration is closed, Create Account goes straight to the announcement and never shows the form.
+  const changeMode = (next: AccountMode) => {
+    setFormError(undefined); clearError()
+    if (next === 'create' && !registrationAvailable) return setRegistrationNotice(true)
+    setMode(next)
+  }
   if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
   if (mode === 'forgot') return <div ref={container}><ForgotPasswordView initialEmail={drafts.signin.email} onBack={() => setMode('signin')} /></div>
   return (
@@ -269,10 +281,12 @@ export function AccountForms({ initialMode = 'signin' }: { initialMode?: Account
         restoringLock.current = true; setRestoring(true)
         void refreshAuth().finally(() => { restoringLock.current = false; setRestoring(false) })
       }}>{restoring ? 'Reconnecting…' : 'Retry connection'}</button>}
-      <AccountView mode={mode} onModeChange={mode => { setFormError(undefined); clearError(); setMode(mode) }} draft={drafts[mode]}
+      <AccountView mode={mode} onModeChange={changeMode} draft={drafts[mode]}
         onSubmit={submit} error={formError || serverError} submitting={submitting}
         onForgotPassword={() => { setFormError(undefined); setMode('forgot') }}
         onFieldChange={(name, value) => { setFormError(undefined); setDrafts((current) => ({ ...current, [mode]: { ...current[mode], [name]: value } })) }} />
+      {registrationNotice && <RegistrationClosedDialog onClose={() => setRegistrationNotice(false)}
+        onContinue={() => { setRegistrationNotice(false); onExplore?.() }} />}
     </div>
   )
 }
