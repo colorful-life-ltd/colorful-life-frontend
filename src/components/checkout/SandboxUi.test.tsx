@@ -7,7 +7,8 @@ import {AuthenticatedAccountHub} from '../homepage/AccountModal'
 it('labels Sandbox and keeps registration opt-in and recovery restrictions while exposing My Orders',()=>{
  expect(renderToStaticMarkup(<SandboxBanner/>)).toContain('No real payments')
  const form=renderToStaticMarkup(<AccountView mode="signin" onModeChange={()=>{}} onSubmit={()=>{}} submitting={false}/>)
- expect(form).not.toContain('Create Account');expect(form).not.toContain('Forgot password?');expect(form).toContain('Sign In')
+ // Create Account stays visible but leads to the Opening Soon announcement while closed (RegistrationClosedDialog.test.tsx).
+ expect(form).toContain('Create Account');expect(form).not.toContain('Confirm password');expect(form).not.toContain('Forgot password?');expect(form).toContain('Sign In')
  const hub=renderToStaticMarkup(<AuthenticatedAccountHub email="owner@example.invalid" onSignOut={()=>{}}/>)
  expect(hub).toContain('My Orders');expect(hub).toContain('My Account')
 })

@@ -104,13 +104,13 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
           </p>}
           <button className="account-form__submit" type="submit" disabled={submitting}>{submitting ? 'Please wait…' : creating ? 'Create Account' : 'Sign In'}</button>
         </form>
-        {/* Production keeps Create Account visible while closed (it opens the Opening Soon announcement); Sandbox hides it unless opted in. */}
-        {(registrationAvailable || !sandboxCheckout) && <p className="account-experience__switch">
+        {/* Always visible: while registration is closed (Production or Sandbox) it opens the Opening Soon announcement. */}
+        <p className="account-experience__switch">
           {creating ? 'Already part of our little world?' : 'New to our little world?'}{' '}
           <button type="button" onClick={() => onModeChange(creating ? 'signin' : 'create')}>
             {creating ? 'Sign In' : 'Create Account'}<span aria-hidden="true"> →</span>
           </button>
-        </p>}
+        </p>
       </div>
     </div>
   )
