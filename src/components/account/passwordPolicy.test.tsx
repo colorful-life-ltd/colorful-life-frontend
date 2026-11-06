@@ -8,6 +8,8 @@ import { captureResetToken, forgetResetToken, MAX_PASSWORD_BYTES, PASSWORD_TOO_L
 
 const auth = vi.hoisted(() => ({ authenticate: vi.fn() }))
 vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'signedOut' }, authenticate: auth.authenticate, clearError: vi.fn(), refreshAuth: vi.fn(), logout: vi.fn() }) }))
+// These cover the open-registration path; the closed path lives in RegistrationClosedDialog.test.tsx.
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 
 // Every candidate satisfies the complexity rules, so only the byte limit decides.

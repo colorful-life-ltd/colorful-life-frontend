@@ -8,6 +8,8 @@ import { AccountView } from './AccountForms'
 import { CatalogueProductDetails } from '../catalogue/VehiclesProductPage'
 import { offer, product } from '../../features/catalogue/catalogueFixtures'
 import { COMPANY } from '../../features/legal/company'
+// Exercises the open-registration form (Production now defaults to closed; see RegistrationClosedDialog.test.tsx).
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | null = null

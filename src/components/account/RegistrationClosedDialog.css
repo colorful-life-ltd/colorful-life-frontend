@@ -1,0 +1,18 @@
+/* Shares the storybook paper card from RemoveItemDialog.css; only the differences live here. */
+.registration-closed-dialog__close {
+  position: absolute; top: 10px; right: 12px; z-index: 1;
+  width: 40px; height: 40px; padding: 0;
+  border: 0; border-radius: 50%; background: transparent;
+  color: #73533c; font: inherit; font-size: 28px; line-height: 1; cursor: pointer;
+}
+.registration-closed-dialog__close:hover { background: #ead6ad50; }
+.registration-closed-dialog__close:focus-visible { outline: 2px solid #8d723e; outline-offset: 2px; }
+.registration-closed-dialog h2 { padding: 0 28px; }
+.registration-closed-dialog__message { margin: 0 0 24px; text-align: center; font-size: 18px; line-height: 1.65; }
+.registration-closed-dialog__message p { margin: 0 0 12px; }
+.registration-closed-dialog__message p:last-child { margin-bottom: 0; }
+.registration-closed-dialog__actions { grid-template-columns: 1fr; }
+@media (max-width: 480px) {
+  .registration-closed-dialog h2 { padding: 0 24px; }
+  .registration-closed-dialog__message { font-size: 17px; }
+}
