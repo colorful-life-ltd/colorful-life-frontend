@@ -122,7 +122,7 @@ jobs:
           VITE_SITE_URL: https://build-and-bloom.co.uk
           VITE_PAYMENT_MODE: ${{ vars.SANDBOX_PAYMENT_MODE }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ vars.SANDBOX_PAYMENT_MODE == 'stripe-sandbox' && vars.VITE_STRIPE_TEST_PUBLISHABLE_KEY || '' }}
-          VITE_SANDBOX_REGISTRATION_ENABLED: 'true'
+          VITE_SANDBOX_REGISTRATION_ENABLED: 'false'
         run: |
           npm ci
           npm run legal:check

@@ -179,11 +179,40 @@ describe('Production, registration open (VITE_REGISTRATION_ENABLED=true)', () =>
 })
 
 describe('Sandbox keeps its existing registration switch', () => {
-  it('hides Create Account and never shows the announcement when Sandbox registration is not opted in', async () => {
+  it('keeps Create Account visible and opens the announcement directly when Sandbox registration is closed', async () => {
     Object.assign(flags, { stripeSandbox: true, sandboxCheckout: true, registrationAvailable: false })
-    await mount(<AccountModal onClose={vi.fn()} />)
-    expect(container.querySelector('.account-experience__switch')).toBeNull()
-    expect(container.textContent).not.toContain('Create Account')
+    const onClose = vi.fn()
+    await mount(<AccountModal onClose={onClose} />)
+    expect(dialog()).toBeNull()
+    const link = await clickCreateLink()
+    expect(dialog()!.hasAttribute('open')).toBe(true)
+    expect(document.activeElement).toBe(button('Continue Exploring', dialog()!))
+    expect(container.querySelector('[id^="account-create-"]')).toBeNull()
+    expectNoSignupAttempt()
+    // Escape and the close icon dismiss only the announcement and return focus to the link.
+    await pressEscape()
+    expect(dialog()).toBeNull()
+    expect(onClose).not.toHaveBeenCalled()
+    expect(document.activeElement).toBe(link)
+    await clickCreateLink()
+    await act(async () => dialog()!.querySelector<HTMLButtonElement>('[aria-label="Close announcement"]')!.click())
+    expect(dialog()).toBeNull()
+    expect(document.activeElement).toBe(link)
+    // Continue Exploring also leaves the account overlay.
+    await clickCreateLink()
+    await act(async () => button('Continue Exploring', dialog()!).click())
+    expect(dialog()).toBeNull()
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expectNoSignupAttempt()
+  })
+
+  it('keeps Sandbox sign-in working while registration is closed', async () => {
+    Object.assign(flags, { stripeSandbox: true, sandboxCheckout: true, registrationAvailable: false })
+    await mount(<AccountForms />)
+    await type('#account-signin-email', 'tester@example.com')
+    await type('#account-signin-password', PASSWORD)
+    await act(async () => container.querySelector<HTMLButtonElement>('button[type="submit"]')!.click())
+    expect(auth.authenticate).toHaveBeenCalledWith('signin', { email: 'tester@example.com', password: PASSWORD })
     expect(dialog()).toBeNull()
   })
 
@@ -193,5 +222,11 @@ describe('Sandbox keeps its existing registration switch', () => {
     await clickCreateLink()
     expect(dialog()).toBeNull()
     expect(container.querySelector('#account-create-confirmPassword')).not.toBeNull()
+    await type('#account-create-email', 'tester@example.com')
+    await type('#account-create-password', PASSWORD)
+    await type('#account-create-confirmPassword', PASSWORD)
+    await act(async () => container.querySelector<HTMLButtonElement>('button[type="submit"]')!.click())
+    expect(auth.authenticate).toHaveBeenCalledWith('signup', { email: 'tester@example.com', password: PASSWORD })
+    expect(dialog()).toBeNull()
   })
 })
