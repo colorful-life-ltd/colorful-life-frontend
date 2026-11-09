@@ -23,11 +23,41 @@ export class AuthApiError extends Error {
   }
 }
 
+const SIGN_IN_PATH = '/auth/login'
+export const SIGN_IN_MESSAGES = {
+  invalidCredentials: 'Incorrect email or password.',
+  rateLimited: 'Too many sign-in attempts. Please wait a minute and try again.',
+  invalidInput: 'Enter a valid email address and password.',
+  unavailable: 'Sign in is temporarily unavailable. Please try again later.',
+} as const
+
+/**
+ * Sign-in failures are described by status only. Server text is never echoed (the shared
+ * abuse limiter words its errors for checkout), and an unknown email is never distinguished
+ * from a wrong password. A 403 carrying a JSON code (email verification) is handled by the caller.
+ */
+function signInFailure(status: number, code: string | undefined, serverMessage: string | undefined): string | undefined {
+  if (status === 401) return SIGN_IN_MESSAGES.invalidCredentials
+  if (status === 429) return SIGN_IN_MESSAGES.rateLimited
+  if (status === 400) return SIGN_IN_MESSAGES.invalidInput
+  // An edge HTML 403 (no JSON) or any server/gateway failure means the service is unreachable.
+  if ((status === 403 && !code && !serverMessage) || status >= 500) return SIGN_IN_MESSAGES.unavailable
+  return undefined
+}
+
 export async function requestJson<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
   if (token) headers.set('Authorization', `Bearer ${token}`)
-  const response = token ? await authenticatedFetch(`${apiBase()}${path}`, { ...init, headers }, token) : await fetch(`${apiBase()}${path}`, { ...init, headers })
+  const signingIn = !token && path === SIGN_IN_PATH
+  let response: Response
+  try {
+    response = token ? await authenticatedFetch(`${apiBase()}${path}`, { ...init, headers }, token) : await fetch(`${apiBase()}${path}`, { ...init, headers })
+  } catch (error) {
+    // A network failure must not surface browser-specific text on the sign-in form.
+    if (signingIn) throw new AuthApiError(0, SIGN_IN_MESSAGES.unavailable)
+    throw error
+  }
   let body: unknown = null
   try { body = await response.json() } catch { /* Empty error responses are handled below. */ }
   if (!response.ok) {
@@ -35,7 +65,7 @@ export async function requestJson<T>(path: string, init: RequestInit = {}, token
     const nested = typeof error === 'object' && error !== null ? error as { code?: unknown; message?: unknown } : undefined
     const code = typeof nested?.code === 'string' ? nested.code : undefined
     const serverMessage = typeof error === 'string' ? error : typeof nested?.message === 'string' ? nested.message : undefined
-    const message = code === 'EMAIL_VERIFICATION_REQUIRED' ? 'Email verification required' : manualWriteRetryRequired(response) ? 'Your session was refreshed. Please try that action again.' : response.status === 401 && !token ? "We couldn't sign you in with those details. Check your email and password and try again." : response.status === 409 && path === '/auth/signup' ? 'Email already in use' : serverMessage || 'Unable to complete that request'
+    const message = code === 'EMAIL_VERIFICATION_REQUIRED' ? 'Email verification required' : manualWriteRetryRequired(response) ? 'Your session was refreshed. Please try that action again.' : (signingIn ? signInFailure(response.status, code, serverMessage) : undefined) ?? (response.status === 401 && !token ? "We couldn't sign you in with those details. Check your email and password and try again." : response.status === 409 && path === '/auth/signup' ? 'Email already in use' : serverMessage || 'Unable to complete that request')
     throw new AuthApiError(response.status, message, serverMessage, code)
   }
   return body as T

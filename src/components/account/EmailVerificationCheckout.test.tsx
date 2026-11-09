@@ -12,6 +12,8 @@ import { readAttempt } from '../../features/checkout/state'
 vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
 vi.mock('../checkout/StripePaymentForm', () => ({ StripePaymentForm: () => null }))
 import { shippingOptionsFixture } from '../../features/checkout/shippingFixtures'
+// These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const user = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: null, phone: null }
 const address = { id: 1, recipientName: 'Test', line1: '1 Street', line2: null, city: 'London', postcode: 'SW1A 1AA', country: 'GB', phone: null, isDefaultShipping: true, isDefaultBilling: true }

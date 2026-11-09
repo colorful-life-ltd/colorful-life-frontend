@@ -10,6 +10,8 @@ import { AUTH_STORAGE_KEY, AuthApiError, getCurrentUser } from '../../features/a
 import { type OrderDetail, type OrderSummary } from '../../features/orders/api'
 import { canResumeCheckout, orderDetailId, orderStatusLabel } from '../../features/orders/presentation'
 import { CustomerOrders } from './CustomerOrders'
+// These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
 vi.mock('../../features/auth/api', async original => ({ ...await original<typeof import('../../features/auth/api')>(), getCurrentUser: vi.fn() }))
 vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))

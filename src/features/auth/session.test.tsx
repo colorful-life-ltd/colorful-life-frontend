@@ -9,6 +9,8 @@ import { getCurrentUser, updateCurrentUser } from './api'
 import { authenticatedFetch, beginPaymentConfirmation, clearStoredToken, endPaymentConfirmation, readSession, requestExpiredSession, SESSION_STORAGE_KEY, storeSession, storeToken, subscribeExpiredSession, type Session } from './session'
 import { CartContext, type CartContextValue } from '../cart/CartContext'
 import App from '../../App'
+// These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
+vi.mock('../checkout/sandbox', async original => ({ ...await original<typeof import('../checkout/sandbox')>(), registrationAvailable: true }))
 vi.mock('../catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 // Synthetic credentials only; assertions never print their values.
