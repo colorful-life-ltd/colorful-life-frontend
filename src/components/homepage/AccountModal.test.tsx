@@ -2,6 +2,8 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import type { MouseEvent } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { AccountModal, AccountModalCloseButton, AuthenticatedAccountHub } from './AccountModal'
+// These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
 describe('authenticated Account Hub presentation', () => {
   it('shows the real email and both future destinations as non-interactive stationery', () => {

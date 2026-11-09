@@ -253,8 +253,8 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (mode === 'forgot') return
-    // Defence in depth: the create form is not reachable while closed, but never send a doomed signup.
-    if (mode === 'create' && !registrationAvailable) { setFormError(undefined); return setRegistrationNotice(true) }
+    // Defence in depth: no account form is reachable while closed, but never send a doomed sign-in or signup.
+    if (!registrationAvailable) { setFormError(undefined); return setRegistrationNotice(true) }
     const current = drafts[mode]
     if (!current.email.trim()) return setFormError('Enter your email address.')
     if (!current.password) return setFormError('Enter your password.')
@@ -272,6 +272,9 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
     if (next === 'create' && !registrationAvailable) return setRegistrationNotice(true)
     setMode(next)
   }
+  // Customer accounts are not open yet: the Opening Soon announcement replaces every account form
+  // (sign-in, create and password recovery), so no authentication request can be sent.
+  if (!registrationAvailable) return <RegistrationClosedDialog onClose={() => onExplore?.()} />
   if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
   if (mode === 'forgot') return <div ref={container}><ForgotPasswordView initialEmail={drafts.signin.email} onBack={() => setMode('signin')} /></div>
   return (

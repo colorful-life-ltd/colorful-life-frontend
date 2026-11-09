@@ -9,6 +9,8 @@ import { CartProvider } from '../../features/cart/CartProvider'
 import { getCart } from '../../features/cart/api'
 import { USER_FAREWELL_MESSAGE, USER_FAREWELL_MS } from './userWelcome'
 import { FAREWELL_WAVE, WAVE_FRAME_MS } from './userFrames'
+// These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
 vi.mock('../../features/auth/api', async original => ({ ...await original<typeof import('../../features/auth/api')>(), getCurrentUser: vi.fn() }))
 vi.mock('../../features/cart/api', async original => ({ ...await original<typeof import('../../features/cart/api')>(), getCart: vi.fn() }))

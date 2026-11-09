@@ -10,6 +10,8 @@ import foliageBottomRight from '../../assets/account/account-hub-foliage-bottom-
 import dividerLeaf from '../../assets/shared/hr-leaf.png'
 import { navigateCheckout } from '../../features/checkout/state'
 import { PersonalInformation } from '../account/PersonalInformation'
+import { RegistrationClosedDialog } from '../account/RegistrationClosedDialog'
+import { registrationAvailable } from '../../features/checkout/sandbox'
 
 export function AuthenticatedAccountHub({ email, onSignOut, onOpenAccount, onOpenOrders }: { email: string; onSignOut: () => void; onOpenAccount?: () => void; onOpenOrders?: () => void }) {
   return (
@@ -79,6 +81,9 @@ export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialA
     previousStatus.current = state.status
   }, [onClose, state.status])
   const activeView = state.status === 'authenticated' ? view : 'hub'
+  // Customer accounts are not open yet: show only the Opening Soon announcement, never an
+  // account form. Closing it in any way leaves the account overlay.
+  if (state.status !== 'authenticated' && !registrationAvailable) return <RegistrationClosedDialog onClose={onClose} />
   return (
     <div className="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()

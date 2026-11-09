@@ -66,79 +66,60 @@ afterEach(async () => {
   vi.unstubAllGlobals(); vi.restoreAllMocks()
 })
 
-describe('Production, registration closed (default): Create Account link', () => {
-  it('opens the announcement immediately and never shows the registration form', async () => {
-    await mount(<AccountForms />)
-    expect(dialog()).toBeNull()
-    await clickCreateLink()
-    const modal = dialog()!
-    expect(modal.hasAttribute('open')).toBe(true)
-    expect(modal.getAttribute('aria-modal')).toBe('true')
-    expect(document.getElementById(modal.getAttribute('aria-labelledby')!)!.textContent).toBe('We’re Opening Soon! 🌼')
-    expect(document.getElementById(modal.getAttribute('aria-describedby')!)!.textContent).toContain('feel free to explore and browse our collection')
-    expect(modal.textContent).toContain('we can’t wait to welcome you!')
-    expect(document.activeElement).toBe(button('Continue Exploring', modal))
-    // No create-account fields are ever rendered; the sign-in form stays underneath.
-    expect(container.querySelector('[id^="account-create-"]')).toBeNull()
-    expect(container.querySelector('[data-account-mode="signin"]')).not.toBeNull()
-    expect(container.querySelector('[role="alert"]')).toBeNull()
-    expectNoSignupAttempt()
-  })
+/** Customer accounts closed: the overlay is only the announcement, with no account form behind it. */
+function expectOnlyAnnouncement() {
+  const modal = dialog()!
+  expect(modal.hasAttribute('open')).toBe(true)
+  expect(modal.getAttribute('aria-modal')).toBe('true')
+  expect(document.getElementById(modal.getAttribute('aria-labelledby')!)!.textContent).toBe('We’re Opening Soon!\u00a0🌼')
+  expect(document.getElementById(modal.getAttribute('aria-describedby')!)!.textContent).toContain('feel free to explore and browse our collection')
+  expect(document.activeElement).toBe(button('Continue Exploring', modal))
+  expect(document.querySelector('form')).toBeNull()
+  expect(document.querySelector('input')).toBeNull()
+  expect(document.querySelector('[data-account-mode]')).toBeNull()
+  expect(document.body.textContent).not.toContain('Forgot password?')
+  expect(document.body.textContent).not.toContain('Welcome back!')
+}
+function expectNoAuthenticationRequest() {
+  expectNoSignupAttempt()
+  expect(document.body.textContent).not.toContain('Unable to complete that request')
+}
 
-  it('closes the announcement from the close icon and returns focus to the Create Account link', async () => {
-    await mount(<AccountForms />)
-    const link = await clickCreateLink()
-    await act(async () => dialog()!.querySelector<HTMLButtonElement>('[aria-label="Close announcement"]')!.click())
-    expect(dialog()).toBeNull()
-    expect(document.activeElement).toBe(link)
-    expect(container.querySelector('[id^="account-create-"]')).toBeNull()
-  })
-
-  it('can be opened again after it was dismissed', async () => {
-    await mount(<AccountForms />)
-    await clickCreateLink()
-    await pressEscape()
-    await clickCreateLink()
-    expect(dialog()).not.toBeNull()
-    expectNoSignupAttempt()
-  })
-})
-
-describe('Production, registration closed inside the Account overlay', () => {
-  it('Continue Exploring closes the announcement and the account overlay, returning to browsing', async () => {
-    const onClose = vi.fn()
-    await mount(<AccountModal onClose={onClose} />)
-    await clickCreateLink()
-    expect(dialog()).not.toBeNull()
-    await act(async () => button('Continue Exploring', dialog()!).click())
-    expect(dialog()).toBeNull()
-    expect(onClose).toHaveBeenCalledTimes(1)
-    expectNoSignupAttempt()
-  })
-
-  it('Escape closes only the announcement, keeps the overlay open and restores focus to the link', async () => {
-    const onClose = vi.fn()
-    await mount(<AccountModal onClose={onClose} />)
-    const link = await clickCreateLink()
-    await pressEscape()
-    expect(dialog()).toBeNull()
-    expect(onClose).not.toHaveBeenCalled()
-    expect(document.activeElement).toBe(link)
-    // A second Escape, now outside the announcement, closes the overlay as before.
-    await act(async () => { link.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })) })
-    expect(onClose).toHaveBeenCalledTimes(1)
-  })
-
-  it('leaves sign-in and password reset unchanged', async () => {
+describe('Production, customer accounts closed (default)', () => {
+  it('opening the account overlay shows only the announcement: no sign-in, create or recovery form', async () => {
     await mount(<AccountModal onClose={vi.fn()} />)
-    await type('#account-signin-email', 'old@example.com')
-    await type('#account-signin-password', PASSWORD)
-    await act(async () => container.querySelector<HTMLButtonElement>('button[type="submit"]')!.click())
-    expect(auth.authenticate).toHaveBeenCalledWith('signin', { email: 'old@example.com', password: PASSWORD })
-    await act(async () => button('Forgot password?').click())
-    expect(container.querySelector('[data-account-mode="forgot"]')).not.toBeNull()
-    expect(container.querySelector('#account-forgot-email')).not.toBeNull()
-    expect(dialog()).toBeNull()
+    expectOnlyAnnouncement()
+    expectNoAuthenticationRequest()
+  })
+
+  it('an explicit Sign In or password-recovery entry shows the same announcement', async () => {
+    await mount(<AccountModal onClose={vi.fn()} initialAuthMode="forgot" focusSignIn />)
+    expectOnlyAnnouncement()
+    expectNoAuthenticationRequest()
+  })
+
+  it('Continue Exploring, the close icon and Escape each leave the account overlay', async () => {
+    for (const leave of [
+      async () => button('Continue Exploring', dialog()!).click(),
+      async () => dialog()!.querySelector<HTMLButtonElement>('[aria-label="Close announcement"]')!.click(),
+      pressEscape,
+    ]) {
+      const onClose = vi.fn()
+      await mount(<AccountModal onClose={onClose} />)
+      await act(async () => { await leave() })
+      expect(onClose).toHaveBeenCalledTimes(1)
+      expectNoAuthenticationRequest()
+      await act(async () => root.unmount()); container.remove()
+    }
+  })
+
+  it('AccountForms on its own also renders only the announcement and hands closing to onExplore', async () => {
+    const onExplore = vi.fn()
+    await mount(<AccountForms onExplore={onExplore} />)
+    expectOnlyAnnouncement()
+    await act(async () => button('Continue Exploring', dialog()!).click())
+    expect(onExplore).toHaveBeenCalledTimes(1)
+    expectNoAuthenticationRequest()
   })
 })
 
@@ -160,9 +141,32 @@ describe('form-submit guard (defence in depth)', () => {
       for (const call of vi.mocked(console[method]).mock.calls) expect(JSON.stringify(call)).not.toContain(PASSWORD)
     }
   })
+
+  it('never submits sign-in if accounts close after the sign-in form was shown', async () => {
+    flags.registrationAvailable = true
+    await mount(<AccountForms />)
+    await type('#account-signin-email', 'old@example.com')
+    await type('#account-signin-password', PASSWORD)
+    flags.registrationAvailable = false
+    await act(async () => container.querySelector<HTMLButtonElement>('button[type="submit"]')!.click())
+    expect(dialog()).not.toBeNull()
+    expectNoAuthenticationRequest()
+    expect(dialog()!.outerHTML).not.toContain(PASSWORD)
+  })
 })
 
 describe('Production, registration open (VITE_REGISTRATION_ENABLED=true)', () => {
+  it('shows the normal sign-in form and submits through the existing auth flow', async () => {
+    flags.registrationAvailable = true
+    await mount(<AccountModal onClose={vi.fn()} />)
+    expect(dialog()).toBeNull()
+    await type('#account-signin-email', 'old@example.com')
+    await type('#account-signin-password', PASSWORD)
+    await act(async () => container.querySelector<HTMLButtonElement>('button[type="submit"]')!.click())
+    expect(auth.authenticate).toHaveBeenCalledWith('signin', { email: 'old@example.com', password: PASSWORD })
+    expect(container.querySelector('button.account-form__forgot')).not.toBeNull()
+  })
+
   it('shows the original form from the Create Account link and submits signup normally', async () => {
     flags.registrationAvailable = true
     await mount(<AccountForms />)
@@ -178,42 +182,15 @@ describe('Production, registration open (VITE_REGISTRATION_ENABLED=true)', () =>
   })
 })
 
-describe('Sandbox keeps its existing registration switch', () => {
-  it('keeps Create Account visible and opens the announcement directly when Sandbox registration is closed', async () => {
+describe('Sandbox keeps its existing switch (the current public build)', () => {
+  it('shows only the announcement and sends no sign-in while Sandbox accounts are closed', async () => {
     Object.assign(flags, { stripeSandbox: true, sandboxCheckout: true, registrationAvailable: false })
     const onClose = vi.fn()
     await mount(<AccountModal onClose={onClose} />)
-    expect(dialog()).toBeNull()
-    const link = await clickCreateLink()
-    expect(dialog()!.hasAttribute('open')).toBe(true)
-    expect(document.activeElement).toBe(button('Continue Exploring', dialog()!))
-    expect(container.querySelector('[id^="account-create-"]')).toBeNull()
-    expectNoSignupAttempt()
-    // Escape and the close icon dismiss only the announcement and return focus to the link.
-    await pressEscape()
-    expect(dialog()).toBeNull()
-    expect(onClose).not.toHaveBeenCalled()
-    expect(document.activeElement).toBe(link)
-    await clickCreateLink()
-    await act(async () => dialog()!.querySelector<HTMLButtonElement>('[aria-label="Close announcement"]')!.click())
-    expect(dialog()).toBeNull()
-    expect(document.activeElement).toBe(link)
-    // Continue Exploring also leaves the account overlay.
-    await clickCreateLink()
+    expectOnlyAnnouncement()
     await act(async () => button('Continue Exploring', dialog()!).click())
-    expect(dialog()).toBeNull()
     expect(onClose).toHaveBeenCalledTimes(1)
-    expectNoSignupAttempt()
-  })
-
-  it('keeps Sandbox sign-in working while registration is closed', async () => {
-    Object.assign(flags, { stripeSandbox: true, sandboxCheckout: true, registrationAvailable: false })
-    await mount(<AccountForms />)
-    await type('#account-signin-email', 'tester@example.com')
-    await type('#account-signin-password', PASSWORD)
-    await act(async () => container.querySelector<HTMLButtonElement>('button[type="submit"]')!.click())
-    expect(auth.authenticate).toHaveBeenCalledWith('signin', { email: 'tester@example.com', password: PASSWORD })
-    expect(dialog()).toBeNull()
+    expectNoAuthenticationRequest()
   })
 
   it('shows the normal form when VITE_SANDBOX_REGISTRATION_ENABLED opts in', async () => {

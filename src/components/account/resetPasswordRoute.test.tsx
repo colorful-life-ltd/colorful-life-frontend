@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import App from '../../App'
 import { CartContext, type CartContextValue } from '../../features/cart/CartContext'
 import { captureResetToken, forgetResetToken } from '../../features/auth/passwordReset'
+// These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
+vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
 const auth = vi.hoisted(() => ({ state: { status: 'signedOut' } as Record<string, unknown>, logout: vi.fn() }))
 vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: auth.state, logout: auth.logout, authenticate: vi.fn(), clearError: vi.fn(), refreshAuth: vi.fn() }) }))
