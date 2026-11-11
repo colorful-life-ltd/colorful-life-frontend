@@ -28,6 +28,7 @@ jobs:
     if: >-
       github.ref == 'refs/heads/main' && vars.PRODUCTION_STOREFRONT_DEPLOY_ENABLED == 'true' &&
       (github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && vars.PRODUCTION_STOREFRONT_AUTO_DEPLOY_ENABLED == 'true'))
+    environment: production-storefront
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:

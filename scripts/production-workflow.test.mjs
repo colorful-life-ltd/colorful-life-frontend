@@ -11,6 +11,7 @@ describe('Production storefront delivery admission',()=>{
  it('keeps CI checks before narrowly scoped Production credentials',()=>{
   const job=workflow.indexOf('- uses: aws-actions/configure-aws-credentials@')
   for(const check of ['npm run test:contracts','npx tsc -b --noEmit','npm run lint','npm run test:run','npm run legal:check','npm run build']) expect(workflow.indexOf(check)).toBeGreaterThan(0),expect(workflow.indexOf(check)).toBeLessThan(job)
+  expect(workflow).toContain('environment: production-storefront')
   expect(workflow).toContain('role/ColorfulLife-ProductionStorefrontDeploy')
   expect(workflow).toContain('ColorfulLife-ProductionStorefrontDeploy')
   expect(workflow).not.toContain('ColorfulLife-SandboxStorefrontDeploy')
