@@ -7,17 +7,17 @@ on:
       action:
         description: Production action
         type: choice
-        options: [deploy, rollback, recover]
+        options: [prepare, deploy, rollback, recover]
         required: true
       route_digest:
         description: Verified Production nginx configuration SHA256
-        required: true
+        required: false
       backend_revision:
         description: Verified Production backend full revision
-        required: true
+        required: false
       api_image:
         description: Verified Production API digest reference
-        required: true
+        required: false
 permissions:
   contents: read
 concurrency:
@@ -69,9 +69,11 @@ jobs:
       - name: Validate release inputs
         if: env.SUPERSEDED != 'true'
         run: |
-          [[ "$ROUTE_DIGEST" =~ ^[a-f0-9]{64}$ ]]
-          [[ "$BACKEND_REVISION" =~ ^[a-f0-9]{40}$ ]]
-          [[ "$API_IMAGE" =~ ^919693204623\.dkr\.ecr\.eu-west-2\.amazonaws\.com/colorful-life-production-api@sha256:[a-f0-9]{64}$ ]]
+          if [[ "$ACTION" != prepare ]]; then
+            [[ "$ROUTE_DIGEST" =~ ^[a-f0-9]{64}$ ]]
+            [[ "$BACKEND_REVISION" =~ ^[a-f0-9]{40}$ ]]
+            [[ "$API_IMAGE" =~ ^919693204623\.dkr\.ecr\.eu-west-2\.amazonaws\.com/colorful-life-production-api@sha256:[a-f0-9]{64}$ ]]
+          fi
           if [[ "$ACTION" = deploy ]]; then
             [[ "$INFRA_REVISION" =~ ^[a-f0-9]{40}$ ]]
             [[ "$VITE_STRIPE_PUBLISHABLE_KEY" =~ ^pk_live_[A-Za-z0-9]{8,}$ ]]
