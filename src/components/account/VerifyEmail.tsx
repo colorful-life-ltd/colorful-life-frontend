@@ -1,26 +1,23 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { AuthApiError, verifyEmail } from '../../features/auth/api'
 import { passwordPolicyError } from '../../features/auth/passwordReset'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
 import { ResendVerificationForm } from './ResendVerificationForm'
+import { captureVerificationToken, capturedVerificationToken, forgetVerificationToken } from '../../features/auth/verificationToken'
 import '../checkout/Checkout.css'
 
 export function VerifyEmail({ onSignIn }: { onSignIn: () => void }) {
-  const [token] = useState(() => new URLSearchParams(window.location.search).get('token')?.trim() ?? '')
+  const [token] = useState(() => { captureVerificationToken(); return capturedVerificationToken() })
   const [phase,setPhase] = useState<'ready'|'verifying'|'success'|'invalid'|'failure'|'missing'>(token ? 'ready' : 'missing')
   const [password,setPassword] = useState(''), [confirmation,setConfirmation] = useState(''), [error,setError] = useState('')
   const lock=useRef(false)
-  useEffect(() => {
-    const url=new URL(window.location.href);url.searchParams.delete('token')
-    window.history.replaceState(window.history.state,'',`${url.pathname}${url.search}${url.hash}`)
-  }, [])
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();if(lock.current)return
     const problem=passwordPolicyError(password)
     if(problem){setError(problem);return}if(password!==confirmation){setError('Passwords do not match.');return}
     lock.current=true;setError('');setPhase('verifying')
-    try { await verifyEmail(token,password);setPassword('');setConfirmation('');setPhase('success') }
-    catch (reason) { setPhase(reason instanceof AuthApiError && reason.status===400 ? 'invalid' : 'failure') }
+    try { await verifyEmail(token,password);forgetVerificationToken();setPassword('');setConfirmation('');setPhase('success') }
+    catch (reason) { if (reason instanceof AuthApiError && reason.status===400) { forgetVerificationToken();setPhase('invalid') } else setPhase('failure') }
     finally {lock.current=false}
   }
   return <main className="checkout" tabIndex={-1}><div className="checkout__paper">

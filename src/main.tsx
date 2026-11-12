@@ -1,4 +1,5 @@
-// Must stay first: removes a password-reset token from the URL before anything else runs.
+// Capture emailed tokens before React and other application modules run.
+import './features/auth/captureVerificationToken'
 import './features/auth/captureResetToken'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

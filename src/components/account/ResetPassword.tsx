@@ -57,6 +57,7 @@ export function ResetPassword({ onSignIn, onRequestNewLink }: { onSignIn: () => 
     <p className="checkout__eyebrow">Build &amp; Bloom · Your account</p><h1>{title}</h1>
     {phase === 'success' && <>
       <p role="status">Your password has been changed. Please sign in with your new password.</p>
+      <p>If you have not verified your email, choose “Resend verification email” on the sign-in page to finish setting up your account.</p>
       <button onClick={onSignIn}>Sign in</button>
     </>}
     {phase === 'missing' && <p role="alert">This page needs the complete link from your password reset email. Open the link again, or request a new one.</p>}

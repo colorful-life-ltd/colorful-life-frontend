@@ -55,14 +55,14 @@ describe('reset token capture', () => {
 
   it('keeps referrers to the origin before any static asset loads', () => {
     const head = indexHtml.slice(0, indexHtml.indexOf('</head>'))
-    const policy = head.indexOf('<meta name="referrer" content="strict-origin" />')
+    const policy = head.indexOf('<meta name="referrer" content="no-referrer" />')
     expect(policy).toBeGreaterThan(-1)
     for (const tag of ['<script', '<link']) expect(head.indexOf(tag) === -1 || head.indexOf(tag) > policy).toBe(true)
   })
 
   it('runs before every other application module', () => {
-    const firstImport = mainSource.match(/^import .+$/m)?.[0]
-    expect(firstImport).toBe("import './features/auth/captureResetToken'")
+    const imports = mainSource.match(/^import .+$/gm) ?? []
+    expect(imports.slice(0, 2)).toEqual(["import './features/auth/captureVerificationToken'", "import './features/auth/captureResetToken'"])
   })
 
   it('treats the reset path with or without trailing slashes as the same route', () => {
