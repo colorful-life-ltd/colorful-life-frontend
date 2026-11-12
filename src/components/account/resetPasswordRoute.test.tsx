@@ -77,6 +77,7 @@ describe('/reset-password route', () => {
     }
     await act(async () => { container.querySelector('form')!.requestSubmit() })
     expect(container.textContent).toContain('Your password has been changed.')
+    expect(container.textContent).toContain('Resend verification email')
     auth.state = { status: 'signedOut' }
     await act(async () => button('Sign in').click())
     expect(auth.logout).toHaveBeenCalledTimes(1)

@@ -1,3 +1,5 @@
+import { VerificationPending } from './VerificationPending'
+import { ResendVerificationForm } from './ResendVerificationForm'
 import { registrationAvailable, sandboxCheckout } from '../../features/checkout/sandbox'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { COMPANY } from '../../features/legal/company'
@@ -49,6 +51,7 @@ type AccountViewProps = {
   error?: string
   submitting?: boolean
   onForgotPassword?: () => void
+  onResendVerification?: () => void
 }
 
 function AccountWelcome() {
@@ -60,7 +63,7 @@ function AccountWelcome() {
   </aside>
 }
 
-export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange, onSubmit, error, submitting, onForgotPassword }: AccountViewProps) {
+export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldChange, onSubmit, error, submitting, onForgotPassword, onResendVerification }: AccountViewProps) {
   const creating = registrationAvailable && mode === 'create'
   const [visible, setVisible] = useState<Record<'password' | 'confirmPassword', boolean>>({ password: false, confirmPassword: false })
   return (
@@ -98,6 +101,7 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
             })}
           </div>
           {!sandboxCheckout && !creating && onForgotPassword && <button type="button" className="account-form__forgot" onClick={onForgotPassword}>Forgot password?</button>}
+          {!creating && onResendVerification && <button type="button" className="account-form__forgot" onClick={onResendVerification}>Resend verification email</button>}
           {creating && <p className="account-form__legal" id="account-create-legal">
             By creating an account you agree to our <a href="/legal/terms" target="_blank" rel="noopener">Terms &amp; Conditions</a>.
             Our <a href="/legal/privacy" target="_blank" rel="noopener">Privacy Policy</a> explains how {COMPANY.legalName} (Build &amp; Bloom) uses your data.
@@ -231,7 +235,7 @@ export type AccountFormsMode = 'signin' | 'forgot'
 
 /** `onExplore` leaves the account overlay so a visitor turned away from closed registration returns to browsing. */
 export function AccountForms({ initialMode = 'signin', onExplore }: { initialMode?: AccountFormsMode; onExplore?: () => void }) {
-  const [mode, setMode] = useState<AccountMode | 'forgot'>(sandboxCheckout ? 'signin' : initialMode)
+  const [mode, setMode] = useState<AccountMode | 'forgot' | 'resend'>(sandboxCheckout ? 'signin' : initialMode)
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
   const previousMode = useRef(mode)
@@ -252,7 +256,7 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
   }, [mode])
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (mode === 'forgot') return
+    if (mode === 'forgot' || mode === 'resend') return
     // Defence in depth: no account form is reachable while closed, but never send a doomed sign-in or signup.
     if (!registrationAvailable) { setFormError(undefined); return setRegistrationNotice(true) }
     const current = drafts[mode]
@@ -275,8 +279,10 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
   // Customer accounts are not open yet: the Opening Soon announcement replaces every account form
   // (sign-in, create and password recovery), so no authentication request can be sent.
   if (!registrationAvailable) return <RegistrationClosedDialog onClose={() => onExplore?.()} />
+  if (state.status === 'verificationPending') return <VerificationPending email={state.email} />
   if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
   if (mode === 'forgot') return <div ref={container}><ForgotPasswordView initialEmail={drafts.signin.email} onBack={() => setMode('signin')} /></div>
+  if (mode === 'resend') return <ResendVerificationForm initialEmail={drafts.signin.email} onBack={() => setMode('signin')} />
   return (
     <div ref={container}>
       {state.status === 'error' && state.token && <button type="button" disabled={restoring} onClick={() => {
@@ -287,6 +293,7 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
       <AccountView mode={mode} onModeChange={changeMode} draft={drafts[mode]}
         onSubmit={submit} error={formError || serverError} submitting={submitting}
         onForgotPassword={() => { setFormError(undefined); setMode('forgot') }}
+        onResendVerification={() => { setFormError(undefined); setMode('resend') }}
         onFieldChange={(name, value) => { setFormError(undefined); setDrafts((current) => ({ ...current, [mode]: { ...current[mode], [name]: value } })) }} />
       {registrationNotice && <RegistrationClosedDialog onClose={() => setRegistrationNotice(false)}
         onContinue={() => { setRegistrationNotice(false); onExplore?.() }} />}

@@ -108,11 +108,19 @@ export function AuthProvider({ children }: PropsWithChildren) {
     beginAuthenticationIntent()
     dispatch({ type: 'authenticate', mode })
     try {
-      const response = mode === 'signup' ? await signUp(credentials.email, credentials.password) : await signIn(credentials.email, credentials.password)
+      if (mode === 'signup') {
+        await signUp(credentials.email, credentials.password)
+        if (intent !== authIntent.current) return
+        sessionWasActive.current = false
+        clearStoredToken()
+        dispatch({ type: 'verificationPending', email: credentials.email.trim().toLowerCase() })
+        return
+      }
+      const response = await signIn(credentials.email, credentials.password)
       if (intent !== authIntent.current) { discardSession(response); return }
       storeSession(response)
       sessionWasActive.current = true
-      await resolve(response.token, mode === 'signup')
+      await resolve(response.token)
     } catch (error) {
       if (intent !== authIntent.current) return
       if (error instanceof AuthApiError && error.status === 401) {

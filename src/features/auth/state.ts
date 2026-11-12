@@ -6,6 +6,7 @@ export type AuthState =
   | { status: 'authenticating'; mode: 'signin' | 'signup' }
   | { status: 'authenticated'; token: string; user: CurrentUser }
   | { status: 'verificationRequired'; token: string; message: string }
+  | { status: 'verificationPending'; email: string }
   | { status: 'error'; message: string; token?: string }
 
 export type AuthAction =
@@ -14,6 +15,7 @@ export type AuthAction =
   | { type: 'authenticate'; mode: 'signin' | 'signup' }
   | { type: 'authenticated'; token: string; user: CurrentUser }
   | { type: 'verificationRequired'; token: string; message: string }
+  | { type: 'verificationPending'; email: string }
   | { type: 'signedOut'; error?: string }
   | { type: 'sessionExpired' }
   | { type: 'error'; message: string; token?: string }
@@ -24,6 +26,7 @@ export function authReducer(_state: AuthState, action: AuthAction): AuthState {
     case 'resolve': return { status: 'resolving' }
     case 'authenticate': return { status: 'authenticating', mode: action.mode }
     case 'authenticated': return { status: 'authenticated', token: action.token, user: action.user }
+    case 'verificationPending': return { status: 'verificationPending', email: action.email }
     case 'verificationRequired': return { status: 'verificationRequired', token: action.token, message: action.message }
     case 'signedOut': return { status: 'signedOut', error: action.error }
     case 'sessionExpired': return { status: 'signedOut', reason: 'expired' }

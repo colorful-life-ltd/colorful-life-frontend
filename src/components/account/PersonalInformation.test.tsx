@@ -40,6 +40,8 @@ describe('personal information editing', () => {
     expect(markup).toContain('aria-labelledby="personal-information-title"')
     expect(markup).toContain('aria-labelledby="saved-addresses-title"')
     expect(markup).toContain('Why can’t I change my email?')
+    expect(markup).toContain('Please contact customer support.')
+    expect(markup).toContain('mailto:support@build-and-bloom.co.uk')
     expect(markup).toContain('Edit information')
     expect(markup).toContain('Back to Account')
     expect(markup).toContain('Loading addresses…')
