@@ -3,7 +3,7 @@ import { act, StrictMode, useEffect, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AuthProvider, useAuth } from '../../features/auth/AuthProvider'
-import { AUTH_STORAGE_KEY, AuthApiError, getCurrentUser, resendVerification, signIn, signUp, verifyEmail } from '../../features/auth/api'
+import { AUTH_STORAGE_KEY, AuthApiError, getCurrentUser, requestVerification, resendVerification, signIn, signUp, verifyEmail } from '../../features/auth/api'
 import { VerifyEmail } from './VerifyEmail'
 import { VerificationNotice } from './VerificationNotice'
 import { AccountForms } from './AccountForms'
@@ -11,7 +11,7 @@ import { AccountModal } from '../homepage/AccountModal'
 // These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
 vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
 
-vi.mock('../../features/auth/api', async original => ({ ...await original<typeof import('../../features/auth/api')>(), getCurrentUser: vi.fn(), verifyEmail: vi.fn(), resendVerification: vi.fn(), signIn: vi.fn(), signUp: vi.fn() }))
+vi.mock('../../features/auth/api', async original => ({ ...await original<typeof import('../../features/auth/api')>(), getCurrentUser: vi.fn(), verifyEmail: vi.fn(), requestVerification: vi.fn(), resendVerification: vi.fn(), signIn: vi.fn(), signUp: vi.fn() }))
 vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogueCategories: () => ({ state: { status: 'loading' }, retry: vi.fn() }) }))
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 let root: Root | null = null
@@ -29,7 +29,7 @@ async function click(text: string) { await act(async () => { const button = [...
 async function enterResendEmail() { await act(async () => { const input=container.querySelector<HTMLInputElement>('input[type="email"]')!; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input,user.email); input.dispatchEvent(new Event('input',{bubbles:true})) }) }
 beforeEach(() => {
   vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/verify-email?token=test-verification-token')
-  vi.mocked(getCurrentUser).mockResolvedValue(user); vi.mocked(verifyEmail).mockResolvedValue(); vi.mocked(resendVerification).mockResolvedValue()
+  vi.mocked(getCurrentUser).mockResolvedValue(user); vi.mocked(verifyEmail).mockResolvedValue(); vi.mocked(resendVerification).mockResolvedValue(); vi.mocked(requestVerification).mockResolvedValue()
 })
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ''; vi.useRealTimers(); vi.unstubAllGlobals() })
 
@@ -67,6 +67,9 @@ describe('verification route and token handling', () => {
     vi.mocked(verifyEmail).mockRejectedValue(new AuthApiError(400, 'private details'))
     await mount(<VerifyEmail onSignIn={vi.fn()} />); await enterPasswords(); await click('Verify and set password')
     expect(container.textContent).toContain('invalid, expired, or already used'); expect(container.textContent).not.toContain('private details')
+    await enterResendEmail(); await click('Send verification email')
+    expect(requestVerification).toHaveBeenCalledWith(user.email)
+    expect(container.textContent).toContain('If verification is needed')
   })
   it('offers a retry after a network error without putting the token in the URL', async () => {
     vi.mocked(verifyEmail).mockRejectedValueOnce(new Error('offline')).mockResolvedValue()
@@ -77,6 +80,12 @@ describe('verification route and token handling', () => {
 })
 
 describe('unverified account and resend UX', () => {
+  it('lets a signed-out customer request a new verification link', async () => {
+    await mount(<AccountForms />)
+    await click('Resend verification email'); await enterResendEmail(); await click('Send verification email')
+    expect(requestVerification).toHaveBeenCalledWith(user.email)
+    expect(container.textContent).toContain('If verification is needed')
+  })
   it('recognizes verification by code on session restoration rather than English text', async () => {
     sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
     await mount(<AccountForms />)

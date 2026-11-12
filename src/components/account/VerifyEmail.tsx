@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { AuthApiError, verifyEmail } from '../../features/auth/api'
 import { passwordPolicyError } from '../../features/auth/passwordReset'
 import { BotanicalDivider } from '../shared/BotanicalDivider'
+import { ResendVerificationForm } from './ResendVerificationForm'
 import '../checkout/Checkout.css'
 
 export function VerifyEmail({ onSignIn }: { onSignIn: () => void }) {
@@ -34,6 +35,7 @@ export function VerifyEmail({ onSignIn }: { onSignIn: () => void }) {
     {phase==='success' && <><p role="status">Your email has been verified. You can now sign in.</p><button onClick={onSignIn}>Sign in</button></>}
     {phase==='missing' && <p role="alert">This link has no verification token. Request a new verification email.</p>}
     {phase==='invalid' && <p role="alert">This verification link is invalid, expired, or already used.</p>}
+    {(phase==='invalid'||phase==='missing') && <ResendVerificationForm />}
     <BotanicalDivider />
   </div></main>
 }
