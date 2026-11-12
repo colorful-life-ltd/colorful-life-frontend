@@ -75,16 +75,20 @@ export function isVerificationRequired(error: unknown): boolean {
   return error instanceof AuthApiError && error.status === 403 && (error.code === 'EMAIL_VERIFICATION_REQUIRED' || (!error.code && error.serverMessage === 'Email verification required'))
 }
 
-export function verifyEmail(token: string) {
-  return requestJson<void>('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) })
+export function verifyEmail(token: string, newPassword: string) {
+  return requestJson<void>('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token, newPassword }) })
 }
 
-export function resendVerification(token: string) {
-  return requestJson<void>('/auth/resend-verification', { method: 'POST' }, token)
+export function resendVerification(email: string) {
+  return requestJson<void>('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) })
 }
 
-export async function signUp(email: string, password: string): Promise<Session> {
-  return parseSession(await requestJson<unknown>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) }), false)
+export async function signUp(email: string, password: string): Promise<void> {
+  await requestJson<unknown>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) })
+}
+
+export function requestVerification(email: string) {
+  return resendVerification(email)
 }
 
 export async function signIn(email: string, password: string): Promise<Session> {

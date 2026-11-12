@@ -39,7 +39,7 @@ describe('anonymous sign-in failure messages', () => {
 
   it('leaves other anonymous requests on their existing messages', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(400, { error: 'Invalid or expired verification token' })))
-    await expect(verifyEmail('verification-token')).rejects.toMatchObject({ status: 400, message: 'Invalid or expired verification token' })
+    await expect(verifyEmail('verification-token', 'SecurePass1!')).rejects.toMatchObject({ status: 400, message: 'Invalid or expired verification token' })
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
     await expect(signUp('person@example.com', 'Abcdef1!')).rejects.toThrow('Failed to fetch')
   })
@@ -98,15 +98,15 @@ describe('storefront auth API', () => {
 
 
 describe('email verification HTTP contracts', () => {
-  it('submits only the verification token and uses Bearer auth for resend without a body', async () => {
+  it('submits the verification token and new password and resends by email', async () => {
     const fetcher = vi.fn().mockImplementation(() => Promise.resolve(new Response('{}')))
     vi.stubGlobal('fetch', fetcher)
-    await verifyEmail('verification-token')
-    expect(fetcher).toHaveBeenCalledWith('/api/auth/verify-email', expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'verification-token' }) }))
-    await resendVerification('jwt')
+    await verifyEmail('verification-token', 'SecurePass1!')
+    expect(fetcher).toHaveBeenCalledWith('/api/auth/verify-email', expect.objectContaining({ method: 'POST', body: JSON.stringify({ token: 'verification-token', newPassword: 'SecurePass1!' }) }))
+    await resendVerification('person@example.com')
     expect(fetcher.mock.calls[1][0]).toBe('/api/auth/resend-verification')
-    expect(fetcher.mock.calls[1][1].headers.get('Authorization')).toBe('Bearer jwt')
-    expect(fetcher.mock.calls[1][1].body).toBeUndefined()
+    expect(fetcher.mock.calls[1][1].headers.get('Authorization')).toBeNull()
+    expect(fetcher.mock.calls[1][1].body).toBe(JSON.stringify({email:'person@example.com'}))
   })
   it('parses nested codes/messages and recognizes verification with different wording', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Please confirm this address' } }), { status: 403 })))

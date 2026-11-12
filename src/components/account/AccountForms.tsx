@@ -1,3 +1,4 @@
+import { VerificationPending } from './VerificationPending'
 import { registrationAvailable, sandboxCheckout } from '../../features/checkout/sandbox'
 import { useEffect, useLayoutEffect, useRef, useState, type FormEvent } from 'react'
 import { COMPANY } from '../../features/legal/company'
@@ -275,6 +276,7 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
   // Customer accounts are not open yet: the Opening Soon announcement replaces every account form
   // (sign-in, create and password recovery), so no authentication request can be sent.
   if (!registrationAvailable) return <RegistrationClosedDialog onClose={() => onExplore?.()} />
+  if (state.status === 'verificationPending') return <VerificationPending email={state.email} />
   if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
   if (mode === 'forgot') return <div ref={container}><ForgotPasswordView initialEmail={drafts.signin.email} onBack={() => setMode('signin')} /></div>
   return (

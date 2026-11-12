@@ -4,13 +4,14 @@ import { resendVerification } from '../../features/auth/api'
 import './AccountExperience.css'
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 
-export function VerificationNotice({ token, message = 'Please verify your email before continuing.', onVerified }: { token: string; message?: string; onVerified?: () => void }) {
+export function VerificationNotice({ message = 'Please verify your email before continuing.', onVerified }: { token: string; message?: string; onVerified?: () => void }) {
   const { refreshAuth, logout } = useAuth()
   const titleId = useId()
   const [pending, setPending] = useState<'send' | 'check' | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [cooldown, setCooldown] = useState(false)
+  const [email, setEmail] = useState('')
   const locked = useRef(false)
   const mounted = useRef(true)
   useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
@@ -24,7 +25,8 @@ export function VerificationNotice({ token, message = 'Please verify your email 
     locked.current = true; setPending(kind); setError(null); setFeedback(null)
     try {
       if (kind === 'send') {
-        await resendVerification(token)
+        if (!email.trim()) { setError('Enter your email address.'); return }
+        await resendVerification(email.trim())
         if (mounted.current) { setCooldown(true); setFeedback('A verification email has been requested. Check your inbox and spam folder.') }
       } else {
         const verified = await refreshAuth()
@@ -42,6 +44,7 @@ export function VerificationNotice({ token, message = 'Please verify your email 
     <p>{message}</p><p className="verification-notice__guidance">Open the link in your verification email, then return here to continue.</p>
     {feedback && <p role="status">{feedback}</p>}
     {error && <p className="account-form__message account-form__message--error" role="alert">{error}</p>}
+    <label>Email address<input type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)} /></label>
     <div className="verification-notice__actions">
       <button className="account-form__submit" disabled={pending !== null || cooldown} onClick={() => void perform('send')}>{pending === 'send' ? 'Sending verification email…' : cooldown ? 'Resend available shortly' : 'Resend verification email'}</button>
       <button className="verification-notice__continue" disabled={pending !== null} onClick={() => void perform('check')}>{pending === 'check' ? 'Checking verification…' : 'I’ve verified my email'}</button>

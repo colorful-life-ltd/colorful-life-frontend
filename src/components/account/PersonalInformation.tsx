@@ -65,7 +65,7 @@ export function PersonalInformation({ onBack }: { onBack: () => void }) {
         <img src={sprout} alt="" aria-hidden="true" />
         <div><h3 id="personal-information-title">Personal Information</h3><p>Keep your personal details up to date.</p></div>
       </header>
-      {<p id="profile-email-help" role="status" hidden={!emailHelp}>Email cannot be changed here. If you have lost access, please <a href="mailto:support@build-and-bloom.co.uk">contact support</a>.</p>}
+      {<p id="profile-email-help" role="status" hidden={!emailHelp}>Please contact customer support. <a href="mailto:support@build-and-bloom.co.uk">support@build-and-bloom.co.uk</a></p>}
       {error && <p className="my-account__error" role="alert">{error}</p>}
       {editing ? <form className="account-personal-information__form" onSubmit={save}>
         <div className="my-account__field"><label htmlFor="profile-email">Email</label><button className="my-account__email-help" type="button" aria-expanded={emailHelp} aria-controls="profile-email-help" aria-label="Why can’t I change my email?" onClick={() => setEmailHelp(value => !value)}>ⓘ</button><input id="profile-email" type="email" value={user.email} readOnly aria-readonly="true" /></div>

@@ -67,14 +67,22 @@ describe('email verification and preserved checkout integration', () => {
     expect(container.textContent).not.toContain('response was lost')
     expect(container.textContent).not.toContain('abandons recovery')
     expect([...container.querySelectorAll('button')].find(button => button.textContent?.includes('Verify email before'))?.disabled).toBe(true)
+    await act(async () => { const input=container.querySelector<HTMLInputElement>('input[type="email"]')!; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input,user.email); input.dispatchEvent(new Event('input',{bubbles:true})) })
     await click('Resend verification email')
     expect(fetcher.mock.calls.filter(([url]) => url === '/api/auth/resend-verification')).toHaveLength(1)
     expect(orderCalls()).toHaveLength(1)
     await act(async () => { history.pushState({}, '', '/verify-email?token=fake-verification-token'); window.dispatchEvent(new PopStateEvent('popstate')) })
+    await act(async () => {
+      for (const input of container.querySelectorAll<HTMLInputElement>('input[type="password"]')) {
+        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input, 'SecurePass1!')
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+      }
+    })
+    await click('Verify and set password')
     expect(container.textContent).toContain('Your email has been verified')
     expect(location.search).toBe(''); expect(readAttempt(1)).toEqual(saved); expect(orderCalls()).toHaveLength(1)
     expect(container.textContent).not.toContain('Continue to checkout')
-    await click('Sign in now')
+    await click('Sign in')
     expect(container.querySelector('input[type="password"]')).not.toBeNull()
     expect(readAttempt(1)).toEqual(saved)
     await act(async () => auth.authenticate('signin', { email: user.email, password: 'Abcdef1!' }))

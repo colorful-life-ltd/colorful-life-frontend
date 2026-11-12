@@ -7,8 +7,6 @@ import { AUTH_STORAGE_KEY, AuthApiError, getCurrentUser, resendVerification, sig
 import { VerifyEmail } from './VerifyEmail'
 import { VerificationNotice } from './VerificationNotice'
 import { AccountForms } from './AccountForms'
-import App from '../../App'
-import { readAttempt, saveAttempt } from '../../features/checkout/state'
 import { AccountModal } from '../homepage/AccountModal'
 // These flows exercise activated customer accounts; the closed (Opening Soon) state is covered in RegistrationClosedDialog.test.tsx.
 vi.mock('../../features/checkout/sandbox', async original => ({ ...await original<typeof import('../../features/checkout/sandbox')>(), registrationAvailable: true }))
@@ -20,7 +18,6 @@ let root: Root | null = null
 let container: HTMLDivElement
 let auth: ReturnType<typeof useAuth>
 const user = { id: 1, email: 'test@example.com', firstName: 'Test', lastName: null, phone: null }
-const savedAttempt = { key: 'original-checkout-key', input: { shippingMethod: 'STANDARD' as const, items: [{ productListingId: 16901, quantity: 2 }] }, rejection: 'EMAIL_VERIFICATION_REQUIRED' as const }
 const verificationError = () => new AuthApiError(403, 'Verify', 'Different backend wording', 'EMAIL_VERIFICATION_REQUIRED')
 function Capture() { const value = useAuth(); useEffect(() => { auth = value }, [value]); return <p data-auth>{value.state.status}</p> }
 async function mount(element: ReactNode, strict = false) {
@@ -29,6 +26,7 @@ async function mount(element: ReactNode, strict = false) {
   await act(async () => root!.render(strict ? <StrictMode>{content}</StrictMode> : content))
 }
 async function click(text: string) { await act(async () => { const button = [...container.querySelectorAll('button')].find(button => button.textContent?.includes(text)); if (!button) throw new Error(`Missing button ${text}`); button.click() }) }
+async function enterResendEmail() { await act(async () => { const input=container.querySelector<HTMLInputElement>('input[type="email"]')!; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input,user.email); input.dispatchEvent(new Event('input',{bubbles:true})) }) }
 beforeEach(() => {
   vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/verify-email?token=test-verification-token')
   vi.mocked(getCurrentUser).mockResolvedValue(user); vi.mocked(verifyEmail).mockResolvedValue(); vi.mocked(resendVerification).mockResolvedValue()
@@ -36,87 +34,46 @@ beforeEach(() => {
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ''; vi.useRealTimers(); vi.unstubAllGlobals() })
 
 describe('verification route and token handling', () => {
-  it('routes /verify-email, consumes a token once in StrictMode and removes it from the URL/storage', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
-    await mount(<App />, true)
-    expect(verifyEmail).toHaveBeenCalledExactlyOnceWith('test-verification-token')
-    expect(location.search).toBe(''); expect(container.textContent).toContain('Your email has been verified')
-    expect(container.textContent).not.toContain('test-verification-token')
+  async function enterPasswords(first = 'SecurePass1!', second = first) {
+    const inputs = container.querySelectorAll<HTMLInputElement>('input[type="password"]')
+    await act(async () => { for (const [index, value] of [first, second].entries()) {
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(inputs[index], value)
+      inputs[index].dispatchEvent(new Event('input', { bubbles: true }))
+    } })
+  }
+  it('removes the token and requires a mailbox holder to choose a password', async () => {
+    await mount(<VerifyEmail onSignIn={vi.fn()} />, true)
+    expect(location.search).toBe(''); expect(verifyEmail).not.toHaveBeenCalled()
     expect(JSON.stringify(sessionStorage)).not.toContain('test-verification-token')
-    expect(auth.state.status).toBe('authenticated')
+    await enterPasswords(); await click('Verify and set password')
+    expect(verifyEmail).toHaveBeenCalledExactlyOnceWith('test-verification-token', 'SecurePass1!')
+    expect(container.textContent).toContain('Your email has been verified')
   })
-  it.each([false, true])('opens sign-in after three seconds without depending on saved checkout (%s)', async saved => {
-    vi.useFakeTimers()
-    if (saved) saveAttempt(user.id, savedAttempt)
-    const getItem = vi.spyOn(Storage.prototype, 'getItem')
-    const onSignIn = vi.fn()
-    await mount(<VerifyEmail onSignIn={onSignIn} />, true)
-    expect(container.querySelector('h1')?.textContent).toBe('Email verified')
-    expect(container.textContent).toContain('You can now sign in to your Build & Bloom account')
-    expect(container.textContent).toContain('Sign in now')
-    for (const text of ['Continue shopping', 'Continue to checkout', 'saved request', 'Open account', 'refresh your account']) expect(container.textContent).not.toContain(text)
-    expect(getItem.mock.calls.some(([key]) => key.startsWith('colorful-life:checkout-attempt:'))).toBe(false)
-    getItem.mockRestore()
-    expect(auth.state.status).toBe('signedOut')
-    expect(getCurrentUser).not.toHaveBeenCalled(); expect(signIn).not.toHaveBeenCalled()
-    await act(async () => vi.advanceTimersByTimeAsync(2999)); expect(onSignIn).not.toHaveBeenCalled()
-    await act(async () => vi.advanceTimersByTimeAsync(1)); expect(onSignIn).toHaveBeenCalledOnce()
-    expect(readAttempt(user.id)).toEqual(saved ? savedAttempt : null)
+  it('rejects mismatched passwords locally', async () => {
+    await mount(<VerifyEmail onSignIn={vi.fn()} />); await enterPasswords('SecurePass1!', 'Different1!')
+    await click('Verify and set password'); expect(verifyEmail).not.toHaveBeenCalled()
+    expect(container.textContent).toContain('Passwords do not match')
   })
-  it('allows immediate sign-in without repeating the timed transition', async () => {
-    vi.useFakeTimers(); const onSignIn = vi.fn()
-    await mount(<VerifyEmail onSignIn={onSignIn} />)
-    await click('Sign in now'); await click('Sign in now')
-    await act(async () => vi.advanceTimersByTimeAsync(3000))
-    expect(onSignIn).toHaveBeenCalledOnce()
-  })
-  it('opens the actual Sign In form even with an existing authenticated session', async () => {
-    vi.useFakeTimers(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt')
-    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
-    await mount(<App />)
-    expect(auth.state.status).toBe('authenticated')
-    await act(async () => vi.advanceTimersByTimeAsync(3000))
-    expect(location.pathname).toBe('/')
-    expect(container.querySelector('[role="dialog"]')).not.toBeNull()
-    expect(container.querySelector('input[type="password"]')).not.toBeNull()
-    expect(auth.state.status).toBe('signedOut'); expect(signIn).not.toHaveBeenCalled()
-  })
-  it('cancels the automatic transition when the page unmounts', async () => {
-    vi.useFakeTimers(); const onSignIn = vi.fn()
-    await mount(<VerifyEmail onSignIn={onSignIn} />)
-    await act(async () => root!.unmount()); root = null
-    await act(async () => vi.advanceTimersByTimeAsync(3000))
-    expect(onSignIn).not.toHaveBeenCalled()
-  })
-  it('renders a verifying state while the request is pending', async () => {
+  it('blocks duplicate submits while the verification request is pending', async () => {
     vi.mocked(verifyEmail).mockImplementation(() => new Promise(() => {}))
-    await mount(<VerifyEmail onSignIn={vi.fn()} />)
-    expect(container.textContent).toContain('Verifying your email'); expect(verifyEmail).toHaveBeenCalledOnce(); expect(location.search).toBe('')
+    await mount(<VerifyEmail onSignIn={vi.fn()} />); await enterPasswords(); await click('Verify and set password')
+    expect(container.textContent).toContain('Verifying'); expect(verifyEmail).toHaveBeenCalledOnce()
   })
-  it.each(['/verify-email', '/verify-email?token=%20'])('does not submit a missing or whitespace token at %s', async path => {
-    history.replaceState({}, '', path)
-    await mount(<VerifyEmail onSignIn={vi.fn()} />)
+  it.each(['/verify-email', '/verify-email?token=%20'])('does not submit a missing token at %s', async path => {
+    history.replaceState({}, '', path); await mount(<VerifyEmail onSignIn={vi.fn()} />)
     expect(container.textContent).toContain('no verification token'); expect(verifyEmail).not.toHaveBeenCalled()
   })
-  it('handles invalid/expired/used links neutrally and transitions to sign-in after three seconds', async () => {
-    vi.useFakeTimers(); const onSignIn = vi.fn()
-    vi.mocked(verifyEmail).mockRejectedValue(new AuthApiError(400, 'private details test-verification-token'))
-    await mount(<VerifyEmail onSignIn={onSignIn} />)
-    expect(container.querySelector('h1')?.textContent).toBe('Verification link unavailable')
-    expect(container.textContent).toContain('invalid, expired, or has already been used')
-    expect(container.textContent).toContain('Sign in to check your account status or request a new verification email')
-    expect(container.textContent).not.toContain('Sign in to resend verification')
-    expect(container.textContent).not.toContain('private details'); expect(location.search).toBe('')
-    expect(container.querySelector('button')?.textContent).toBe('Sign in')
-    await act(async () => vi.advanceTimersByTimeAsync(2999)); expect(onSignIn).not.toHaveBeenCalled()
-    await act(async () => vi.advanceTimersByTimeAsync(1)); expect(onSignIn).toHaveBeenCalledOnce()
+  it('does not expose server details for an invalid token', async () => {
+    vi.mocked(verifyEmail).mockRejectedValue(new AuthApiError(400, 'private details'))
+    await mount(<VerifyEmail onSignIn={vi.fn()} />); await enterPasswords(); await click('Verify and set password')
+    expect(container.textContent).toContain('invalid, expired, or already used'); expect(container.textContent).not.toContain('private details')
   })
-  it('offers a guarded retry for network failure without persisting the token', async () => {
+  it('offers a retry after a network error without putting the token in the URL', async () => {
     vi.mocked(verifyEmail).mockRejectedValueOnce(new Error('offline')).mockResolvedValue()
-    await mount(<VerifyEmail onSignIn={vi.fn()} />); expect(container.textContent).toContain('could not confirm')
-    await click('Retry verification'); expect(container.textContent).toContain('Your email has been verified'); expect(verifyEmail).toHaveBeenCalledTimes(2)
+    await mount(<VerifyEmail onSignIn={vi.fn()} />); await enterPasswords(); await click('Verify and set password')
+    expect(container.textContent).toContain('could not confirm'); expect(location.search).toBe('')
+    await click('Verify and set password'); expect(verifyEmail).toHaveBeenCalledTimes(2)
   })
-
 })
 
 describe('unverified account and resend UX', () => {
@@ -125,17 +82,14 @@ describe('unverified account and resend UX', () => {
     await mount(<AccountForms />)
     expect(auth.state).toMatchObject({ status: 'verificationRequired', token: 'jwt' }); expect(container.textContent).toContain('Resend verification email'); expect(container.querySelector('form')).toBeNull()
   })
-  it('communicates successful signup and the sent verification email', async () => {
-    vi.mocked(signUp).mockResolvedValue({ token: 'signup-jwt' }); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
+  it('shows a generic verification prompt without storing a session after signup', async () => {
+    vi.mocked(signUp).mockResolvedValue()
     await mount(<AccountForms />)
     await act(async () => auth.authenticate('signup', { email: 'test@example.com', password: 'Abcdef1!' }))
-    expect(container.textContent).toContain('Your account was created'); expect(container.textContent).toContain('A verification email has been sent'); expect(auth.state.status).toBe('verificationRequired')
-  })
-  it('keeps signup success visible if the subsequent profile refresh fails', async () => {
-    vi.mocked(signUp).mockResolvedValue({ token: 'signup-jwt' }); vi.mocked(getCurrentUser).mockRejectedValue(new Error('Connection interrupted'))
-    await mount(<AccountForms />)
-    await act(async () => auth.authenticate('signup', { email: user.email, password: 'Abcdef1!' }))
-    expect(auth.state.status).toBe('error'); expect(container.textContent).toContain('Your account was created'); expect(container.textContent).toContain('A verification email has been sent')
+    expect(container.textContent).toContain('If registration is available')
+    expect(auth.state.status).toBe('verificationPending')
+    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    expect(getCurrentUser).not.toHaveBeenCalled()
   })
   it('allows login for an unverified account and later rechecks its actual profile', async () => {
     vi.mocked(signIn).mockResolvedValue({ token: 'jwt' }); vi.mocked(getCurrentUser).mockRejectedValueOnce(verificationError()).mockResolvedValue(user)
@@ -146,14 +100,15 @@ describe('unverified account and resend UX', () => {
     vi.useFakeTimers(); let finish!: () => void
     vi.mocked(resendVerification).mockImplementation(() => new Promise(resolve => { finish = resolve }))
     await mount(<VerificationNotice token="jwt" />)
+    await enterResendEmail()
     await click('Resend verification'); await click('Sending verification')
-    expect(resendVerification).toHaveBeenCalledExactlyOnceWith('jwt'); expect(container.textContent).toContain('Sending verification email')
+    expect(resendVerification).toHaveBeenCalledExactlyOnceWith(user.email); expect(container.textContent).toContain('Sending verification email')
     await act(async () => finish()); expect(container.textContent).toContain('Check your inbox and spam folder'); expect(container.textContent).toContain('Resend available shortly')
     await act(async () => vi.advanceTimersByTimeAsync(30000)); expect(container.textContent).toContain('Resend verification email')
   })
   it('reports resend failure without exposing internal errors', async () => {
     vi.mocked(resendVerification).mockRejectedValue(new Error('SES/internal error'))
-    await mount(<VerificationNotice token="jwt" />); await click('Resend verification')
+    await mount(<VerificationNotice token="jwt" />); await enterResendEmail(); await click('Resend verification')
     expect(container.textContent).toContain('Unable to complete'); expect(container.textContent).not.toContain('SES/internal')
   })
   it('keeps the compact modal labelled and its sign-out action working', async () => {
