@@ -8,8 +8,8 @@ ROOT=Path('/opt/colorful-life-production/storefront')
 BUCKET='colorful-life-production-storefront-919693204623'
 REVISION='69ccd28e0c3e2e3663f3f39564bbbd33f811b605'
 ROUTES='960c0be2d745373b50eee4c5dcc68a8e6164f24f91e2f944c61b4e15deaad208'
-# No approved fingerprint has been supplied. A reviewed pin is required before publication.
-APPROVED_KEY_SHA256=None
+# Owner-approved Production public-key fingerprint (2026-11-13).
+APPROVED_KEY_SHA256="16bbd85ded5b67606c6f68b974244e46a9cc6616ca00ca7b1401168b49c68f23"
 
 def approved_fingerprint(value):
     if not isinstance(APPROVED_KEY_SHA256,str) or not artifact.DIGEST.fullmatch(APPROVED_KEY_SHA256):raise artifact.GateError('Owner-approved key fingerprint prerequisite missing')
