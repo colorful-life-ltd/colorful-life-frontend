@@ -99,7 +99,7 @@ jobs:
           test "$(aws sts get-caller-identity --query Account --output text)" = 919693204623
           url=''
           if [ "$ACTION" != rollback ]; then
-            aws s3api put-object --bucket "$BUCKET" --key "storefront/$ARCHIVE_DIGEST.tar.gz" --body "$RUNNER_TEMP/production.tar.gz" --if-none-match '*' >/dev/null
+            python3 -B controller/ops/production_delivery/upload.py --archive "$RUNNER_TEMP/production.tar.gz" --digest "$ARCHIVE_DIGEST"
             url=$(aws s3 presign "s3://$BUCKET/storefront/$ARCHIVE_DIGEST.tar.gz" --expires-in 900)
           fi
           params=$(jq -nc --arg a "$ACTION" --arg u "$url" --arg d "${ARCHIVE_DIGEST:-}" --arg f "$FINGERPRINT" --arg r "$ROUTE_DIGEST" '{Action:[$a],Url:[$u],Digest:[$d],Fingerprint:[$f],RouteDigest:[$r]}')

@@ -8,6 +8,12 @@ ROOT=Path('/opt/colorful-life-production/storefront')
 BUCKET='colorful-life-production-storefront-919693204623'
 REVISION='69ccd28e0c3e2e3663f3f39564bbbd33f811b605'
 ROUTES='960c0be2d745373b50eee4c5dcc68a8e6164f24f91e2f944c61b4e15deaad208'
+# No approved fingerprint has been supplied. A reviewed pin is required before publication.
+APPROVED_KEY_SHA256=None
+
+def approved_fingerprint(value):
+    if not isinstance(APPROVED_KEY_SHA256,str) or not artifact.DIGEST.fullmatch(APPROVED_KEY_SHA256):raise artifact.GateError('Owner-approved key fingerprint prerequisite missing')
+    if value!=APPROVED_KEY_SHA256:raise artifact.GateError('Key fingerprint differs from independent owner approval')
 
 def trusted(path,owner=0,mode=None):
     for p in [Path(path),*Path(path).parents]:
@@ -81,6 +87,7 @@ class Store(primitives.Store):
         release=self.releases/digest;trusted(release,self.owner,0o755)
         for p in [release/'archive.tar.gz',release/'record.json']:trusted(p,self.owner)
         record=json.loads((release/'record.json').read_text())
+        approved_fingerprint(record.get('keyFingerprint'))
         with tempfile.TemporaryDirectory(dir=self.control) as temporary:
             actual=artifact.unpack(release/'archive.tar.gz',Path(temporary),digest)
         if actual!=record or record['sourceRevision']!=REVISION:raise artifact.GateError('Retained Production release identity differs')
@@ -89,6 +96,7 @@ class Store(primitives.Store):
         if assets_required:assets.verify(self,record,lambda p,mode=None:trusted(p,self.owner,mode))
         return record
     def stage(self,url,digest,fingerprint,registration,fetch=download):
+        approved_fingerprint(fingerprint)
         if not artifact.DIGEST.fullmatch(digest) or not artifact.DIGEST.fullmatch(fingerprint):raise artifact.GateError('Approved archive and key digests required')
         target=self.releases/digest
         if target.exists():record=self.verify(digest,False)
@@ -174,7 +182,8 @@ def running_switches_off(pid,read_bytes=None,read_text=None):
         except (FileNotFoundError,ProcessLookupError):pass
     if not found:raise artifact.GateError('Running commercial switch evidence unavailable')
 
-def preflight(route_digest,prepare=False):
+def preflight(route_digest,prepare=False,rollback=False):
+    if prepare and rollback:raise artifact.GateError('Invalid preflight action')
     if os.geteuid()!=0 or os.environ.get('DOCKER_HOST') or os.environ.get('DOCKER_CONTEXT'):raise artifact.GateError('Local root execution required')
     if Path('/sys/devices/virtual/dmi/id/board_asset_tag').read_text().strip()!='i-02b28336518077a8f':raise artifact.GateError('Wrong host')
     if not artifact.DIGEST.fullmatch(route_digest):raise artifact.GateError('Owner-reviewed nginx digest required')
@@ -189,20 +198,24 @@ def preflight(route_digest,prepare=False):
     if config.get('manifestSha256')!=hashlib.sha256((state/'current.json').read_bytes()).hexdigest():raise artifact.GateError('Backend recovery pin differs')
     for name in ['release-transition.json','runtime-recovery-pending.json']:
         if (state/name).exists() or (state/name).is_symlink():raise artifact.GateError('Backend transition is active')
-    if m['backendCommit']!='51ab89108b825e4ad17c41d7c6ab5325bb7a9f26' or m['apiImage']!='919693204623.dkr.ecr.eu-west-2.amazonaws.com/colorful-life-production-api@sha256:ffd02a031aa32ced1d541ec219b837ce9453bb0808254945c86e8fa110fe5c84':raise artifact.GateError('Approved backend identity differs')
+    artifact.sha(m['backendCommit'])
+    if not re.fullmatch(r'919693204623\.dkr\.ecr\.eu-west-2\.amazonaws\.com/colorful-life-production-api@sha256:[0-9a-f]{64}',m['apiImage']):raise artifact.GateError('Immutable Production backend required')
+    if not rollback and (m['backendCommit']!='51ab89108b825e4ad17c41d7c6ab5325bb7a9f26' or m['apiImage']!='919693204623.dkr.ecr.eu-west-2.amazonaws.com/colorful-life-production-api@sha256:ffd02a031aa32ced1d541ec219b837ce9453bb0808254945c86e8fa110fe5c84'):raise artifact.GateError('Approved backend identity differs')
     if guard.read(state,0) is None:raise artifact.GateError('Compatibility guard required')
     guard.enforce(state,m,0)
-    secret=json.loads(Path('/run/colorful-life/production/runtime.json').read_bytes())
-    if secret.get('PRODUCTION_REGISTRATION_ENABLED')!='false' or secret.get('PRODUCTION_PAYMENT_INITIATION_ENABLED')!='false':raise artifact.GateError('Registration and payments must remain OFF')
+    if not rollback:
+        secret=json.loads(Path('/run/colorful-life/production/runtime.json').read_bytes())
+        if secret.get('PRODUCTION_REGISTRATION_ENABLED')!='false' or secret.get('PRODUCTION_PAYMENT_INITIATION_ENABLED')!='false':raise artifact.GateError('Registration and payments must remain OFF')
     for service in ['api','worker']:
         row=json.loads(subprocess.check_output(['docker','inspect','colorful-life-production-'+service+'-1']))[0]
         if row['Config']['Image']!=m['apiImage'] or not row['State']['Running'] or row['State'].get('Health',{}).get('Status')!='healthy':raise artifact.GateError('Backend identity or health differs')
-        running_switches_off(row['State']['Pid'])
+        if not rollback:running_switches_off(row['State']['Pid'])
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('action',choices=['prepare','deploy','rollback']);p.add_argument('--url',default='');p.add_argument('--digest',default='');p.add_argument('--fingerprint',default='');p.add_argument('--route-digest',required=True);a=p.parse_args()
     try:
-        preflight(a.route_digest,a.action=='prepare');store=Store();store.prepare()
+        approved_fingerprint(APPROVED_KEY_SHA256 if a.action=='rollback' else a.fingerprint)
+        preflight(a.route_digest,prepare=a.action=='prepare',rollback=a.action=='rollback');store=Store();store.prepare()
         fd=os.open(store.control/'lock',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
         with os.fdopen(fd,'a') as lock:
             if os.fstat(lock.fileno()).st_uid!=0 or stat.S_IMODE(os.fstat(lock.fileno()).st_mode)!=0o600:raise artifact.GateError('Unsafe deployment lock')

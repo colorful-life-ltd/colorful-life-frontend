@@ -1,8 +1,8 @@
 """Offline synthetic artifact/failure tests; no AWS, host services or Live credentials."""
-import hashlib,json,os,shutil,tempfile,unittest
+import hashlib,json,os,shutil,subprocess,sys,tempfile,types,unittest
 from pathlib import Path
 from unittest.mock import patch
-import artifact,assets,build,install,template
+import artifact,assets,build,install,template,upload
 KEY='pk_live_offlineSyntheticOnly12345';FP=hashlib.sha256(KEY.encode()).hexdigest()
 
 class Build(unittest.TestCase):
@@ -29,6 +29,7 @@ class Delivery(unittest.TestCase):
   self.root=self.base/'production';self.root.mkdir(mode=0o755)
   # Only root-controlled /opt is admitted in Production. Fixtures are unprivileged /tmp.
   mocked=patch.object(install,'trusted');mocked.start();self.addCleanup(mocked.stop)
+  pin=patch.object(install,'APPROVED_KEY_SHA256',FP);pin.start();self.addCleanup(pin.stop)
   self.store=install.Store(self.root,os.getuid());self.store.prepare()
  def archive(self,name,registration=False):
   dist=self.base/('dist-'+name);dist.mkdir();(dist/'assets').mkdir()
@@ -113,10 +114,85 @@ class Delivery(unittest.TestCase):
   self.archive('crossed');dist=self.base/'dist-crossed'
   (dist/'assets/test.js').write_text('pk_test_offlineSyntheticOnly12345')
   with self.assertRaises(artifact.GateError):artifact.inventory(dist,FP)
+ def test_supplied_key_fingerprint_cannot_self_approve(self):
+  a,d=self.archive('unapproved')
+  with self.assertRaisesRegex(artifact.GateError,'independent owner'):self.store.stage('url',d,'a'*64,False,self.fetch(a))
+  self.assertFalse((self.store.releases/d).exists())
+ def test_unset_pin_blocks_staging_and_retained_verification(self):
+  old=self.prepare();a,d=self.archive('no-pin')
+  with patch.object(install,'APPROVED_KEY_SHA256',None):
+   with self.assertRaisesRegex(artifact.GateError,'prerequisite missing'):self.store.stage('url',d,FP,False,self.fetch(a))
+   with self.assertRaisesRegex(artifact.GateError,'prerequisite missing'):self.store.verify(old)
  def test_wrong_environment_bundle_is_rejected(self):
   a,d=self.archive('mode')
   dist=self.base/'dist-mode';env=json.loads((dist/'storefront-environment.json').read_text());env['target']='sandbox';(dist/'storefront-environment.json').write_text(json.dumps(env))
   with self.assertRaises(artifact.GateError):artifact.inventory(dist,FP)
+
+class RollbackPreflight(unittest.TestCase):
+ def preflight(self,rollback=False,prepare=False,advanced=False,registration=False,guard_present=True,guard_reject=False,route_changed=False,bad_health=False,bad_root=False):
+  m={'backendCommit':'e'*40 if advanced else '51ab89108b825e4ad17c41d7c6ab5325bb7a9f26','apiImage':'919693204623.dkr.ecr.eu-west-2.amazonaws.com/colorful-life-production-api@sha256:'+('e'*64 if advanced else 'ffd02a031aa32ced1d541ec219b837ce9453bb0808254945c86e8fa110fe5c84')}
+  raw=json.dumps(m).encode();route=b'reviewed route include'
+  dump=b'root /opt/colorful-life-production/storefront/current; root /opt/colorful-life-production/storefront/asset-store;'
+  if bad_root:dump=b'root /other;'
+  digest=hashlib.sha256(dump).hexdigest()
+  guard=types.SimpleNamespace(read=lambda *_:{} if guard_present else None,enforce=unittest.mock.Mock(side_effect=artifact.GateError('Guard rejected current image') if guard_reject else None))
+  def readbytes(path):
+   if path.name=='current.json':return raw
+   if path.name=='browser-api-locations.conf':return b'changed' if route_changed else route
+   if path.name=='runtime.json':return json.dumps({'PRODUCTION_REGISTRATION_ENABLED':'true' if registration else 'false','PRODUCTION_PAYMENT_INITIATION_ENABLED':'true' if registration else 'false'}).encode()
+   raise AssertionError('Unexpected read')
+  def private(path,owner):return m if path.name=='current.json' else {'manifestSha256':hashlib.sha256(raw).hexdigest()}
+  def command(args,**kwargs):
+   if args==['nginx','-T']:return dump
+   return json.dumps([{'Config':{'Image':m['apiImage']},'State':{'Running':True,'Health':{'Status':'unhealthy' if bad_health else 'healthy'},'Pid':1}}]).encode()
+  with patch.dict(sys.modules,{'production_compatibility':guard}),patch.object(install.os,'geteuid',return_value=0),patch.object(Path,'read_text',return_value='i-02b28336518077a8f'),patch.object(Path,'read_bytes',readbytes),patch.object(Path,'exists',return_value=False),patch.object(Path,'is_symlink',return_value=False),patch.object(install,'private',side_effect=private),patch.object(install,'ROUTES',hashlib.sha256(route).hexdigest()),patch.object(install.subprocess,'check_output',side_effect=command),patch.object(install,'running_switches_off') as switches:
+   install.preflight(digest,prepare=prepare,rollback=rollback)
+  return switches,guard
+ def test_rollback_allows_new_compatible_backend_and_active_switches(self):
+  switches,guard=self.preflight(rollback=True,advanced=True,registration=True)
+  switches.assert_not_called();self.assertEqual(guard.enforce.call_count,1)
+ def test_prepare_and_deploy_keep_exact_backend_requirement(self):
+  for prepare in [False,True]:
+   with self.subTest(prepare=prepare),self.assertRaisesRegex(artifact.GateError,'backend identity'):self.preflight(prepare=prepare,advanced=True)
+ def test_prepare_and_deploy_keep_switches_off_requirement(self):
+  for prepare in [False,True]:
+   with self.subTest(prepare=prepare),self.assertRaisesRegex(artifact.GateError,'remain OFF'):self.preflight(prepare=prepare,registration=True)
+ def test_rollback_still_requires_guard_routes_root_and_health(self):
+  for change in [{'guard_present':False},{'guard_reject':True},{'route_changed':True},{'bad_health':True},{'bad_root':True}]:
+   with self.subTest(change=change),self.assertRaises(artifact.GateError):self.preflight(rollback=True,advanced=True,registration=True,**change)
+
+class Upload(unittest.TestCase):
+ def setUp(self):
+  self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.archive=Path(self.tmp.name)/'archive';self.archive.write_bytes(b'content-addressed bytes');self.digest=artifact.digest(self.archive)
+ def test_new_upload_success(self):
+  run=unittest.mock.Mock(return_value=subprocess.CompletedProcess([],0,'',''))
+  self.assertEqual(upload.upload(self.archive,self.digest,run),'Archive uploaded');self.assertEqual(run.call_count,1)
+ def reuse(self,error='PreconditionFailed',content=None,download_error=False):
+  calls=[]
+  def run(args,**kwargs):
+   calls.append(args)
+   if 'put-object' in args:return subprocess.CompletedProcess(args,254,'','An error occurred ('+error+') when calling the PutObject operation: Condition failed')
+   if not download_error:Path(args[-1]).write_bytes(self.archive.read_bytes() if content is None else content)
+   return subprocess.CompletedProcess(args,1 if download_error else 0,'','')
+  return run,calls
+ def test_412_continues_only_after_actual_object_digest_match(self):
+  for error in ['412','PreconditionFailed']:
+   run,calls=self.reuse(error)
+   self.assertEqual(upload.upload(self.archive,self.digest,run),'Existing archive independently verified')
+   self.assertEqual(len(calls),2);self.assertIn('get-object',calls[1])
+ def test_412_mismatch_or_failed_download_rejected(self):
+  for options in [{'content':b'wrong object'},{'download_error':True}]:
+   run,_=self.reuse(**options)
+   with self.assertRaises(artifact.GateError):upload.upload(self.archive,self.digest,run)
+ def test_other_upload_errors_do_not_download_or_continue(self):
+  for error in ['AccessDenied','409','InvalidClientTokenId']:
+   run,calls=self.reuse(error)
+   with self.assertRaises(artifact.GateError):upload.upload(self.archive,self.digest,run)
+   self.assertEqual(len(calls),1)
+ def test_wrong_local_digest_rejected_before_aws(self):
+  run=unittest.mock.Mock()
+  with self.assertRaises(artifact.GateError):upload.upload(self.archive,'a'*64,run)
+  run.assert_not_called()
 
 class Isolation(unittest.TestCase):
  def test_sandbox_and_other_branches_cannot_assume_production_role(self):

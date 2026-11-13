@@ -45,7 +45,11 @@ artifact attestation; it does not claim independently signed build provenance.
    role rejects a Sandbox/main token before publication.
 3. Configure repository variables `PRODUCTION_STRIPE_PUBLISHABLE_KEY` (the existing
    approved Live **public** key), `PRODUCTION_STRIPE_PUBLISHABLE_KEY_SHA256` (owner
-   approved SHA-256 of exact UTF-8 key bytes, without newline), and initially leave
+   approved SHA-256 of exact UTF-8 key bytes, without newline). Independently approve
+   and review-pin that same value as `APPROVED_KEY_SHA256` in `install.py`, then
+   regenerate/review the SSM document. The pin is currently unset: publication and
+   retained-release verification fail closed, regardless of supplied variables.
+   No approved fingerprint is invented by this PR. Initially leave
    `PRODUCTION_FRONTEND_DELIVERY_ENABLED` absent/false. Never supply a secret key.
 4. Independently approve/create root-owned 0755
    `/opt/colorful-life-production/storefront` and its parents. Require an SSM agent
@@ -72,11 +76,14 @@ manually dispatch `.github/workflows/production-storefront-manual.yml` with
   says the baseline has not yet been publicly verified. If preparation is
   interrupted between pointer/state creation, stop for owner recovery; do not
   adopt an unrecorded pointer or retry blindly.
-- Separately approve the routing owner's static-root cutover to R0. Verify the
+- Before the separately authorized Production static-root cutover, explicitly set
+  `SANDBOX_DEPLOY_ENABLED=false` and verify Sandbox delivery is disabled. This PR
+  does not change that setting. Then separately approve the routing owner's
+  static-root cutover to R0. Verify the
   site and Production APIs. Keep backend registration and payment initiation OFF.
-  Sandbox auto-deploy can continue updating its separate directory; it cannot
-  overwrite the Production directory or asset store. Any separately authorized
-  Sandbox nginx-install operation still requires owner coordination.
+  Keep Sandbox delivery disabled during cutover. Any later Sandbox re-enablement
+  needs separate owner approval and destination/vhost isolation checks; it must
+  never replace the Production directory, asset store or public vhost.
 - `deploy` builds R1 with `VITE_REGISTRATION_ENABLED=true`, genuine Production
   identity and the approved Live public key. It first verifies the current
   Production baseline is intact **and actually served**, then stages R1, publishes
@@ -89,15 +96,22 @@ manually dispatch `.github/workflows/production-storefront-manual.yml` with
   Production baseline. A failed restoration keeps the journal and evidence.
   Never select the old Sandbox bundle. Releases and hashed assets are not pruned.
 
+Conditional uploads reuse an existing object only after an exact S3 412 response
+and an independent download/SHA-256 check; other upload failures remain fatal.
+Host-side archive verification is unchanged.
+
 The workflow records one SSM command ID and its bounded waiter result. If still
 running, inspect **that ID**; do not redispatch. Logs/archives contain no private
 Stripe credentials. A presigned download URL is short-lived and must not be printed.
 
 The installer also requires the current approved Backend #241, active compatibility
 boundary, and registration/payment switches OFF in both runtime settings and
-running processes. A later registration activation or backend/control-source
-change requires a separate reviewed update; this initial workflow must not silently
-relax those checks. Ordinary pushes never deploy Production.
+running processes for prepare/deploy. Rollback alone permits registration/payment
+activation and a newer Backend: it still requires an immutable current Production
+image, healthy matching API/Worker, consistent recovery pin, active Compatibility
+Guard authorization, the approved routing/root and verified retained frontend/key.
+Rollback never changes backend switches or restores backend images. Updating the
+prepare/deploy source/backend pins still requires a separate reviewed change. Ordinary pushes never deploy Production.
 
 ## Focused verification
 
