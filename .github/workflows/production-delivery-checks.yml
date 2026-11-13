@@ -1,0 +1,23 @@
+name: Production delivery checks
+on:
+  pull_request:
+    paths:
+      - 'ops/production_delivery/**'
+      - '.github/workflows/production-storefront-manual.yml'
+      - '.github/workflows/production-delivery-checks.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'ops/production_delivery/**'
+      - '.github/workflows/production-storefront-manual.yml'
+      - '.github/workflows/production-delivery-checks.yml'
+permissions:
+  contents: read
+jobs:
+  focused-offline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 -B -m unittest discover -s ops/production_delivery -p 'test_*.py' -v

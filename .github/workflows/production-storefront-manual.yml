@@ -1,0 +1,112 @@
+name: Manual Production storefront
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: Prepare a registration-closed baseline, deploy registration UI, or rollback
+        required: true
+        type: choice
+        options: [prepare, deploy, rollback]
+      confirm_revision:
+        description: Enter approved frontend SHA 69ccd28e0c3e2e3663f3f39564bbbd33f811b605
+        required: true
+      route_digest:
+        description: Owner-reviewed effective nginx -T SHA256
+        required: true
+      authorized:
+        description: Owner explicitly authorizes this Production operation
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: production-storefront-manual
+  cancel-in-progress: false
+jobs:
+  focused-offline:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - run: python3 -B -m unittest discover -s ops/production_delivery -p 'test_*.py' -v
+  production:
+    needs: focused-offline
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      github.repository == 'colorful-life-ltd/colorful-life-frontend' &&
+      github.ref == 'refs/heads/production-storefront-release' &&
+      vars.PRODUCTION_FRONTEND_DELIVERY_ENABLED == 'true' && inputs.authorized &&
+      inputs.confirm_revision == '69ccd28e0c3e2e3663f3f39564bbbd33f811b605'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    env:
+      ACTION: ${{ inputs.action }}
+      ROUTE_DIGEST: ${{ inputs.route_digest }}
+      FINGERPRINT: ${{ vars.PRODUCTION_STRIPE_PUBLISHABLE_KEY_SHA256 }}
+      BUCKET: colorful-life-production-storefront-919693204623
+      DOCUMENT: ColorfulLife-ProductionStorefrontManual
+      INSTANCE: i-02b28336518077a8f
+      AWS_REGION: eu-west-2
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          path: controller
+      - name: Validate inputs and original source CI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          [[ "$ROUTE_DIGEST" =~ ^[0-9a-f]{64}$ ]]
+          case "$ACTION" in prepare|deploy|rollback) ;; *) exit 1 ;; esac
+          if [ "$ACTION" != rollback ]; then
+            [[ "$FINGERPRINT" =~ ^[0-9a-f]{64}$ ]]
+            gh api 'repos/colorful-life-ltd/colorful-life-frontend/actions/workflows/storefront.yml/runs?head_sha=69ccd28e0c3e2e3663f3f39564bbbd33f811b605&status=success&per_page=100' --jq '.workflow_runs | any(.head_branch == "main" and .head_sha == "69ccd28e0c3e2e3663f3f39564bbbd33f811b605")' | grep -qx true
+          fi
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        if: inputs.action != 'rollback'
+        with:
+          ref: 69ccd28e0c3e2e3663f3f39564bbbd33f811b605
+          path: source
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: inputs.action != 'rollback'
+        with:
+          node-version: 24
+      - name: Build exact Production source without AWS credentials
+        if: inputs.action != 'rollback'
+        env:
+          PRODUCTION_STRIPE_PUBLISHABLE_KEY: ${{ vars.PRODUCTION_STRIPE_PUBLISHABLE_KEY }}
+        run: |
+          registration=true
+          [ "$ACTION" != prepare ] || registration=false
+          digest=$(python3 -B controller/ops/production_delivery/build.py --checkout "$GITHUB_WORKSPACE/source" --output "$RUNNER_TEMP/production.tar.gz" --delivery-revision "$GITHUB_SHA" --fingerprint "$FINGERPRINT" --registration "$registration")
+          [[ "$digest" =~ ^[0-9a-f]{64}$ ]]
+          echo "ARCHIVE_DIGEST=$digest" >> "$GITHUB_ENV"
+      - uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a
+        with:
+          role-to-assume: arn:aws:iam::919693204623:role/ColorfulLife-ProductionStorefrontManual
+          role-session-name: production-frontend-${{ github.run_id }}
+          aws-region: eu-west-2
+      - name: Deliver through the fixed Production SSM document
+        run: |
+          test "$(aws sts get-caller-identity --query Account --output text)" = 919693204623
+          url=''
+          if [ "$ACTION" != rollback ]; then
+            python3 -B controller/ops/production_delivery/upload.py --archive "$RUNNER_TEMP/production.tar.gz" --digest "$ARCHIVE_DIGEST"
+            url=$(aws s3 presign "s3://$BUCKET/storefront/$ARCHIVE_DIGEST.tar.gz" --expires-in 900)
+          fi
+          params=$(jq -nc --arg a "$ACTION" --arg u "$url" --arg d "${ARCHIVE_DIGEST:-}" --arg f "$FINGERPRINT" --arg r "$ROUTE_DIGEST" '{Action:[$a],Url:[$u],Digest:[$d],Fingerprint:[$f],RouteDigest:[$r]}')
+          id=$(aws ssm send-command --instance-ids "$INSTANCE" --document-name "$DOCUMENT" --parameters "$params" --timeout-seconds 900 --query Command.CommandId --output text)
+          echo "Production SSM operation: $id" >> "$GITHUB_STEP_SUMMARY"
+          # The workflow waiter is bounded; an operator must inspect this same ID, never redispatch.
+          aws ssm wait command-executed --instance-id "$INSTANCE" --command-id "$id" || true
+          status=$(aws ssm get-command-invocation --instance-id "$INSTANCE" --command-id "$id" --query Status --output text)
+          echo "SSM status: $status" >> "$GITHUB_STEP_SUMMARY"
+          test "$status" = Success
