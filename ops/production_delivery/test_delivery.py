@@ -5,6 +5,15 @@ from unittest.mock import patch
 import artifact,assets,build,install,template,upload
 KEY='pk_live_offlineSyntheticOnly12345';FP=hashlib.sha256(KEY.encode()).hexdigest()
 
+class ApprovedPin(unittest.TestCase):
+ def test_owner_approved_fingerprint_accepted(self):
+  approved='16bbd85ded5b67606c6f68b974244e46a9cc6616ca00ca7b1401168b49c68f23'
+  self.assertEqual(install.APPROVED_KEY_SHA256,approved)
+  install.approved_fingerprint(approved)
+ def test_incorrect_and_missing_fingerprints_rejected(self):
+  for value in ['a'*64,'',None]:
+   with self.subTest(value_present=bool(value)),self.assertRaises(artifact.GateError):install.approved_fingerprint(value)
+
 class Build(unittest.TestCase):
  def test_explicit_production_registration_and_minimal_environment(self):
   with patch.dict(os.environ,{'AWS_SECRET_ACCESS_KEY':'never-forward','VITE_SANDBOX_REGISTRATION_ENABLED':'true','ACTIONS_ID_TOKEN_REQUEST_TOKEN':'never-forward'}):
