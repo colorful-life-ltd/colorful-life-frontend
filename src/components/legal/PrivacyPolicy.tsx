@@ -65,7 +65,7 @@ export function PrivacyPolicy() {
     <ul>
       <li>email us to request access to or a copy of your personal information;</li>
       <li>correct your profile and addresses in <strong>My Account</strong>;</li>
-      <li>request account deletion in <strong>My Account → Your data</strong>. The account-deletion service removes saved addresses and replaces account identifiers, but does not erase all order, payment or email records. Contact us about any information retained for legal, accounting or unresolved-transaction reasons;</li>
+      <li>delete your account in <strong>My Account → Delete account</strong>. The account-deletion service removes saved addresses and replaces account identifiers, but does not erase all order, payment or email records. Contact us about any information retained for legal, accounting or unresolved-transaction reasons;</li>
       <li>email <a href={`mailto:${COMPANY.supportEmail}`}>{COMPANY.supportEmail}</a> for any other request.</li>
     </ul>
     <p>We normally respond to data-rights requests within one month. Where the law allows an extension, we will explain it. We may need to confirm your identity first.</p>
