@@ -2,7 +2,7 @@
 import argparse,hashlib,os,re
 from pathlib import Path
 import artifact
-REVISION='69ccd28e0c3e2e3663f3f39564bbbd33f811b605'
+REVISION='fbc860a33b0daf31aad9b1c1667032098dd87e32'
 
 def environment(key,fingerprint,registration):
     if not re.fullmatch(r'pk_live_[A-Za-z0-9]{8,}',key) or hashlib.sha256(key.encode()).hexdigest()!=fingerprint:

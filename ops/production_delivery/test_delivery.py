@@ -139,7 +139,7 @@ class Delivery(unittest.TestCase):
 
 class RollbackPreflight(unittest.TestCase):
  def preflight(self,rollback=False,prepare=False,advanced=False,registration=False,guard_present=True,guard_reject=False,route_changed=False,bad_health=False,bad_root=False):
-  m={'backendCommit':'e'*40 if advanced else '51ab89108b825e4ad17c41d7c6ab5325bb7a9f26','apiImage':'919693204623.dkr.ecr.eu-west-2.amazonaws.com/colorful-life-production-api@sha256:'+('e'*64 if advanced else 'ffd02a031aa32ced1d541ec219b837ce9453bb0808254945c86e8fa110fe5c84')}
+  m={'backendCommit':'e'*40 if advanced else install.REQUIRED_BACKEND_COMMIT,'apiImage':'919693204623.dkr.ecr.eu-west-2.amazonaws.com/colorful-life-production-api@sha256:'+('e'*64 if advanced else 'ffd02a031aa32ced1d541ec219b837ce9453bb0808254945c86e8fa110fe5c84')}
   raw=json.dumps(m).encode();route=b'reviewed route include'
   dump=b'root /opt/colorful-life-production/storefront/current; root /opt/colorful-life-production/storefront/asset-store;'
   if bad_root:dump=b'root /other;'

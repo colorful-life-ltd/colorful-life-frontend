@@ -6,7 +6,14 @@ from pathlib import Path
 import artifact,primitives,assets
 ROOT=Path('/opt/colorful-life-production/storefront')
 BUCKET='colorful-life-production-storefront-919693204623'
-REVISION='69ccd28e0c3e2e3663f3f39564bbbd33f811b605'
+# Frontend source approved for new Production releases (email-only registration + account deletion UI).
+REVISION='fbc860a33b0daf31aad9b1c1667032098dd87e32'
+# Every source revision whose retained releases may stay current or be rolled back to.
+# 69ccd28 = the R0/R1 releases already published. Only REVISION is ever staged.
+APPROVED_REVISIONS=frozenset({'69ccd28e0c3e2e3663f3f39564bbbd33f811b605',REVISION})
+# The Backend REVISION needs (email-only POST /auth/signup, backend #242). The running image must also be
+# immutable, match the root-pinned release record and be allowlisted by the compatibility guard.
+REQUIRED_BACKEND_COMMIT='045143ee18f2c9a70c5cdd15391aba6a9c21433a'
 ROUTES='960c0be2d745373b50eee4c5dcc68a8e6164f24f91e2f944c61b4e15deaad208'
 # Owner-approved Production public-key fingerprint (2026-11-13).
 APPROVED_KEY_SHA256="16bbd85ded5b67606c6f68b974244e46a9cc6616ca00ca7b1401168b49c68f23"
@@ -90,7 +97,7 @@ class Store(primitives.Store):
         approved_fingerprint(record.get('keyFingerprint'))
         with tempfile.TemporaryDirectory(dir=self.control) as temporary:
             actual=artifact.unpack(release/'archive.tar.gz',Path(temporary),digest)
-        if actual!=record or record['sourceRevision']!=REVISION:raise artifact.GateError('Retained Production release identity differs')
+        if actual!=record or record['sourceRevision'] not in APPROVED_REVISIONS:raise artifact.GateError('Retained Production release identity differs')
         files,env=artifact.inventory(release/'site',record['keyFingerprint'])
         if files!=record['files']:raise artifact.GateError('Release files changed')
         if assets_required:assets.verify(self,record,lambda p,mode=None:trusted(p,self.owner,mode))
@@ -113,7 +120,7 @@ class Store(primitives.Store):
                         with path.open('rb') as f:os.fsync(f.fileno())
                     else:sync(path)
                 os.rename(stage,target);sync(self.releases)
-        if record['keyFingerprint']!=fingerprint or record['registrationEnabled']!=registration:raise artifact.GateError('Existing build differs from approval')
+        if record['keyFingerprint']!=fingerprint or record['registrationEnabled']!=registration or record['sourceRevision']!=REVISION:raise artifact.GateError('Existing build differs from approval')
         assets.publish(self,target,record,lambda p,mode=None:trusted(p,self.owner,mode),sync)
         self.verify(digest);return record
 
@@ -167,7 +174,7 @@ def transition(store,action,url='',digest='',fingerprint='',fetch=download,check
         store.save(state);store.journal.unlink();sync(store.control)
         raise artifact.GateError('Deployment failed; previous verified Production release restored') from None
 
-def running_switches_off(pid,read_bytes=None,read_text=None):
+def running_switches_off(pid,read_bytes=None,read_text=None,registration_may_be_on=False):
     read_bytes=read_bytes or (lambda p:Path(p).read_bytes())
     read_text=read_text or (lambda p:Path(p).read_text())
     pending=[pid];found=False
@@ -176,7 +183,8 @@ def running_switches_off(pid,read_bytes=None,read_text=None):
         try:
             values=dict(v.split(b'=',1) for v in read_bytes('/proc/'+str(current)+'/environ').split(b'\0') if b'=' in v)
             if b'REGISTRATION_ENABLED' in values:
-                if values[b'REGISTRATION_ENABLED']!=b'false' or values.get(b'PAYMENT_STRIPE_INITIATION_ENABLED')!=b'false':raise artifact.GateError('Running commercial switches must remain OFF')
+                if values.get(b'PAYMENT_STRIPE_INITIATION_ENABLED')!=b'false':raise artifact.GateError('Running payment initiation must remain OFF')
+                if values[b'REGISTRATION_ENABLED'] not in ([b'false',b'true'] if registration_may_be_on else [b'false']):raise artifact.GateError('Running commercial switches must remain OFF')
                 found=True
             pending.extend(map(int,read_text('/proc/'+str(current)+'/task/'+str(current)+'/children').split()))
         except (FileNotFoundError,ProcessLookupError):pass
@@ -200,16 +208,19 @@ def preflight(route_digest,prepare=False,rollback=False):
         if (state/name).exists() or (state/name).is_symlink():raise artifact.GateError('Backend transition is active')
     artifact.sha(m['backendCommit'])
     if not re.fullmatch(r'919693204623\.dkr\.ecr\.eu-west-2\.amazonaws\.com/colorful-life-production-api@sha256:[0-9a-f]{64}',m['apiImage']):raise artifact.GateError('Immutable Production backend required')
-    if not rollback and (m['backendCommit']!='51ab89108b825e4ad17c41d7c6ab5325bb7a9f26' or m['apiImage']!='919693204623.dkr.ecr.eu-west-2.amazonaws.com/colorful-life-production-api@sha256:ffd02a031aa32ced1d541ec219b837ce9453bb0808254945c86e8fa110fe5c84'):raise artifact.GateError('Approved backend identity differs')
+    if not rollback and m['backendCommit']!=REQUIRED_BACKEND_COMMIT:raise artifact.GateError('Approved backend identity differs')
     if guard.read(state,0) is None:raise artifact.GateError('Compatibility guard required')
     guard.enforce(state,m,0)
     if not rollback:
         secret=json.loads(Path('/run/colorful-life/production/runtime.json').read_bytes())
-        if secret.get('PRODUCTION_REGISTRATION_ENABLED')!='false' or secret.get('PRODUCTION_PAYMENT_INITIATION_ENABLED')!='false':raise artifact.GateError('Registration and payments must remain OFF')
+        # Payment initiation stays OFF for every forward change. Registration may already be live for deploy
+        # (it was activated after R1); only the registration-closed baseline (prepare) still requires it OFF.
+        if secret.get('PRODUCTION_PAYMENT_INITIATION_ENABLED')!='false':raise artifact.GateError('Payment initiation must remain OFF')
+        if secret.get('PRODUCTION_REGISTRATION_ENABLED') not in (['false'] if prepare else ['false','true']):raise artifact.GateError('Registration and payments must remain OFF')
     for service in ['api','worker']:
         row=json.loads(subprocess.check_output(['docker','inspect','colorful-life-production-'+service+'-1']))[0]
         if row['Config']['Image']!=m['apiImage'] or not row['State']['Running'] or row['State'].get('Health',{}).get('Status')!='healthy':raise artifact.GateError('Backend identity or health differs')
-        if not rollback:running_switches_off(row['State']['Pid'])
+        if not rollback:running_switches_off(row['State']['Pid'],registration_may_be_on=not prepare)
 
 if __name__=='__main__':
     p=argparse.ArgumentParser();p.add_argument('action',choices=['prepare','deploy','rollback']);p.add_argument('--url',default='');p.add_argument('--digest',default='');p.add_argument('--fingerprint',default='');p.add_argument('--route-digest',required=True);a=p.parse_args()
