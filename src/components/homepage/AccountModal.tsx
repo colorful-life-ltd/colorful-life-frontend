@@ -66,16 +66,20 @@ export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialA
   const previousStatus = useRef<string | undefined>(undefined)
   const { state, logout } = useAuth()
   const [view, setView] = useState<'hub' | 'personal'>(initialView)
+  // Parents pass a new onClose on every render; keep it in a ref so initial focus is set once and
+  // never pulled back to the close button when the dialog's content (and its focus target) changes.
+  const onCloseRef = useRef(onClose)
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
   useEffect(() => {
     const signIn = focusSignIn ? document.querySelector<HTMLInputElement>('.account-modal input[type="email"]') : null
     const target = signIn ?? closeRef.current
     target?.focus({ preventScroll: true })
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') onClose()
+      if (event.key === 'Escape') onCloseRef.current()
     }
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose, focusSignIn])
+  }, [focusSignIn])
   useEffect(() => {
     if (previousStatus.current === 'authenticating' && state.status === 'authenticated') { setView('hub'); onClose() }
     previousStatus.current = state.status
@@ -88,7 +92,7 @@ export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialA
     <div className="account-modal" role="dialog" aria-modal="true" aria-labelledby="account-modal-title" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose()
     }}>
-      <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : state.status === 'verificationRequired' ? ' account-modal__surface--verification' : ''}`}>
+      <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : state.status === 'verificationRequired' || state.status === 'verificationPending' ? ' account-modal__surface--verification' : ''}`}>
         <AccountModalCloseButton closeRef={closeRef} onClose={onClose} />
         <h1 id="account-modal-title" className="account-modal__accessible-title">My Account</h1>
         {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onSignOut?.(); onClose() }} /> : <AccountForms initialMode={initialAuthMode} onExplore={onClose} />}

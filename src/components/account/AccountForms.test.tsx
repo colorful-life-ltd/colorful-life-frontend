@@ -19,23 +19,17 @@ describe('account experience', () => {
     expect(markup).not.toContain('confirmPassword')
   })
 
-  it('collects only email, password and confirmation in the registration form', () => {
+  it('collects only the email in the registration form: the password is chosen from the verification link', () => {
     const markup = renderToStaticMarkup(<AccountView mode="create" onModeChange={() => {}} />)
     expect(markup.match(/<form\b/g)).toHaveLength(1)
-    expect(markup.match(/<input\b/g)).toHaveLength(3)
-    for (const field of ['email', 'password', 'confirmPassword']) {
-      expect(markup).toContain(`for="account-create-${field}"`)
-    }
-    expect(markup.match(/type="password"/g)).toHaveLength(2)
-    expect(markup).toContain('aria-label="Show confirm password"')
+    expect(markup.match(/<input\b/g)).toHaveLength(1)
     expect(markup).toContain('<label for="account-create-email">Email</label>')
-    expect(markup).toContain('<label for="account-create-password">Password</label>')
-    expect(markup).toContain('<label for="account-create-confirmPassword">Confirm password</label>')
     expect(markup).toContain('autoComplete="email"')
-    expect(markup.match(/autoComplete="new-password"/g)).toHaveLength(2)
+    expect(markup).not.toContain('type="password"')
+    expect(markup).not.toContain('new-password')
+    expect(markup).toContain('we’ll send you a link to choose your password')
     expect(markup).not.toMatch(/first.?name|last.?name|given-name|family-name/i)
-    expect([...markup.matchAll(/<input\b[^>]*\bname="([^"]+)"/g)].map((match) => match[1]))
-      .toEqual(['email', 'password', 'confirmPassword'])
+    expect([...markup.matchAll(/<input\b[^>]*\bname="([^"]+)"/g)].map((match) => match[1])).toEqual(['email'])
     expect(markup).not.toContain('account-signin-')
   })
 

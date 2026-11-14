@@ -83,8 +83,9 @@ export function resendVerification(email: string) {
   return requestJson<void>('/auth/resend-verification', { method: 'POST', body: JSON.stringify({ email }) })
 }
 
-export async function signUp(email: string, password: string): Promise<void> {
-  await requestJson<unknown>('/auth/signup', { method: 'POST', body: JSON.stringify({ email, password }) })
+/** Registration sends the email only; the password is chosen from the verification link. */
+export async function signUp(email: string): Promise<void> {
+  await requestJson<unknown>('/auth/signup', { method: 'POST', body: JSON.stringify({ email }) })
 }
 
 export function requestVerification(email: string) {

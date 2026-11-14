@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { AccountForms } from './AccountForms'
 import { ResetPassword } from './ResetPassword'
+import { VerifyEmail } from './VerifyEmail'
 import { captureResetToken, forgetResetToken, MAX_PASSWORD_BYTES, PASSWORD_TOO_LONG_MESSAGE, passwordByteLength, passwordPolicyError } from '../../features/auth/passwordReset'
 
 const auth = vi.hoisted(() => ({ authenticate: vi.fn() }))
@@ -85,32 +86,39 @@ describe('new-password byte limit', () => {
   })
 })
 
-describe('registration', () => {
-  async function register(password: string, confirmation = password) {
-    await mount(<AccountForms />)
-    await act(async () => button('Create Account').click())
-    await type('#account-create-email', 'new@example.com')
-    await type('#account-create-password', password)
-    await type('#account-create-confirmPassword', confirmation)
+// Registration collects the email only; the password is chosen once, on the verification page.
+describe('password chosen at email verification', () => {
+  async function verify(password: string, confirmation = password) {
+    history.replaceState(null, '', '/verify-email?token=synthetic-verification-token')
+    await mount(<VerifyEmail onSignIn={vi.fn()} />)
+    await type('#verify-email-password', password)
+    await type('#verify-email-confirm', confirmation)
     await submit()
   }
+  const verifyCalls = () => fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/auth/verify-email'))
+
+  it('registration itself never asks for a password', async () => {
+    await mount(<AccountForms />)
+    await act(async () => button('Create Account').click())
+    expect(container.querySelector('input[type="password"]')).toBeNull()
+  })
 
   it.each([ascii(73), multibyte73, emoji76])('never submits a password over 72 bytes', async password => {
-    await register(password)
+    await verify(password)
     expect(container.querySelector('[role="alert"]')!.textContent).toBe(PASSWORD_TOO_LONG_MESSAGE)
-    expect(auth.authenticate).not.toHaveBeenCalled()
-    expect(fetchMock).not.toHaveBeenCalled()
+    expect(verifyCalls()).toHaveLength(0)
   })
 
   it.each([ascii(72), multibyte72, emoji72])('submits a password of exactly 72 bytes unchanged', async password => {
-    await register(password)
-    expect(auth.authenticate).toHaveBeenCalledWith('signup', { email: 'new@example.com', password })
+    await verify(password)
+    expect(verifyCalls()).toHaveLength(1)
+    expect(JSON.parse(String((verifyCalls()[0] as unknown as [string, RequestInit])[1].body))).toEqual({ token: 'synthetic-verification-token', newPassword: password })
   })
 
   it('still requires a matching confirmation', async () => {
-    await register(multibyte72, `${multibyte72}x`)
-    expect(container.textContent).toContain('Your passwords do not match.')
-    expect(auth.authenticate).not.toHaveBeenCalled()
+    await verify(multibyte72, `${multibyte72}x`)
+    expect(container.textContent).toContain('Passwords do not match.')
+    expect(verifyCalls()).toHaveLength(0)
   })
 })
 

@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useReducer,
 import { AuthApiError, clearStoredToken, getCurrentUser, isVerificationRequired, readStoredToken, signIn, signUp, storeSession, updateCurrentUser, type CurrentUser, type UpdateCurrentUser } from './api'
 import { authReducer, type AuthState } from './state'
 
-type Credentials = { email: string; password: string }
+type Credentials = { email: string; password?: string }
 type AuthContextValue = {
   state: AuthState
   authenticate: (mode: 'signin' | 'signup', credentials: Credentials) => Promise<void>
@@ -109,14 +109,14 @@ export function AuthProvider({ children }: PropsWithChildren) {
     dispatch({ type: 'authenticate', mode })
     try {
       if (mode === 'signup') {
-        await signUp(credentials.email, credentials.password)
+        await signUp(credentials.email)
         if (intent !== authIntent.current) return
         sessionWasActive.current = false
         clearStoredToken()
         dispatch({ type: 'verificationPending', email: credentials.email.trim().toLowerCase() })
         return
       }
-      const response = await signIn(credentials.email, credentials.password)
+      const response = await signIn(credentials.email, credentials.password ?? '')
       if (intent !== authIntent.current) { discardSession(response); return }
       storeSession(response)
       sessionWasActive.current = true
