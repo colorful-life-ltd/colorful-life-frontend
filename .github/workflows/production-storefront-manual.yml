@@ -8,7 +8,7 @@ on:
         type: choice
         options: [prepare, deploy, rollback]
       confirm_revision:
-        description: Enter approved frontend SHA 69ccd28e0c3e2e3663f3f39564bbbd33f811b605
+        description: Enter approved frontend SHA fbc860a33b0daf31aad9b1c1667032098dd87e32
         required: true
       route_digest:
         description: Owner-reviewed effective nginx -T SHA256
@@ -38,7 +38,7 @@ jobs:
       github.repository == 'colorful-life-ltd/colorful-life-frontend' &&
       github.ref == 'refs/heads/production-storefront-release' &&
       vars.PRODUCTION_FRONTEND_DELIVERY_ENABLED == 'true' && inputs.authorized &&
-      inputs.confirm_revision == '69ccd28e0c3e2e3663f3f39564bbbd33f811b605'
+      inputs.confirm_revision == 'fbc860a33b0daf31aad9b1c1667032098dd87e32'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
@@ -66,12 +66,12 @@ jobs:
           case "$ACTION" in prepare|deploy|rollback) ;; *) exit 1 ;; esac
           if [ "$ACTION" != rollback ]; then
             [[ "$FINGERPRINT" =~ ^[0-9a-f]{64}$ ]]
-            gh api 'repos/colorful-life-ltd/colorful-life-frontend/actions/workflows/storefront.yml/runs?head_sha=69ccd28e0c3e2e3663f3f39564bbbd33f811b605&status=success&per_page=100' --jq '.workflow_runs | any(.head_branch == "main" and .head_sha == "69ccd28e0c3e2e3663f3f39564bbbd33f811b605")' | grep -qx true
+            gh api 'repos/colorful-life-ltd/colorful-life-frontend/actions/workflows/storefront.yml/runs?head_sha=fbc860a33b0daf31aad9b1c1667032098dd87e32&status=success&per_page=100' --jq '.workflow_runs | any(.head_branch == "main" and .head_sha == "fbc860a33b0daf31aad9b1c1667032098dd87e32")' | grep -qx true
           fi
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         if: inputs.action != 'rollback'
         with:
-          ref: 69ccd28e0c3e2e3663f3f39564bbbd33f811b605
+          ref: fbc860a33b0daf31aad9b1c1667032098dd87e32
           path: source
           fetch-depth: 0
           persist-credentials: false

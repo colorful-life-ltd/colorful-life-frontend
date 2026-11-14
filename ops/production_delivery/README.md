@@ -24,7 +24,7 @@ only Production-prefix Put/Get, this instance + this document SendCommand, and
 GetCommandInvocation (AWS does not resource-scope that read operation). No IAM,
 Secrets Manager, RunShellScript document or nginx-modification permission is added.
 
-The trusted GitHub workflow pins source `69ccd28e0c3e2e3663f3f39564bbbd33f811b605`,
+The trusted GitHub workflow pins source `fbc860a33b0daf31aad9b1c1667032098dd87e32`,
 checks its successful original main CI, verifies repository/clean source and builds
 before assuming AWS credentials. Only an explicit environment allowlist reaches
 npm. The archive is deterministic and content-addressed; all output is scanned for
@@ -104,9 +104,11 @@ The workflow records one SSM command ID and its bounded waiter result. If still
 running, inspect **that ID**; do not redispatch. Logs/archives contain no private
 Stripe credentials. A presigned download URL is short-lived and must not be printed.
 
-The installer also requires the current approved Backend #241, active compatibility
-boundary, and registration/payment switches OFF in both runtime settings and
-running processes for prepare/deploy. Rollback alone permits registration/payment
+The installer also requires Backend `045143e` (#242, email-only signup), an active
+compatibility boundary, and payment initiation OFF in both runtime settings and
+running processes for prepare/deploy. Registration may be ON for deploy; prepare
+(the registration-closed baseline) still requires it OFF. Retained releases may come
+from any approved source revision (`69ccd28` R0/R1 or `fbc860a`); only `fbc860a` is staged. Rollback alone permits registration/payment
 activation and a newer Backend: it still requires an immutable current Production
 image, healthy matching API/Worker, consistent recovery pin, active Compatibility
 Guard authorization, the approved routing/root and verified retained frontend/key.
