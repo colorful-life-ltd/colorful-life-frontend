@@ -16,7 +16,7 @@ let root: Root
 let container: HTMLDivElement
 let cart: CartContextValue
 beforeEach(() => {
-  history.replaceState({}, '', '/'); sessionStorage.clear()
+  history.replaceState({}, '', '/'); sessionStorage.clear(); localStorage.clear()
   mocks.getOrder.mockReset().mockResolvedValue({
     id: 41, status: 'PENDING', totalAmount: '10.00', payment: null, reservationExpiresAt: null, orderItems: [],
     deliveryRecipientName: 'Test', deliveryLine1: '1 Street', deliveryCity: 'London', deliveryPostcode: 'SW1A 1AA', deliveryCountryCode: 'GB',

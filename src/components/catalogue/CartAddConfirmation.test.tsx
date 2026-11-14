@@ -31,7 +31,7 @@ const advance = (ms: number) => act(async () => { await vi.advanceTimersByTimeAs
 
 beforeEach(async () => {
   vi.useFakeTimers()
-  vi.resetAllMocks(); sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt'); history.replaceState({}, '', '/?spread=front-matter')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt'); history.replaceState({}, '', '/?spread=front-matter')
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   // Desktop layout, motion allowed (reduced motion suppresses the cart bounce by design).
   vi.stubGlobal('matchMedia', (query: string) => ({ matches: !query.includes('prefers-reduced-motion') }))

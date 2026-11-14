@@ -28,7 +28,7 @@ async function mount(element: ReactNode, strict = false) {
 async function click(text: string) { await act(async () => { const button = [...container.querySelectorAll('button')].find(button => button.textContent?.includes(text)); if (!button) throw new Error(`Missing button ${text}`); button.click() }) }
 async function enterResendEmail() { await act(async () => { const input=container.querySelector<HTMLInputElement>('input[type="email"]')!; Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!.call(input,user.email); input.dispatchEvent(new Event('input',{bubbles:true})) }) }
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/verify-email?token=test-verification-token')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/verify-email?token=test-verification-token')
   vi.mocked(getCurrentUser).mockResolvedValue(user); vi.mocked(verifyEmail).mockResolvedValue(); vi.mocked(resendVerification).mockResolvedValue(); vi.mocked(requestVerification).mockResolvedValue()
 })
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = ''; vi.useRealTimers(); vi.unstubAllGlobals() })
@@ -87,7 +87,7 @@ describe('unverified account and resend UX', () => {
     expect(container.textContent).toContain('If verification is needed')
   })
   it('recognizes verification by code on session restoration rather than English text', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
+    localStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
     await mount(<AccountForms />)
     expect(auth.state).toMatchObject({ status: 'verificationRequired', token: 'jwt' }); expect(container.textContent).toContain('Resend verification email'); expect(container.querySelector('form')).toBeNull()
   })
@@ -97,7 +97,7 @@ describe('unverified account and resend UX', () => {
     await act(async () => auth.authenticate('signup', { email: 'test@example.com', password: 'Abcdef1!' }))
     expect(container.textContent).toContain('If registration is available')
     expect(auth.state.status).toBe('verificationPending')
-    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
     expect(getCurrentUser).not.toHaveBeenCalled()
   })
   it('allows login for an unverified account and later rechecks its actual profile', async () => {
@@ -121,7 +121,7 @@ describe('unverified account and resend UX', () => {
     expect(container.textContent).toContain('Unable to complete'); expect(container.textContent).not.toContain('SES/internal')
   })
   it('keeps the compact modal labelled and its sign-out action working', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
+    localStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
     await mount(<AccountModal onClose={vi.fn()} />)
     const dialog = container.querySelector('[role="dialog"]')!
     expect(dialog.getAttribute('aria-modal')).toBe('true')
@@ -130,10 +130,10 @@ describe('unverified account and resend UX', () => {
     expect(document.getElementById(notice.getAttribute('aria-labelledby')!)?.textContent).toBe('Verify your email')
     expect(notice.querySelectorAll('.verification-notice__actions button')).toHaveLength(2)
     expect(notice.querySelector('.verification-notice__signout')?.textContent).toBe('Sign out')
-    await click('Sign out'); expect(auth.state.status).toBe('signedOut'); expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    await click('Sign out'); expect(auth.state.status).toBe('signedOut'); expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
   })
   it('cannot declare verification complete while the backend still rejects the profile', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
+    localStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); vi.mocked(getCurrentUser).mockRejectedValue(verificationError())
     await mount(<AccountForms />); await click('I’ve verified')
     expect(auth.state.status).toBe('verificationRequired'); expect(container.textContent).toContain('not ready yet')
   })

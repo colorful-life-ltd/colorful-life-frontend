@@ -16,7 +16,7 @@ Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
 const product = { id: 7, title: 'Botanical Orchid', setNumber: '10311', isPublished: true, category: null } as unknown as CatalogueProduct
 let root: Root, host: HTMLDivElement
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/')
   vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'test@example.com', firstName: null, lastName: null, phone: null })
   vi.mocked(getProducts).mockResolvedValue([product])
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('[]'))))

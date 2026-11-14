@@ -1,4 +1,4 @@
-import { beginAuthenticationIntent, discardSession, logoutSession, requestExpiredSession, sessionGeneration, SessionError, subscribeExpiredSession, subscribeSession } from './session'
+import { beginAuthenticationIntent, discardSession, logoutSession, reconcileSharedSession, requestExpiredSession, sessionGeneration, SessionError, subscribeExpiredSession, subscribeSession } from './session'
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type PropsWithChildren } from 'react'
 import { AuthApiError, clearStoredToken, getCurrentUser, isVerificationRequired, readStoredToken, signIn, signUp, storeSession, updateCurrentUser, type CurrentUser, type UpdateCurrentUser } from './api'
@@ -12,6 +12,8 @@ type AuthContextValue = {
   clearError: () => void
   logout: () => void
   refreshAuth: () => Promise<boolean>
+  /** Re-checks the shared session with the server before account content is shown. */
+  validateSession: () => void
   dismissExpiredSession: () => void
 }
 
@@ -29,6 +31,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const authIntent = useRef(0)
   const pendingIntent = useRef<number | null>(null)
   const sessionWasActive = useRef(Boolean(initialToken))
+  const status = useRef(state.status)
+  useEffect(() => { status.current = state.status }, [state.status])
 
   const expireSession = useCallback(() => {
     if (!sessionWasActive.current) return
@@ -61,7 +65,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
       if (sessionGeneration() !== current) return false
       if ((error instanceof AuthApiError && error.status === 401) || (error instanceof SessionError && error.invalid)) {
-        requestExpiredSession()
+        // A tab that only adopted another tab's credential never showed it as signed in: no expiry
+        // dialog, but a credential the server rejected is cleared everywhere and the tab signs out.
+        if (sessionWasActive.current) requestExpiredSession()
+        else { clearStoredToken(); dispatch({ type: 'signedOut' }) }
       } else if (isVerificationRequired(error)) {
         sessionWasActive.current = true
         dispatch({ type: 'verificationRequired', token: readStoredToken()!, message: registered ? 'Your account was created. A verification email has been sent. Please verify your email before continuing.' : 'Please verify your email before continuing.' })
@@ -74,18 +81,30 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => subscribeExpiredSession(expireSession), [expireSession])
 
+  // Starts server validation of a stored session this tab is not yet showing (e.g. another tab signed in).
+  const adoptStoredSession = useCallback((token: string) => {
+    if (resolving.current) return
+    if (status.current !== 'authenticated') dispatch({ type: 'resolve' })
+    void resolve(token)
+  }, [resolve])
+
   useEffect(() => subscribeSession(() => {
     if (pendingIntent.current !== null) return
     const token = readStoredToken()
-    if (!token) { profileRequest.current += 1; dispatch({ type: 'signedOut' }) }
-    else if (!resolving.current) void resolve(token)
-  }), [resolve])
+    // Signed out here or in another tab; an unexpected disappearance still goes through expiry first.
+    if (!token) { sessionWasActive.current = false; profileRequest.current += 1; dispatch({ type: 'signedOut' }) }
+    else adoptStoredSession(token)
+  }), [adoptStoredSession])
 
   useEffect(() => {
     const checkSessionStorage = () => {
       if (document.visibilityState === 'hidden') return
+      // Catch up on another tab's sign-in, rotation or sign-out (storage events can be missed).
+      reconcileSharedSession()
+      const token = readStoredToken()
       const hasInMemorySession = state.status === 'authenticated' || state.status === 'verificationRequired' || (state.status === 'error' && Boolean(state.token))
-      if (hasInMemorySession && !readStoredToken()) requestExpiredSession()
+      if (hasInMemorySession && !token) requestExpiredSession()
+      else if (!hasInMemorySession && token && pendingIntent.current === null && state.status !== 'resolving' && state.status !== 'authenticating') adoptStoredSession(token)
     }
     window.addEventListener('focus', checkSessionStorage)
     document.addEventListener('visibilitychange', checkSessionStorage)
@@ -93,13 +112,21 @@ export function AuthProvider({ children }: PropsWithChildren) {
       window.removeEventListener('focus', checkSessionStorage)
       document.removeEventListener('visibilitychange', checkSessionStorage)
     }
-  }, [state])
+  }, [state, adoptStoredSession])
 
   useEffect(() => {
     const token = readStoredToken()
-    if (token) void resolve(token)
+    // A child (e.g. the account dialog) may already be validating this session: never fetch it twice.
+    if (token && !resolving.current) void resolve(token)
     return () => { profileRequest.current += 1; authIntent.current += 1 }
   }, [resolve])
+
+  const validateSession = useCallback(() => {
+    if (pendingIntent.current !== null) return
+    reconcileSharedSession()
+    const token = readStoredToken()
+    if (token) adoptStoredSession(token)
+  }, [adoptStoredSession])
 
   const authenticate = useCallback(async (mode: 'signin' | 'signup', credentials: Credentials) => {
     const intent = ++authIntent.current
@@ -166,7 +193,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, [state])
 
   const clearError = useCallback(() => dispatch({ type: 'clearError' }), [])
-  const value = useMemo(() => ({ state, authenticate, updateProfile, logout, refreshAuth, clearError, dismissExpiredSession }), [state, authenticate, updateProfile, logout, refreshAuth, clearError, dismissExpiredSession])
+  const value = useMemo(() => ({ state, authenticate, updateProfile, logout, refreshAuth, validateSession, clearError, dismissExpiredSession }), [state, authenticate, updateProfile, logout, refreshAuth, validateSession, clearError, dismissExpiredSession])
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
@@ -174,7 +201,7 @@ export function useAuth() {
   const value = useContext(AuthContext)
   if (value) return value
   // Keeps the presentational form renderable in isolated/static component tests.
-  return { state: { status: 'signedOut' } as AuthState, authenticate: async () => undefined, updateProfile: async () => { throw new Error('Authentication unavailable') }, clearError: () => undefined, logout: () => undefined, refreshAuth: async () => false, dismissExpiredSession: () => undefined }
+  return { state: { status: 'signedOut' } as AuthState, authenticate: async () => undefined, updateProfile: async () => { throw new Error('Authentication unavailable') }, clearError: () => undefined, logout: () => undefined, refreshAuth: async () => false, validateSession: () => undefined, dismissExpiredSession: () => undefined }
 }
 
 export type { CurrentUser }

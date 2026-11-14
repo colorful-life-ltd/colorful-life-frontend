@@ -35,7 +35,7 @@ async function register(email = 'new.customer@example.com') {
 }
 
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear()
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.clear()
   vi.mocked(signUp).mockResolvedValue(); vi.mocked(requestVerification).mockResolvedValue()
 })
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = '' })
@@ -59,7 +59,7 @@ describe('email-only registration', () => {
     expect(notice.querySelector('.verification-notice__actions .account-form__submit')?.textContent).toBe('Resend verification email')
     expect(notice.querySelector('.verification-notice__actions .verification-notice__continue')?.textContent).toBe('Return to sign in')
     expect(notice.textContent).toContain('choose your password')
-    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
   })
 
   it('validates the email locally before any request', async () => {

@@ -37,7 +37,7 @@ async function click(label: string) { await act(async () => { const found = butt
 async function submit() { await act(async () => { container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })) }) }
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
 beforeEach(() => {
-  vi.resetAllMocks(); vi.useFakeTimers(); history.replaceState(null, '', '/checkout/orders/41'); sessionStorage.clear(); localStorage.clear()
+  vi.resetAllMocks(); vi.useFakeTimers(); history.replaceState(null, '', '/checkout/orders/41'); sessionStorage.clear(); localStorage.clear(); localStorage.clear()
   mocks.read.mockResolvedValue(pending); mocks.recover.mockResolvedValue(pending); mocks.prepare.mockResolvedValue('transient-secret'); mocks.retrieve.mockResolvedValue({ paymentIntent: { status: 'requires_payment_method' } }); mocks.confirm.mockResolvedValue({ paymentIntent: { status: 'succeeded' } })
   cart = { items: [], isLoading: false, error: null, pendingItemIds: [], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
 })
