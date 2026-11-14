@@ -7,10 +7,10 @@ import { createRoot } from 'react-dom/client'
 const auth = vi.hoisted(() => ({ authenticate: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('../../features/auth/AuthProvider', () => ({ useAuth: () => ({ state: { status: 'signedOut' }, authenticate: auth.authenticate, clearError: vi.fn(), refreshAuth: vi.fn() }) }))
 import { AccountForms, AccountView } from './AccountForms'
-it('allows explicit Sandbox signup with confirmation and legal notice, preserving hidden recovery', () => {
+it('allows explicit Sandbox signup by email with legal notice, preserving hidden recovery', () => {
   const signup = renderToStaticMarkup(<AccountView mode="create" onModeChange={() => {}} />)
   expect(signup).toContain('Create Account')
-  expect(signup).toContain('Confirm password')
+  expect(signup).not.toContain('type="password"')
   expect(signup).toContain('/legal/terms')
   expect(signup).toContain('/legal/privacy')
   const signin = renderToStaticMarkup(<AccountView mode="signin" onModeChange={() => {}} onForgotPassword={() => {}} />)
@@ -19,7 +19,7 @@ it('allows explicit Sandbox signup with confirmation and legal notice, preservin
   expect(signin).not.toContain('Forgot password?')
 })
 
-it('submits signup through the existing auth flow only after password confirmation', async () => {
+it('submits email-only signup through the existing auth flow, only with a valid email', async () => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
   const container = document.createElement('div'); document.body.append(container)
   const root = createRoot(container)
@@ -33,12 +33,15 @@ it('submits signup through the existing auth flow only after password confirmati
         input.dispatchEvent(new Event('input', { bubbles: true }))
       })
     }
-    await fill('email', 'owner@example.invalid'); await fill('password', 'Synthetic1!Password'); await fill('confirmPassword', 'mismatch')
+    await act(async () => container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
+    expect(container.textContent).toContain('Enter your email address.')
+    await fill('email', 'not-an-email')
     await act(async () => container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
     expect(auth.authenticate).not.toHaveBeenCalled()
-    expect(container.textContent).toContain('Your passwords do not match.')
-    await fill('confirmPassword', 'Synthetic1!Password')
+    expect(container.textContent).toContain('Enter a valid email address.')
+    expect(container.querySelector('input[name="password"]')).toBeNull()
+    await fill('email', 'owner@example.invalid')
     await act(async () => container.querySelector('form')!.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })))
-    expect(auth.authenticate).toHaveBeenCalledExactlyOnceWith('signup', { email: 'owner@example.invalid', password: 'Synthetic1!Password' })
+    expect(auth.authenticate).toHaveBeenCalledExactlyOnceWith('signup', { email: 'owner@example.invalid' })
   } finally { await act(async () => root.unmount()); container.remove() }
 })

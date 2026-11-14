@@ -41,18 +41,18 @@ describe('anonymous sign-in failure messages', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(json(400, { error: 'Invalid or expired verification token' })))
     await expect(verifyEmail('verification-token', 'SecurePass1!')).rejects.toMatchObject({ status: 400, message: 'Invalid or expired verification token' })
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
-    await expect(signUp('person@example.com', 'Abcdef1!')).rejects.toThrow('Failed to fetch')
+    await expect(signUp('person@example.com')).rejects.toThrow('Failed to fetch')
   })
 })
 
 describe('storefront auth API', () => {
   beforeEach(() => vi.restoreAllMocks())
 
-  it('signs up with only the backend fields', async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ token: 'signup-token' }), { status: 201 }))
+  it('signs up with the email only: no password is sent before the address is verified', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'If registration is available for this address, check your email for next steps.' }), { status: 202 }))
     vi.stubGlobal('fetch', fetcher)
-    await signUp('person@example.com', 'Abcdef1!')
-    expect(fetcher).toHaveBeenCalledWith('/api/auth/signup', expect.objectContaining({ method: 'POST', body: JSON.stringify({ email: 'person@example.com', password: 'Abcdef1!' }) }))
+    await signUp('person@example.com')
+    expect(fetcher).toHaveBeenCalledWith('/api/auth/signup', expect.objectContaining({ method: 'POST', body: JSON.stringify({ email: 'person@example.com' }) }))
   })
 
   it('logs in with email and password', async () => {

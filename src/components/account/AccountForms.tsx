@@ -7,7 +7,7 @@ import cottage from '../../assets/illustrations/opening-welcome-illustration.web
 import flower from '../../assets/decorations/catalogue-title-flower.png'
 import { useAuth } from '../../features/auth/AuthProvider'
 import { AuthApiError } from '../../features/auth/api'
-import { passwordPolicyError, requestPasswordReset, RESET_REQUEST_COOLDOWN_SECONDS, resetRequestCooldownSeconds, startResetRequestCooldown } from '../../features/auth/passwordReset'
+import { requestPasswordReset, RESET_REQUEST_COOLDOWN_SECONDS, resetRequestCooldownSeconds, startResetRequestCooldown } from '../../features/auth/passwordReset'
 import './AccountExperience.css'
 import { VerificationNotice } from './VerificationNotice'
 import { RegistrationClosedDialog } from './RegistrationClosedDialog'
@@ -19,11 +19,8 @@ type FieldDefinition = { name: FieldName; label: string; type: 'email' | 'passwo
 const email: FieldDefinition = { name: 'email', label: 'Email', type: 'email', autoComplete: 'email' }
 const fields: Record<AccountMode, FieldDefinition[]> = {
   signin: [email, { name: 'password', label: 'Password', type: 'password', autoComplete: 'current-password' }],
-  create: [
-    email,
-    { name: 'password', label: 'Password', type: 'password', autoComplete: 'new-password' },
-    { name: 'confirmPassword', label: 'Confirm password', type: 'password', autoComplete: 'new-password' },
-  ],
+  // Registration asks for the email only: the password is chosen once, from the verification link.
+  create: [email],
 }
 const emptyDraft: Draft = { email: '', password: '', confirmPassword: '' }
 
@@ -74,7 +71,7 @@ export function AccountView({ mode, onModeChange, draft = emptyDraft, onFieldCha
           <img src={flower} alt="" className="account-experience__flower" />
           <p className="account-experience__eyebrow">Your little corner of Build &amp; Bloom</p>
           <h2 id="account-task-title" tabIndex={-1}>{creating ? 'A little world,\nwith you in it.' : 'Welcome back!'}</h2>
-          <p>{creating ? 'Create your account. Let’s start your next little story.' : 'Come on in. Your next little story is waiting.'}</p>
+          <p>{creating ? 'Create your account. Enter your email and we’ll send you a link to choose your password.' : 'Come on in. Your next little story is waiting.'}</p>
         </header>
         {error && <p className="account-form__message account-form__message--error" role="alert">{error}</p>}
         <form key={mode} className="account-form" aria-labelledby="account-task-title" onSubmit={onSubmit} noValidate>
@@ -239,7 +236,7 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
   const [drafts, setDrafts] = useState({ signin: emptyDraft, create: emptyDraft })
   const container = useRef<HTMLDivElement>(null)
   const previousMode = useRef(mode)
-  const { state, authenticate, refreshAuth, clearError } = useAuth()
+  const { state, authenticate, refreshAuth, clearError, logout } = useAuth()
   const [restoring, setRestoring] = useState(false)
   const restoringLock = useRef(false)
   const [formError, setFormError] = useState<string>()
@@ -261,25 +258,30 @@ export function AccountForms({ initialMode = 'signin', onExplore }: { initialMod
     if (!registrationAvailable) { setFormError(undefined); return setRegistrationNotice(true) }
     const current = drafts[mode]
     if (!current.email.trim()) return setFormError('Enter your email address.')
-    if (!current.password) return setFormError('Enter your password.')
     if (mode === 'create') {
-      const policyError = passwordPolicyError(current.password)
-      if (policyError) return setFormError(policyError)
-      if (current.password !== current.confirmPassword) return setFormError('Your passwords do not match.')
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(current.email.trim())) return setFormError('Enter a valid email address.')
+      setFormError(undefined)
+      return authenticate('signup', { email: current.email })
     }
+    if (!current.password) return setFormError('Enter your password.')
     setFormError(undefined)
-    await authenticate(mode === 'create' ? 'signup' : 'signin', { email: current.email, password: current.password })
+    await authenticate('signin', { email: current.email, password: current.password })
   }
   // While registration is closed, Create Account goes straight to the announcement and never shows the form.
+  // Values typed in one task never carry into another (passwords above all).
+  const clearDrafts = () => setDrafts({ signin: emptyDraft, create: emptyDraft })
   const changeMode = (next: AccountMode) => {
     setFormError(undefined); clearError()
     if (next === 'create' && !registrationAvailable) return setRegistrationNotice(true)
+    clearDrafts()
     setMode(next)
   }
+  // After registration, "Return to sign in" must land on Sign In with empty fields, not the create form.
+  const returnToSignIn = () => { logout(); clearDrafts(); setFormError(undefined); setMode('signin') }
   // Customer accounts are not open yet: the Opening Soon announcement replaces every account form
   // (sign-in, create and password recovery), so no authentication request can be sent.
   if (!registrationAvailable) return <RegistrationClosedDialog onClose={() => onExplore?.()} />
-  if (state.status === 'verificationPending') return <VerificationPending email={state.email} />
+  if (state.status === 'verificationPending') return <VerificationPending email={state.email} onReturnToSignIn={returnToSignIn} />
   if (state.status === 'verificationRequired') return <VerificationNotice token={state.token} message={state.message} />
   if (mode === 'forgot') return <div ref={container}><ForgotPasswordView initialEmail={drafts.signin.email} onBack={() => setMode('signin')} /></div>
   if (mode === 'resend') return <ResendVerificationForm initialEmail={drafts.signin.email} onBack={() => setMode('signin')} />

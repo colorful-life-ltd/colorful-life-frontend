@@ -1,11 +1,16 @@
-import { useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
 import { requestVerification } from '../../features/auth/api'
-import { useAuth } from '../../features/auth/AuthProvider'
+import './AccountExperience.css'
+import flower from '../../assets/decorations/catalogue-title-flower.png'
 
-export function VerificationPending({ email }: { email: string }) {
-  const { logout } = useAuth()
+/** Shown after registration. Uses the Sandbox verification notice's markup and styles (AccountExperience.css). */
+export function VerificationPending({ email, onReturnToSignIn }: { email: string; onReturnToSignIn: () => void }) {
+  const titleId = useId()
+  const title = useRef<HTMLHeadingElement>(null)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState('')
+  // The registration form was replaced: move focus to the new heading so it is announced.
+  useEffect(() => { title.current?.focus({ preventScroll: true }) }, [])
   async function resend() {
     if (busy) return
     setBusy(true); setMessage('')
@@ -13,11 +18,15 @@ export function VerificationPending({ email }: { email: string }) {
     catch { setMessage('Unable to request an email right now. Please try again later.') }
     finally { setBusy(false) }
   }
-  return <section aria-label="Email verification">
-    <h2>Check your email</h2>
+  return <section className="verification-notice" aria-labelledby={titleId} aria-busy={busy}>
+    <img className="account-experience__flower" src={flower} alt="" />
+    <h2 ref={title} className="verification-notice__title" id={titleId} tabIndex={-1}>Check your email</h2>
     <p>If registration is available for this address, check your email for next steps.</p>
+    <p className="verification-notice__guidance">Open the link in the email to choose your password and finish creating your account.</p>
     {message && <p role="status">{message}</p>}
-    <button type="button" disabled={busy} onClick={() => void resend()}>{busy ? 'Sending…' : 'Resend verification email'}</button>
-    <button type="button" onClick={logout}>Return to sign in</button>
+    <div className="verification-notice__actions">
+      <button className="account-form__submit" type="button" disabled={busy} onClick={() => void resend()}>{busy ? 'Sending…' : 'Resend verification email'}</button>
+      <button className="verification-notice__continue" type="button" disabled={busy} onClick={onReturnToSignIn}>Return to sign in</button>
+    </div>
   </section>
 }
