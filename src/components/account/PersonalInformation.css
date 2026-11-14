@@ -169,20 +169,15 @@
   .my-account__books { width: 74px; right: -8px; }
 }
 
-.your-data__delete {
-  margin-top: 16px;
-  padding-top: 12px;
-  border-top: 1px solid #e3d9c8;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.your-data__confirm {
-  display: flex;
-  gap: 8px;
-  align-items: flex-start;
-  margin: 8px 0 12px;
-}
+/* Account settings: a quiet row under the panels for data requests and account deletion. */
+.my-account__settings { position: relative; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 18px; margin-top: 18px; padding: 12px 4px 0; border-top: 1px solid #e3d9c8; color: #69614f; font-size: 13px; line-height: 1.5; }
+.my-account__settings p { flex: 1 1 320px; margin: 0; }
+.my-account__settings a { color: #365d56; }
+.my-account__settings > .my-account__button { flex: 0 0 auto; }
+/* Above 1100px the footer illustrations rise about 30px over the footer; keep them clear of the row. */
+@media (min-width: 1101px) { .my-account__settings { margin-bottom: 36px; } }
+.delete-account__form { display: grid; gap: 12px; margin-top: 14px; }
+.delete-account__confirm { display: flex; gap: 8px; align-items: flex-start; }
 
 .my-account__email-help { float: right; min-width: 24px; min-height: 24px; padding: 0; border: 0; background: transparent; color: #527f78; cursor: pointer; }
 .my-account__field > .my-account__email-help { position: absolute; top: 0; right: 0; }

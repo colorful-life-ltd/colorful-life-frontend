@@ -5,7 +5,7 @@ import { useAuth } from '../../features/auth/AuthProvider'
 import type { UpdateCurrentUser } from '../../features/auth/api'
 import { draftFromUser, profilePatchFromDraft, type ProfileDraft } from './profileDraft'
 import { SavedAddresses } from './SavedAddresses'
-import { YourData } from './YourData'
+import { DeleteAccount } from './DeleteAccount'
 import titleLeft from '../../assets/my-account/account-title-botanical-left.png'
 import titleRight from '../../assets/my-account/account-title-botanical-right.png'
 import sprout from '../../assets/my-account/account-personal-info-sprout.png'
@@ -80,8 +80,8 @@ export function PersonalInformation({ onBack }: { onBack: () => void }) {
       <img className="personal-information__floral" src={floralSprig} alt="" aria-hidden="true" />
       </section>
       {authenticatedState && <SavedAddresses token={authenticatedState.token} />}
-      {!sandboxCheckout && authenticatedState && <YourData token={authenticatedState.token} onDeleted={() => { logout(); window.location.assign('/') }} />}
       </div>
+      {!sandboxCheckout && authenticatedState && <DeleteAccount token={authenticatedState.token} onDeleted={() => { logout(); window.location.assign('/') }} />}
       <footer className="my-account__footer">
         <img className="my-account__boy-dog" src={boyDog} alt="" aria-hidden="true" />
         <div className="my-account__sentiment">

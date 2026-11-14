@@ -9,6 +9,8 @@ export interface ConfirmDialogProps {
   busyLabel: string
   cancelLabel?: string
   busy?: boolean
+  /** Keeps the confirm action unavailable until the caller's requirements (e.g. a password) are met. */
+  confirmDisabled?: boolean
   /** Shown inside the dialog and announced; the dialog stays open so the action can be retried. */
   error?: string
   onConfirm: () => void
@@ -23,7 +25,7 @@ export interface ConfirmDialogProps {
  * While busy both buttons are aria-disabled (not disabled) so keyboard focus is never dropped,
  * and Escape is ignored. The caller owns the action and its state.
  */
-export function ConfirmDialog({ title, children, confirmLabel, busyLabel, cancelLabel = 'Cancel', busy = false, error, onConfirm, onCancel, fallbackFocus }: ConfirmDialogProps) {
+export function ConfirmDialog({ title, children, confirmLabel, busyLabel, cancelLabel = 'Cancel', busy = false, confirmDisabled = false, error, onConfirm, onCancel, fallbackFocus }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const cancelRef = useRef<HTMLButtonElement>(null)
   const fallbackRef = useRef(fallbackFocus)
@@ -49,7 +51,7 @@ export function ConfirmDialog({ title, children, confirmLabel, busyLabel, cancel
       // An enclosing modal (e.g. My Account) also listens for Escape; only this top-layer dialog may react.
       event.stopPropagation()
       if (event.key !== 'Tab') return
-      const controls = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button, a[href]') ?? [])]
+      const controls = [...(dialogRef.current?.querySelectorAll<HTMLElement>('button, a[href], input:not([disabled])') ?? [])]
       const first = controls[0], last = controls[controls.length - 1]
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus() }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus() }
@@ -59,7 +61,7 @@ export function ConfirmDialog({ title, children, confirmLabel, busyLabel, cancel
     {error && <p className="confirm-dialog__error" id={errorId} role="alert">{error}</p>}
     <div className="confirm-dialog__actions">
       <button ref={cancelRef} type="button" className="confirm-dialog__cancel" aria-disabled={busy} onClick={() => { if (!busy) onCancel() }}>{cancelLabel}</button>
-      <button type="button" className="confirm-dialog__confirm" aria-disabled={busy} aria-busy={busy} onClick={() => { if (!busy) onConfirm() }}>{busy ? busyLabel : confirmLabel}</button>
+      <button type="button" className="confirm-dialog__confirm" aria-disabled={busy || confirmDisabled} aria-busy={busy} onClick={() => { if (!busy && !confirmDisabled) onConfirm() }}>{busy ? busyLabel : confirmLabel}</button>
     </div>
   </dialog>
 }
