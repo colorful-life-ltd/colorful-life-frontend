@@ -15,7 +15,7 @@ let current: ReturnType<typeof useCheckout>
 function Harness({ id = 41, token = 'customer' }: { id?: number; token?: string }) { const hook = useCheckout(token, 1, id); useEffect(() => { current = hook }, [hook]); return <p>{hook.phase}</p> }
 async function mount() { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root.render(<Harness />)) }
 const deferred = <T,>() => { let resolve!: (value: T) => void; const promise = new Promise<T>(done => { resolve = done }); return { promise, resolve } }
-beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/checkout/orders/41'); vi.mocked(getOrder).mockResolvedValue(order()); vi.mocked(preparePayment).mockResolvedValue('transient_secret') })
+beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/checkout/orders/41'); vi.mocked(getOrder).mockResolvedValue(order()); vi.mocked(preparePayment).mockResolvedValue('transient_secret') })
 afterEach(async () => { if (root) await act(async () => root.unmount()); document.body.innerHTML = ''; vi.useRealTimers() })
 
 describe('authoritative payment operations', () => {

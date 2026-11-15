@@ -39,7 +39,7 @@ async function openPayment() {
   await click('Resume existing Stripe checkout')
 }
 beforeEach(() => {
-  vi.resetAllMocks(); vi.useFakeTimers(); history.replaceState(null, '', '/checkout/orders/41'); sessionStorage.clear(); localStorage.clear(); localStorage.clear()
+  vi.resetAllMocks(); vi.useFakeTimers(); history.replaceState(null, '', '/checkout/orders/41'); sessionStorage.clear(); localStorage.clear()
   mocks.read.mockResolvedValue(pending); mocks.prepare.mockResolvedValue('pi_secret_same'); mocks.retrieve.mockResolvedValue({ paymentIntent: { status: 'requires_payment_method' } })
   cart = { items: [], isLoading: false, error: null, pendingItemIds: [], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
 })

@@ -35,7 +35,7 @@ async function register(email = 'new.customer@example.com') {
 }
 
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.clear()
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear()
   vi.mocked(signUp).mockResolvedValue(); vi.mocked(requestVerification).mockResolvedValue()
 })
 afterEach(async () => { if (root) await act(async () => root!.unmount()); root = null; document.body.innerHTML = '' })

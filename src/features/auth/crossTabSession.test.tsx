@@ -227,6 +227,88 @@ describe('rotation and refresh races', () => {
   })
 })
 
+/** Holds every /users/me request open until the test answers it; records which bearer each one carried. */
+function deferProfiles() {
+  const pending: { bearer: string | null; answer: (response: Response) => void }[] = []
+  fetcher.mockImplementation((url: string, init?: RequestInit) => String(url).endsWith('/users/me')
+    ? new Promise<Response>(answer => { pending.push({ bearer: new Headers(init?.headers).get('Authorization'), answer }) })
+    : Promise.resolve(json(404, {})))
+  return pending
+}
+const answer = async (request: { answer: (response: Response) => void }, response: Response) => { await act(async () => request.answer(response)); await settle() }
+
+describe('cross-tab changes while a profile check is pending', () => {
+  for (const order of ['new answer first', 'stale answer first'] as const) {
+    it(`a different sign-in elsewhere supersedes the pending check; the latest session is validated once (${order})`, async () => {
+      await mount(<AccountModal onClose={vi.fn()} />)
+      const pending = deferProfiles()
+      await otherTabSignsIn(1)
+      expect(auth.state.status).toBe('resolving')
+      await otherTabSignsIn(9, OTHER_LINEAGE)
+      expect(pending.map(request => request.bearer)).toEqual(['Bearer access-1', 'Bearer access-9'])
+      const [stale, latest] = pending
+      if (order === 'new answer first') { await answer(latest, json(200, user('other@example.com'))); await answer(stale, json(200, user())) }
+      else { await answer(stale, json(200, user())); expect(auth.state.status).toBe('resolving'); await answer(latest, json(200, user('other@example.com'))) }
+      expect(auth.state).toMatchObject({ status: 'authenticated', token: 'access-9', user: { email: 'other@example.com' } })
+      expect(container.textContent).toContain('Signed in as other@example.com')
+      await focus()
+      expect(calls('/users/me')).toHaveLength(2)
+    })
+  }
+
+  it('a sign-in elsewhere whose storage event is missed is caught up when the stale answer arrives, never attached to it', async () => {
+    await mount()
+    const pending = deferProfiles()
+    await otherTabSignsIn(1)
+    await otherTabSignsIn(9, OTHER_LINEAGE, true)
+    expect(pending).toHaveLength(1)
+    await answer(pending[0], json(200, user()))
+    // The stale answer is dropped and the stored (newer) session is validated without waiting for focus.
+    expect(pending.map(request => request.bearer)).toEqual(['Bearer access-1', 'Bearer access-9'])
+    expect(auth.state.status).toBe('resolving')
+    await focus()
+    expect(pending).toHaveLength(2)
+    await answer(pending[1], json(200, user('other@example.com')))
+    expect(auth.state).toMatchObject({ status: 'authenticated', token: 'access-9', user: { email: 'other@example.com' } })
+  })
+
+  it('a rejection of the superseded session never expires or clears the new one', async () => {
+    await mount(<AccountModal onClose={vi.fn()} />)
+    const pending = deferProfiles()
+    await otherTabSignsIn(1)
+    await otherTabSignsIn(9, OTHER_LINEAGE)
+    await answer(pending[0], json(401, { error: { code: 'SESSION_INVALID', message: 'Invalid or expired token' } }))
+    await answer(pending[1], json(200, user('other@example.com')))
+    expect(auth.state).toMatchObject({ status: 'authenticated', token: 'access-9' })
+    expect(JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY)!).token).toBe('access-9')
+    expect(container.querySelector('[role="alertdialog"]')).toBeNull()
+    expect(calls('/auth/refresh')).toHaveLength(0)
+  })
+
+  it('a rotation of the same sign-in during the check reuses it: one request, the new token is adopted', async () => {
+    await mount()
+    const pending = deferProfiles()
+    await otherTabSignsIn(1)
+    await otherTabSignsIn(2)
+    await focus()
+    expect(pending).toHaveLength(1)
+    await answer(pending[0], json(200, user()))
+    expect(auth.state).toMatchObject({ status: 'authenticated', token: 'access-2' })
+    expect(calls('/users/me')).toHaveLength(1)
+  })
+
+  it('a sign-out elsewhere during the check leaves the tab signed out; the late answer is ignored', async () => {
+    await mount()
+    const pending = deferProfiles()
+    await otherTabSignsIn(1)
+    await otherTabSignsOut()
+    expect(auth.state.status).toBe('signedOut')
+    await answer(pending[0], json(200, user()))
+    expect(auth.state.status).toBe('signedOut')
+    expect(pending).toHaveLength(1)
+  })
+})
+
 describe('browser restart and upgrade', () => {
   it('a persisted session is restored after a restart, with one profile check', async () => {
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(credential(1)))
@@ -250,5 +332,44 @@ describe('browser restart and upgrade', () => {
     expect(readSession()?.token).toBe('access-4')
     expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull()
     expect(JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY)!).token).toBe('access-4')
+  })
+
+  describe('deterministic precedence when both storage keys exist', () => {
+    it('legacy store with a record and a bare token: only the record moves; both legacy keys are removed', () => {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(bare(4)))
+      sessionStorage.setItem(AUTH_STORAGE_KEY, 'legacy-bare-token')
+      expect(readSession()?.token).toBe('access-4')
+      expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+      expect(sessionStorage.length).toBe(0)
+    })
+
+    it('legacy store with a malformed record: its bare-token sibling is not adopted', () => {
+      sessionStorage.setItem(SESSION_STORAGE_KEY, '{"token":"x","refreshToken":"too-short"}')
+      sessionStorage.setItem(AUTH_STORAGE_KEY, 'legacy-bare-token')
+      expect(readSession()).toBeNull(); expect(readSession()).toBeNull()
+      expect(localStorage.length).toBe(0); expect(sessionStorage.length).toBe(0)
+    })
+
+    it('any shared-store credential wins over the legacy one, whichever keys either holds', () => {
+      localStorage.setItem(AUTH_STORAGE_KEY, 'shared-bare-token')
+      sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(bare(4)))
+      expect(readSession()?.token).toBe('shared-bare-token')
+      expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull()
+      expect(sessionStorage.length).toBe(0)
+    })
+
+    it('shared store with a record and a leftover bare token: the record wins and the leftover is removed', () => {
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(credential(5)))
+      localStorage.setItem(AUTH_STORAGE_KEY, 'stale-bare-token')
+      expect(readSession()?.token).toBe('access-5')
+      expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    })
+
+    it('shared store with a malformed record never falls back to the bare token, on any read', () => {
+      localStorage.setItem(SESSION_STORAGE_KEY, 'not json')
+      localStorage.setItem(AUTH_STORAGE_KEY, 'stale-bare-token')
+      expect(readSession()).toBeNull(); expect(readSession()).toBeNull()
+      expect(localStorage.length).toBe(0)
+    })
   })
 })

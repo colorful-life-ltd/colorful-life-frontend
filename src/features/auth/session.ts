@@ -67,20 +67,38 @@ function publishExpiredSession() {
 const notify = () => listeners.forEach(listener => listener())
 const store = () => window.localStorage
 
+// Credential precedence, identical for the shared store and the legacy per-tab store:
+//   1. a session record (SESSION_STORAGE_KEY) takes precedence over a bare token (AUTH_STORAGE_KEY), which
+//      only ever exists alone (every write of one key removes the other), so a token beside a record is a
+//      leftover and is dropped;
+//   2. a malformed record is never repaired from its bare-token sibling: both are dropped (sign in again);
+//   3. a blank bare token counts as absent.
+function selectCredential(area: Storage): { key: string; value: string } | null {
+  const record = area.getItem(SESSION_STORAGE_KEY)
+  if (record !== null) {
+    let value: unknown
+    try { value = JSON.parse(record) } catch { return null }
+    try { parseSession(value, true) } catch { return null }
+    return { key: SESSION_STORAGE_KEY, value: record }
+  }
+  const token = area.getItem(AUTH_STORAGE_KEY)
+  return token?.trim() ? { key: AUTH_STORAGE_KEY, value: token } : null
+}
+
 // Sessions created before the shared store lived in per-tab sessionStorage: adopt one once, so a tab that
-// was signed in during deployment stays signed in. Never overwrites a newer shared session.
+// was signed in during deployment stays signed in. Any shared-store entry (even one that turns out to be
+// unusable) is newer than the per-tab one and wins; only the single credential selected above is moved;
+// both legacy keys are always removed.
 let legacyMigrated = false
 function migrateLegacySession() {
   if (legacyMigrated) return
   legacyMigrated = true
   try {
     const legacy = window.sessionStorage
-    const shared = store().getItem(SESSION_STORAGE_KEY) ?? store().getItem(AUTH_STORAGE_KEY)
-    for (const key of [SESSION_STORAGE_KEY, AUTH_STORAGE_KEY]) {
-      const value = legacy.getItem(key)
-      if (value && !shared) store().setItem(key, value)
-      legacy.removeItem(key)
-    }
+    const sharedPresent = store().getItem(SESSION_STORAGE_KEY) !== null || store().getItem(AUTH_STORAGE_KEY) !== null
+    const selected = sharedPresent ? null : selectCredential(legacy)
+    for (const key of [SESSION_STORAGE_KEY, AUTH_STORAGE_KEY]) legacy.removeItem(key)
+    if (selected) store().setItem(selected.key, selected.value)
   } catch { /* Storage unavailable: the visitor simply signs in again. */ }
 }
 
@@ -102,9 +120,11 @@ function readRecord(): StoredRecord | null {
       try {
         const session = parseSession(value, true)
         const lineage = (value as Record<string, unknown>).lineage
+        if (store().getItem(AUTH_STORAGE_KEY) !== null) store().removeItem(AUTH_STORAGE_KEY)
         return { session, lineage: typeof lineage === 'string' && LINEAGE.test(lineage) ? lineage : null }
       } catch {
         store().removeItem(SESSION_STORAGE_KEY)
+        store().removeItem(AUTH_STORAGE_KEY)
         return null
       }
     }
