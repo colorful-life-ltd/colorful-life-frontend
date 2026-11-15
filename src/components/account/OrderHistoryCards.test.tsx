@@ -38,7 +38,7 @@ const product = (id: number, images: { url: string; sortOrder: number }[]) => ({
 const settle = () => act(async () => { for (let i = 0; i < 5; i += 1) await new Promise(resolve => setTimeout(resolve, 0)) })
 
 beforeEach(() => {
-  vi.resetAllMocks(); resetOrderThumbnailCache(); sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/account/orders')
+  vi.resetAllMocks(); resetOrderThumbnailCache(); sessionStorage.clear(); localStorage.clear(); localStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/account/orders')
   vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'test@example.com', firstName: null, lastName: null, phone: null })
   fetcher = vi.fn(); vi.stubGlobal('fetch', fetcher); observed = []
 })

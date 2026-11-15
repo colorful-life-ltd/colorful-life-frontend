@@ -35,8 +35,8 @@ async function click(selector: string) {
   await act(async () => button!.click())
 }
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/?spread=front-matter')
-  sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/?spread=front-matter')
+  localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
   vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('matchMedia', () => ({ matches: true }))

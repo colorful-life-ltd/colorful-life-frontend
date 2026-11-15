@@ -78,7 +78,7 @@ describe('Stripe payment submission', () => {
     await vi.waitFor(() => expect(mocks.confirm).toHaveBeenCalledTimes(2))
     await act(async () => { await Promise.allSettled([getCurrentUser(session.token), getCurrentUser(session.token)]) })
 
-    expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).not.toBeNull()
+    expect(localStorage.getItem(SESSION_STORAGE_KEY)).not.toBeNull()
     expect(container.querySelector('[data-checkout-auth]')?.getAttribute('data-checkout-auth')).toBe('authenticated')
     expect(container.querySelectorAll('form')).toHaveLength(2)
     expect(container.querySelector('[role="alertdialog"]')).toBeNull()
@@ -86,12 +86,12 @@ describe('Stripe payment submission', () => {
     await act(async () => { confirmation[0].resolve({ paymentIntent: { status: 'succeeded' } }); confirmation[1].resolve({ paymentIntent: { status: 'succeeded' } }); await Promise.resolve() })
     await vi.waitFor(() => { expect(verify[0]).toHaveBeenCalledOnce(); expect(verify[1]).toHaveBeenCalledOnce() })
     await act(async () => { verification[0].resolve(); await Promise.resolve() })
-    expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).not.toBeNull()
+    expect(localStorage.getItem(SESSION_STORAGE_KEY)).not.toBeNull()
     expect(container.querySelector('[role="alertdialog"]')).toBeNull()
     await act(async () => { verification[1].resolve(); await Promise.resolve() })
 
     await vi.waitFor(() => expect(container.querySelector('[role="alertdialog"]')).not.toBeNull())
-    expect(sessionStorage.getItem(SESSION_STORAGE_KEY)).toBeNull()
+    expect(localStorage.getItem(SESSION_STORAGE_KEY)).toBeNull()
     expect(container.querySelectorAll('form')).toHaveLength(0)
     expect(container.querySelector('[data-checkout-auth]')?.getAttribute('data-checkout-auth')).toBe('signedOut')
   })

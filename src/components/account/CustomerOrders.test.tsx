@@ -35,7 +35,7 @@ async function click(text: string) {
 }
 async function navigate(path: string) { await act(async () => { history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')) }) }
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/account/orders')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/account/orders')
   vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'test@example.com', firstName: null, lastName: null, phone: null })
   fetcher = vi.fn((url: string) => {
     if (url === '/api/orders') return response([summary])
@@ -156,7 +156,7 @@ describe('Order Detail and resume', () => {
 
 describe('verified-only auth and owner-safe failure handling', () => {
   it.each(['/account/orders', '/account/orders/41'])('signed-out %s uses existing sign-in without querying orders', async path => {
-    sessionStorage.clear(); history.replaceState({}, '', path); await mount()
+    sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', path); await mount()
     expect(fetcher).not.toHaveBeenCalled(); expect(container.textContent).toContain('Please sign in')
     await click('Sign in'); expect(container.querySelector('[role="dialog"]')).not.toBeNull(); expect(container.querySelector('input[type="password"]')).not.toBeNull()
   })
@@ -173,7 +173,7 @@ describe('verified-only auth and owner-safe failure handling', () => {
   })
   it('handles session expiry through the existing Sign In flow', async () => {
     fetcher.mockImplementation(() => response({}, 401)); await mount(); await click('Sign in')
-    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull(); expect(container.querySelector('input[type="password"]')).not.toBeNull()
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull(); expect(container.querySelector('input[type="password"]')).not.toBeNull()
   })
   it('handles structured verification rejection even after authenticated profile restoration', async () => {
     fetcher.mockImplementation(() => response({ error: { code: 'EMAIL_VERIFICATION_REQUIRED', message: 'Changed wording' } }, 403))

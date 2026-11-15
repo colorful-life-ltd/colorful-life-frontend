@@ -1,3 +1,4 @@
+/// <reference types="vitest/config" />
 import { createHash } from 'node:crypto'
 import react from '@vitejs/plugin-react'
 import { defineConfig, loadEnv } from 'vite'
@@ -30,5 +31,7 @@ export default defineConfig(({ command, mode }) => {
     server: {
     proxy: { '/api': { target: 'http://localhost:3000', changeOrigin: true, rewrite: (path) => path.replace(/^\/api/, '') } },
   },
+    // Each test starts like a fresh browser profile: the shared session store must not leak between tests.
+    test: { setupFiles: ['./src/test/resetBrowserSession.ts'] },
   }
 })

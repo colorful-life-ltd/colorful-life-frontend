@@ -64,8 +64,12 @@ export function AccountModalCloseButton({ onClose, closeRef }: { onClose: () => 
 export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialAuthMode = 'signin', focusSignIn = false }: { onClose: () => void; onSignOut?: () => void; initialView?: 'hub' | 'personal'; initialAuthMode?: AccountFormsMode; focusSignIn?: boolean }) {
   const closeRef = useRef<HTMLButtonElement>(null)
   const previousStatus = useRef<string | undefined>(undefined)
-  const { state, logout } = useAuth()
+  const { state, logout, validateSession } = useAuth()
   const [view, setView] = useState<'hub' | 'personal'>(initialView)
+  // Opening the account dialog re-checks a stored session (possibly signed in from another tab) with the
+  // server, so My Account is shown only for a valid session and the sign-in form only when there is none.
+  const validateOnOpen = useRef(validateSession)
+  useEffect(() => { validateOnOpen.current?.() }, [])
   // Parents pass a new onClose on every render; keep it in a ref so initial focus is set once and
   // never pulled back to the close button when the dialog's content (and its focus target) changes.
   const onCloseRef = useRef(onClose)
@@ -95,7 +99,8 @@ export function AccountModal({ onClose, onSignOut, initialView = 'hub', initialA
       <section className={`account-modal__surface${state.status === 'authenticated' ? activeView === 'personal' ? ' account-modal__surface--personal' : ' account-modal__surface--hub' : state.status === 'verificationRequired' || state.status === 'verificationPending' ? ' account-modal__surface--verification' : ''}`}>
         <AccountModalCloseButton closeRef={closeRef} onClose={onClose} />
         <h1 id="account-modal-title" className="account-modal__accessible-title">My Account</h1>
-        {state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onSignOut?.(); onClose() }} /> : <AccountForms initialMode={initialAuthMode} onExplore={onClose} />}
+        {state.status === 'resolving' ? <section className="verification-notice" aria-live="polite"><p role="status">Restoring your account…</p></section>
+          : state.status === 'authenticated' ? activeView === 'personal' ? <PersonalInformation onBack={() => setView('hub')} /> : <AuthenticatedAccountHub email={state.user.email} onOpenAccount={() => setView('personal')} onOpenOrders={() => { onClose(); navigateCheckout('/account/orders') }} onSignOut={() => { logout(); onSignOut?.(); onClose() }} /> : <AccountForms initialMode={initialAuthMode} onExplore={onClose} />}
       </section>
     </div>
   )

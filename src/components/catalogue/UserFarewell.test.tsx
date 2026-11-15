@@ -28,7 +28,7 @@ async function signOut() { await openAccount(); await act(async () => signOutBut
 
 beforeEach(async () => {
   vi.useFakeTimers()
-  vi.resetAllMocks(); sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt'); history.replaceState({}, '', '/?spread=front-matter')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt'); history.replaceState({}, '', '/?spread=front-matter')
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('matchMedia', () => ({ matches: true }))
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 0 })
@@ -44,7 +44,7 @@ afterEach(async () => { await act(async () => root.unmount()); document.body.inn
 it('clears the session immediately, then the character says farewell for about three seconds', async () => {
   await signOut()
   // Authentication is invalidated before, and independently of, the cosmetic message.
-  expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+  expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
   expect(document.querySelector('.account-modal')).toBeNull()
   expect(bubble()?.textContent).toBe(USER_FAREWELL_MESSAGE)
   expect(bubble()?.getAttribute('role')).toBe('status')

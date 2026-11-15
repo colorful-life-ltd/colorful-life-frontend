@@ -42,7 +42,7 @@ beforeEach(() => {
     return new Promise<Response>(() => {})
   })
   vi.stubGlobal('fetch', fetchMock)
-  sessionStorage.clear()
+  sessionStorage.clear(); localStorage.clear()
 })
 afterEach(async () => { await act(async () => root?.unmount()); document.body.innerHTML = ''; vi.unstubAllGlobals(); vi.restoreAllMocks() })
 

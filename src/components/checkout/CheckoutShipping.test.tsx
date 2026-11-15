@@ -31,7 +31,7 @@ const radio = (code: string) => container.querySelector<HTMLInputElement>(`input
 async function choose(code: 'STANDARD' | 'EXPRESS') { await act(async () => radio(code).click()) }
 const text = () => container.textContent ?? ''
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/checkout')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/checkout')
   mocks.shipping.mockResolvedValue(shippingOptionsFixture); mocks.addresses.mockResolvedValue(addresses)
   mocks.read.mockImplementation(async () => ({ ...order, paymentWindow: windowFixture(mocks.prepare.mock.calls.length ? 'CHECKOUT_RESUMABLE' : 'INITIAL_PAYMENT') }))
   mocks.prepare.mockResolvedValue('secret')

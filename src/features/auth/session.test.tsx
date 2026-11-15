@@ -45,7 +45,7 @@ async function click(text: string) {
 beforeEach(() => {
   Object.defineProperty(HTMLDialogElement.prototype, 'showModal', { configurable: true, value(this: HTMLDialogElement) { this.setAttribute('open', '') } })
   Object.defineProperty(HTMLDialogElement.prototype, 'close', { configurable: true, value(this: HTMLDialogElement) { this.removeAttribute('open') } })
-  clearStoredToken(); sessionStorage.clear(); history.replaceState({}, '', '/')
+  clearStoredToken(); sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/')
   fetcher = vi.fn((url: string) => {
     if (url === '/api/users/me') return Promise.resolve(result(user))
     if (url === '/api/auth/logout') return Promise.resolve(new Response(null, { status: 204 }))
@@ -118,7 +118,7 @@ describe('real provider session restoration', () => {
   it('shows one expiry dialog when sessionStorage is cleared while signed in and focus returns', async () => {
     storeSession(original); await mount(true)
     expect(auth.state.status).toBe('authenticated')
-    sessionStorage.clear()
+    sessionStorage.clear(); localStorage.clear()
     await act(async () => window.dispatchEvent(new Event('focus')))
     expect(auth.state).toMatchObject({ status: 'signedOut', reason: 'expired' })
     expect(container.querySelectorAll('[role="alertdialog"]')).toHaveLength(1)
@@ -142,7 +142,7 @@ describe('real provider session restoration', () => {
     storeSession(original); history.replaceState({}, '', '/account/orders/41')
     fetcher.mockImplementation((url: string) => url === '/api/auth/logout' ? Promise.resolve(new Response(null, { status: 204 })) : Promise.resolve(result(url === '/api/users/me' ? user : [])))
     await mount(true)
-    sessionStorage.clear()
+    sessionStorage.clear(); localStorage.clear()
     await act(async () => window.dispatchEvent(new Event('focus')))
     await click('OK')
     expect(location.pathname).toBe('/')
@@ -152,7 +152,7 @@ describe('real provider session restoration', () => {
   })
   it('never sends an in-memory token after its sessionStorage entry disappears', async () => {
     storeSession(original); await mount()
-    sessionStorage.clear()
+    sessionStorage.clear(); localStorage.clear()
     let response = ''
     await act(async () => { response = await authenticatedFetch('/api/private-read', { method: 'GET' }, original.token).then(() => 'sent', () => 'blocked') })
     expect(response).toBe('blocked')
@@ -165,7 +165,7 @@ describe('real provider session restoration', () => {
       : new Headers(init.headers).get('Authorization') === `Bearer ${replacement.token}` ? result(user) : rejected())
     await getCurrentUser(original.token)
     const callsBeforeStorageLoss = fetcher.mock.calls.length
-    sessionStorage.clear()
+    sessionStorage.clear(); localStorage.clear()
     await getCurrentUser(original.token).catch(() => undefined)
     expect(fetcher.mock.calls).toHaveLength(callsBeforeStorageLoss)
   })
@@ -175,7 +175,7 @@ describe('real provider session restoration', () => {
     await act(async () => auth.authenticate('signin', { email: user.email, password: 'Synthetic-test-password' }))
     expect(auth.state.status).toBe('authenticated')
     expect(readSession()?.refreshToken === original.refreshToken).toBe(true)
-    expect(Boolean(sessionStorage.getItem(SESSION_STORAGE_KEY))).toBe(true)
+    expect(Boolean(localStorage.getItem(SESSION_STORAGE_KEY))).toBe(true)
     expect(Object.keys(readSession() ?? {}).sort()).toEqual(['accessTokenExpiresAt', 'refreshExpiresAt', 'refreshToken', 'token'])
     await act(async () => root!.unmount()); root = undefined
     await mount(); expect(auth.state.status).toBe('authenticated')

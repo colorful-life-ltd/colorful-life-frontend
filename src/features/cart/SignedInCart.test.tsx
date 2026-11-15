@@ -33,7 +33,7 @@ async function mount() {
 }
 async function click(selector: string) { await act(async () => container.querySelector<HTMLButtonElement>(selector)!.click()) }
 beforeEach(() => {
-  vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/?spread=front-matter')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/?spread=front-matter')
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('matchMedia', () => ({ matches: true }))
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 0 })
@@ -45,7 +45,7 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); document.body.innerHTML = ''; vi.unstubAllGlobals() })
 describe('signed-in cart regardless of email verification', () => {
   it.each(['verified', 'unverified'])('%s customer hydrates, adds, opens and mutates their cart', async verification => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+    localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
     if (verification === 'verified') vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
     else vi.mocked(getCurrentUser).mockRejectedValue(new AuthApiError(403, 'Verify', undefined, 'EMAIL_VERIFICATION_REQUIRED'))
     await mount()
@@ -67,7 +67,7 @@ describe('signed-in cart regardless of email verification', () => {
       expect(container.textContent).toContain('Resend verification email')
     }
     await act(async () => auth.logout())
-    expect(auth.state.status).toBe('signedOut'); expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
+    expect(auth.state.status).toBe('signedOut'); expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull()
     expect(cart.items).toEqual([])
   })
   it('keeps guests out of persistent cart operations and shows the existing sign-in hint', async () => {
@@ -80,7 +80,7 @@ describe('signed-in cart regardless of email verification', () => {
 
 describe('authoritative cart refresh and allocation mutations', () => {
   async function signIn() {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+    localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
     await mount()
   }
@@ -151,7 +151,7 @@ describe('authoritative cart refresh and allocation mutations', () => {
 
 describe('new allocation-aware addition', () => {
   it('adds one new unit without sending or detaching existing allocated quantities', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+    localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
     const lowStock = cartListing(offer(42, { availableStock: 1 }))
     vi.mocked(getCart).mockResolvedValue({ items: [{ productListingId: 42, productListing: lowStock, quantity: 2, allocatedQuantity: 2, unallocatedQuantity: 0 }] })
@@ -166,7 +166,7 @@ describe('new allocation-aware addition', () => {
 
 describe('stock-blocked allocation reduction persistence', () => {
   it('PATCHes the allocated-only target and retains its provenance from the backend response', async () => {
-    sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+    localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
     vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.com', firstName: null, lastName: null, phone: null })
     const before = { ...populated.items[0], quantity: 3, allocatedQuantity: 1, unallocatedQuantity: 2, availability: { status: 'OUT_OF_STOCK' as const, reason: 'OUT_OF_STOCK', availableQuantity: 0 } }
     const after = { ...before, quantity: 1, unallocatedQuantity: 0, availability: { status: 'UNAVAILABLE' as const, reason: 'CART_QUANTITY_ALLOCATED', availableQuantity: 0 } }
@@ -185,7 +185,7 @@ describe('stock-blocked allocation reduction persistence', () => {
 })
 
 it('reports success only for committed adds and stays silent for failed or blocked adds',async()=>{
- sessionStorage.setItem(AUTH_STORAGE_KEY,'customer-jwt');vi.mocked(getCurrentUser).mockResolvedValue({id:1,email:'test@example.invalid',firstName:null,lastName:null,phone:null});await mount()
+ localStorage.setItem(AUTH_STORAGE_KEY,'customer-jwt');vi.mocked(getCurrentUser).mockResolvedValue({id:1,email:'test@example.invalid',firstName:null,lastName:null,phone:null});await mount()
  await act(async()=>{expect(await cart.addListing(offer(42))).toBe(true)})
  vi.mocked(addCartItem).mockRejectedValueOnce(new Error('synthetic failure'))
  await act(async()=>{expect(await cart.addListing(offer(43))).toBe(false)})

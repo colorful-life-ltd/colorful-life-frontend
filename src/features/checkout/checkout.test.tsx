@@ -21,7 +21,7 @@ let root: Root
 let current: ReturnType<typeof useCheckout>
 function Harness({ id = null }: { id?: number | null }) { const value = useCheckout('token', 1, id); useEffect(() => { current = value }, [value]); return <p>{value.phase}</p> }
 async function mount(element: ReactNode) { const container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root.render(element)); return container }
-beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); window.history.replaceState({}, '', '/checkout'); vi.mocked(getOrder).mockImplementation(async () => ({ ...pendingOrder, paymentWindow: windowFixture(vi.mocked(preparePayment).mock.calls.length ? 'CHECKOUT_RESUMABLE' : 'INITIAL_PAYMENT') })) })
+beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); window.history.replaceState({}, '', '/checkout'); vi.mocked(getOrder).mockImplementation(async () => ({ ...pendingOrder, paymentWindow: windowFixture(vi.mocked(preparePayment).mock.calls.length ? 'CHECKOUT_RESUMABLE' : 'INITIAL_PAYMENT') })) })
 afterEach(async () => { if (root) await act(async () => root.unmount()); vi.useRealTimers(); document.body.innerHTML = '' })
 
 describe('checkout address, identity and recovery rules', () => {

@@ -16,7 +16,7 @@ let root: Root
 let container: HTMLDivElement
 async function mount() { container = document.createElement('div'); document.body.append(container); root = createRoot(container); await act(async () => root.render(<Checkout onAccount={vi.fn()} />)) }
 async function click(text: string) { await act(async () => [...container.querySelectorAll('button')].find(b => b.textContent === text)!.click()) }
-beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); history.replaceState({}, '', '/checkout/orders/41'); mocks.prepare.mockResolvedValue('secret') })
+beforeEach(() => { vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/checkout/orders/41'); mocks.prepare.mockResolvedValue('secret') })
 afterEach(async () => { if (root) await act(async () => root.unmount()); document.body.innerHTML = '' })
 const states: PaymentWindow['state'][] = ['INITIAL_PAYMENT', 'CHECKOUT_RESUMABLE', 'PROCESSING', 'OUTCOME_UNRESOLVED', 'RETRY_AVAILABLE', 'RETRY_REQUIRES_PROVIDER_CHECK', 'PAID', 'NOT_PAYABLE']
 describe('payment window customer presentation', () => {

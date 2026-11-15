@@ -86,13 +86,15 @@ describe('storefront auth API', () => {
     expect((fetcher.mock.calls[0][1].headers as Headers).get('Authorization')).toBe('Bearer jwt-token')
   })
 
-  it('uses the project-scoped session storage key', () => {
-    const storage = { setItem: vi.fn(), removeItem: vi.fn(), getItem: vi.fn() }
-    vi.stubGlobal('window', { sessionStorage: storage })
+  it('uses the project-scoped key in the browser-wide store, never per-tab sessionStorage', () => {
+    const storage = { setItem: vi.fn(), removeItem: vi.fn(), getItem: vi.fn(() => null) }
+    const perTab = { setItem: vi.fn(), removeItem: vi.fn(), getItem: vi.fn(() => null) }
+    vi.stubGlobal('window', { localStorage: storage, sessionStorage: perTab })
     storeToken('jwt-token')
     clearStoredToken()
     expect(storage.setItem).toHaveBeenCalledWith(AUTH_STORAGE_KEY, 'jwt-token')
     expect(storage.removeItem).toHaveBeenCalledWith(AUTH_STORAGE_KEY)
+    expect(perTab.setItem).not.toHaveBeenCalled()
   })
 })
 

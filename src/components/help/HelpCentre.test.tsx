@@ -15,7 +15,7 @@ vi.mock('../../features/catalogue/useCatalogueCategories', () => ({ useCatalogue
 let root: Root | undefined
 let container: HTMLDivElement
 beforeEach(() => {
-  sessionStorage.clear(); history.replaceState({}, '', '/help')
+  sessionStorage.clear(); localStorage.clear(); history.replaceState({}, '', '/help')
   vi.stubGlobal('matchMedia', () => ({ matches: true }))
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { callback(0); return 0 })

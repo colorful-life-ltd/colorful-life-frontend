@@ -32,7 +32,7 @@ const card = (id: number) => container.querySelector<HTMLElement>(`[data-cart-li
 const greyed = (id: number) => card(id).classList.contains('cart-item--unavailable')
 
 beforeEach(async () => {
-  vi.resetAllMocks(); sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
+  vi.resetAllMocks(); sessionStorage.clear(); localStorage.clear(); localStorage.setItem(AUTH_STORAGE_KEY, 'customer-jwt')
   vi.mocked(getCurrentUser).mockResolvedValue({ id: 1, email: 'customer@example.invalid', firstName: null, lastName: null, phone: null })
   vi.mocked(getCart).mockResolvedValue({ items: [reserved] })
   vi.mocked(addCartItem).mockResolvedValue({ items: [reserved, fresh] })

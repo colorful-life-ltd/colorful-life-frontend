@@ -39,7 +39,7 @@ async function click(text: string) {
 const orderCalls = () => fetcher.mock.calls.filter(([url]) => url === '/api/orders')
 beforeEach(() => {
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
-  verified = true; ambiguous = false; sessionStorage.clear(); sessionStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/checkout')
+  verified = true; ambiguous = false; sessionStorage.clear(); localStorage.clear(); localStorage.setItem(AUTH_STORAGE_KEY, 'jwt'); history.replaceState({}, '', '/checkout')
   cart = { items: [{ productListingId: 16901, listing: cartListing(offer(16901)), quantity: 2 }], isLoading: false, error: null, pendingItemIds: [], refreshCart: vi.fn().mockResolvedValue(undefined), addListing: vi.fn(), updateQuantity: vi.fn(), removeItem: vi.fn() }
   fetcher = vi.fn((url: string) => {
     if (url === '/api/users/me') return verified ? response(user) : required()
@@ -104,7 +104,7 @@ describe('email verification and preserved checkout integration', () => {
     await act(async () => root!.unmount()); root = null; await mount()
     expect(container.textContent).toContain('Verify your email'); expect(container.textContent).toContain('Resend verification email')
     expect(container.textContent).not.toContain('Retry saved order request'); expect(container.textContent).not.toContain('response was lost')
-    expect(readAttempt(1)).toEqual(saved); expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBe('jwt'); expect(orderCalls()).toHaveLength(1)
+    expect(readAttempt(1)).toEqual(saved); expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBe('jwt'); expect(orderCalls()).toHaveLength(1)
   })
   it('preserves the genuinely ambiguous response messaging and identity', async () => {
     await mount(); ambiguous = true; await chooseShipping(); await click('Create order')
