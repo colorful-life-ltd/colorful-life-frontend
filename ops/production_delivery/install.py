@@ -6,11 +6,11 @@ from pathlib import Path
 import artifact,primitives,assets
 ROOT=Path('/opt/colorful-life-production/storefront')
 BUCKET='colorful-life-production-storefront-919693204623'
-# Frontend source approved for new Production releases (email-only registration + account deletion UI).
-REVISION='fbc860a33b0daf31aad9b1c1667032098dd87e32'
+# Frontend source approved for new Production releases (reviewed cross-tab authentication fix).
+REVISION='14822c66d5563ceb21d219da16807bbc93f470aa'
 # Every source revision whose retained releases may stay current or be rolled back to.
-# 69ccd28 = the R0/R1 releases already published. Only REVISION is ever staged.
-APPROVED_REVISIONS=frozenset({'69ccd28e0c3e2e3663f3f39564bbbd33f811b605',REVISION})
+# Retain R0/R1 (69ccd28) and the current Production release (fbc860a). Only REVISION is staged.
+APPROVED_REVISIONS=frozenset({'69ccd28e0c3e2e3663f3f39564bbbd33f811b605','fbc860a33b0daf31aad9b1c1667032098dd87e32',REVISION})
 # The Backend REVISION needs (email-only POST /auth/signup, backend #242). The running image must also be
 # immutable, match the root-pinned release record and be allowlisted by the compatibility guard.
 REQUIRED_BACKEND_COMMIT='045143ee18f2c9a70c5cdd15391aba6a9c21433a'

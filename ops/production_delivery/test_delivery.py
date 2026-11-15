@@ -5,6 +5,23 @@ from unittest.mock import patch
 import artifact,assets,build,install,template,upload
 KEY='pk_live_offlineSyntheticOnly12345';FP=hashlib.sha256(KEY.encode()).hexdigest()
 
+class SourcePins(unittest.TestCase):
+ def test_exact_reviewed_source_and_retained_allowlist(self):
+  revision='14822c66d5563ceb21d219da16807bbc93f470aa'
+  self.assertEqual(build.REVISION,revision);self.assertEqual(install.REVISION,revision)
+  self.assertEqual(install.APPROVED_REVISIONS,{revision,'fbc860a33b0daf31aad9b1c1667032098dd87e32','69ccd28e0c3e2e3663f3f39564bbbd33f811b605'})
+ def test_workflow_pins_checkout_confirmation_and_ci_to_same_source(self):
+  text=(Path(__file__).parents[2]/'.github/workflows/production-storefront-manual.yml').read_text()
+  for fragment in ["inputs.confirm_revision == '"+build.REVISION+"'",'ref: '+build.REVISION,'head_sha='+build.REVISION,".head_sha == \""+build.REVISION+"\""]:
+   self.assertIn(fragment,text)
+  self.assertNotIn('fbc860a33b0daf31aad9b1c1667032098dd87e32',text)
+ def test_rendered_ssm_embeds_exact_updated_installer(self):
+  import base64,gzip,re
+  commands=template.template()['Resources']['Delivery']['Properties']['Content']['mainSteps'][0]['inputs']['runCommand']
+  line=next(line for line in commands if '$tmp/install.py"' in line and 'base64 -d' in line)
+  encoded=re.search(r"printf '%s' '([^']+)'",line).group(1)
+  self.assertEqual(gzip.decompress(base64.b64decode(encoded)),Path(install.__file__).read_bytes())
+
 class ApprovedPin(unittest.TestCase):
  def test_owner_approved_fingerprint_accepted(self):
   approved='16bbd85ded5b67606c6f68b974244e46a9cc6616ca00ca7b1401168b49c68f23'
@@ -54,6 +71,27 @@ class Delivery(unittest.TestCase):
  def deploy(self,check=lambda _:True):
   a,d=self.archive('candidate',True)
   return d,install.transition(self.store,'deploy','url',d,FP,self.fetch(a),check)
+ def retained_rollback(self,revision):
+  # Model an existing, historically approved release without restaging it as the new source.
+  with patch.object(build,'REVISION',revision),patch.object(install,'REVISION',revision):old=self.prepare()
+  self.assertEqual(self.store.verify(old)['sourceRevision'],revision)
+  new,_=self.deploy();self.assertEqual(self.store.live(),new)
+  install.transition(self.store,'rollback',check=lambda _:True)
+  self.assertEqual(self.store.live(),old);self.assertEqual(self.store.verify(old)['sourceRevision'],revision)
+ def test_current_production_source_remains_a_verified_rollback(self):
+  self.retained_rollback('fbc860a33b0daf31aad9b1c1667032098dd87e32')
+ def test_r0_r1_source_remains_a_verified_rollback(self):
+  self.retained_rollback('69ccd28e0c3e2e3663f3f39564bbbd33f811b605')
+ def test_new_staging_rejects_legacy_and_unapproved_sources(self):
+  for revision in ['fbc860a33b0daf31aad9b1c1667032098dd87e32','69ccd28e0c3e2e3663f3f39564bbbd33f811b605','a'*40]:
+   with patch.object(build,'REVISION',revision):a,d=self.archive(revision,True)
+   with self.subTest(revision=revision),self.assertRaisesRegex(artifact.GateError,'approval differs'):
+    self.store.stage('url',d,FP,True,self.fetch(a))
+   self.assertFalse((self.store.releases/d).exists())
+ def test_retained_unknown_revision_cannot_be_used_for_rollback(self):
+  unknown='a'*40
+  with patch.object(build,'REVISION',unknown),patch.object(install,'REVISION',unknown),patch.object(install,'APPROVED_REVISIONS',install.APPROVED_REVISIONS|{unknown}):old=self.prepare()
+  with self.assertRaisesRegex(artifact.GateError,'identity differs'):self.store.verify(old)
  def test_production_baseline_and_deploy_rollback(self):
   old=self.prepare();new,result=self.deploy();self.assertEqual(result,'COMMITTED')
   self.assertEqual(self.store.live(),new)
