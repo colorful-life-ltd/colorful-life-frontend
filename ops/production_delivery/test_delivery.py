@@ -73,8 +73,11 @@ class Delivery(unittest.TestCase):
   return d,install.transition(self.store,'deploy','url',d,FP,self.fetch(a),check)
  def retained_rollback(self,revision):
   # Model an existing, historically approved release without restaging it as the new source.
-  with patch.object(build,'REVISION',revision),patch.object(install,'REVISION',revision):old=self.prepare()
+  with patch.object(build,'REVISION',revision),patch.object(install,'REVISION',revision):
+   a,old=self.archive('retained',True)
+   self.store.stage('url',old,FP,True,self.fetch(a));self.store.point(old);self.store.save({'current':old,'history':[]})
   self.assertEqual(self.store.verify(old)['sourceRevision'],revision)
+  self.assertTrue(self.store.verify(old)['registrationEnabled'])
   new,_=self.deploy();self.assertEqual(self.store.live(),new)
   install.transition(self.store,'rollback',check=lambda _:True)
   self.assertEqual(self.store.live(),old);self.assertEqual(self.store.verify(old)['sourceRevision'],revision)
